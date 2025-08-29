@@ -1,3 +1,83 @@
+# VS Code Extension Packaging Ignore Rules
+
+# Source files (only dist should be included)
+src/**
+!src/webview/**/*.css
+!src/webview/**/*.js
+
+# TypeScript configuration
+tsconfig.json
+tsconfig.*.json
+
+# Build outputs to ignore
+out/
+.vscode-test/
 **/*.map
-.vscode-test/**
+
+# Development dependencies and configuration
+node_modules/
+.gitignore
+.github/
+.kiro/
+
+# Test files
+**/test/**
+**/*.test.ts
+**/*.test.js
 coverage/
+
+# Development tools
+.eslintrc.json
+.eslintignore
+webpack.config.js
+.nyc_output/
+
+# Documentation (keep only essential files)
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+docs/
+.vscode/
+.env*
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+
+# Git files
+.git/
+.gitattributes
+
+# Package manager files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Temporary files
+*.swp
+*.swo
+*~
+.tmp/
+
+# Image source files (keep only optimized versions)
+images/src/
+images/*.psd
+images/*.ai
+images/*.sketch
+
+# Keep only essential files for marketplace
+!README.md
+!CHANGELOG.md
+!LICENSE
+!SECURITY.md
+!package.json
+!dist/**
+!images/icon.png
+!images/demo.gif
+!images/screenshot-*.png
