@@ -1,122 +1,237 @@
-# ForgeFlow.Vscode
-=======
 # Azure DevOps PR Code Reviewer
 
-An AI-powered VSCode extension that automatically reviews pull requests in Azure DevOps using advanced language models.
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Marketplace-blue?logo=visual-studio-code)](https://marketplace.visualstudio.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](package.json)
 
-## Features
+An AI-powered VS Code extension that automatically reviews Azure DevOps pull requests using advanced language models. Get intelligent code review feedback with customizable instructions and seamless integration with your development workflow.
 
-- 🤖 **AI-Powered Code Review**: Leverages VS Code's Language Model API for intelligent code analysis
-- 🔐 **Secure Authentication**: Uses Personal Access Tokens stored securely in VS Code
-- 📝 **Customizable Instructions**: Configure custom review criteria and focus areas
-- 🚀 **Batch Processing**: Efficiently handles large pull requests with configurable batch sizes
-- 💬 **Interactive Comments**: Preview and edit AI-generated comments before posting
-- ⚡ **Performance Optimized**: Smart caching and request throttling for optimal performance
+![Extension Demo](images/demo.gif)
 
-## Requirements
-````markdown
-# ForgeFlow.Vscode — Azure DevOps PR Code Reviewer
+## ✨ Features
 
-An AI-powered VS Code extension that automatically reviews pull requests in Azure DevOps using advanced language models.
+- 🤖 **AI-Powered Code Review**: Leverages VS Code's Language Model API (GitHub Copilot, etc.) for intelligent analysis
+- 🔐 **Secure Authentication**: Personal Access Tokens stored securely using VS Code Secret Storage
+- 📝 **Customizable Instructions**: Configure review criteria, focus areas, and coding standards
+- 🚀 **Batch Processing**: Efficiently handles large PRs with configurable parallel processing
+- 💬 **Interactive Preview**: Review, edit, and approve AI-generated comments before posting
+- ⚡ **Performance Optimized**: Smart caching, request throttling, and memory management
+- 🎯 **Targeted Analysis**: Focus on changed code with intelligent diff parsing
+- 📊 **Progress Tracking**: Real-time progress indicators for long-running analyses
+- 🛡️ **Error Recovery**: Robust error handling and retry mechanisms
 
-## Features
+## 📋 Requirements
 
-- 🤖 **AI-Powered Code Review**: Leverages VS Code's Language Model API for intelligent code analysis
-- 🔐 **Secure Authentication**: Uses Personal Access Tokens stored securely in VS Code
-- 📝 **Customizable Instructions**: Configure custom review criteria and focus areas
-- 🚀 **Batch Processing**: Efficiently handles large pull requests with configurable batch sizes
-- 💬 **Interactive Comments**: Preview and edit AI-generated comments before posting
-- ⚡ **Performance Optimized**: Smart caching and request throttling for optimal performance
+- **VS Code**: Version 1.74.0 or higher
+- **Azure DevOps**: Account with appropriate permissions
+- **Personal Access Token**: With the following scopes:
+  - Code (read)
+  - Pull Request (read & write)
+- **Language Model**: Access to VS Code Language Model API (e.g., GitHub Copilot)
 
-## Requirements
+## 🚀 Getting Started
 
-- VS Code 1.74.0 or higher
-- Azure DevOps account with appropriate permissions
-- Personal Access Token with Code (read) and Pull Request (read/write) permissions
+### Step 1: Install the Extension
 
-## Getting Started
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/) or search for "Azure DevOps PR Code Reviewer" in the Extensions view.
 
-### 1. Installation
+### Step 2: Create a Personal Access Token
 
-Install the extension from the VS Code Marketplace or install from VSIX file.
+1. Go to your Azure DevOps organization
+2. Navigate to **User Settings** → **Personal Access Tokens**
+3. Click **New Token**
+4. Set appropriate expiration and scopes:
+   - ✅ **Code (read)**
+   - ✅ **Pull Request (read & write)**
+5. Copy the generated token
 
-### 2. Configuration
+### Step 3: Configure the Extension
 
-1. Open VS Code Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`)
-2. Run `Azure DevOps PR Reviewer: Configure Azure DevOps PR Reviewer`
-3. Enter your Azure DevOps organization URL (e.g., `https://dev.azure.com/myorg`)
-4. Provide your Personal Access Token
+1. Open VS Code Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. Run **"Azure DevOps PR Reviewer: Configure"**
+3. Enter your Azure DevOps organization URL:
+   ```
+   https://dev.azure.com/your-organization
+   ```
+4. Paste your Personal Access Token
 5. Optionally set a default project name
 
-### 3. Usage
+### Step 4: Start Reviewing!
 
 1. Open Command Palette
-2. Run `Azure DevOps PR Reviewer: Analyze Pull Request`
-3. Select the pull request you want to analyze
-4. Review and edit the AI-generated comments
-5. Post approved comments to Azure DevOps
+2. Run **"Azure DevOps PR Reviewer: Analyze Pull Request"** (`Ctrl+Shift+A` / `Cmd+Shift+A`)
+3. Select a pull request from the list
+4. Wait for AI analysis to complete
+5. Review the generated comments in the preview
+6. Edit, approve, or remove comments as needed
+7. Post approved comments to Azure DevOps
 
-## Commands
+## 🎮 Commands & Shortcuts
 
-- `Azure DevOps PR Reviewer: Configure` - Set up your Azure DevOps connection and preferences
-- `Azure DevOps PR Reviewer: Analyze Pull Request` - Start analyzing a pull request
-- `Azure DevOps PR Reviewer: Select Language Model` - Choose your preferred AI model
+| Command | Shortcut | Description |
+|---------|----------|-------------|
+| `Azure DevOps PR Reviewer: Configure` | - | Set up Azure DevOps connection and preferences |
+| `Azure DevOps PR Reviewer: Analyze Pull Request` | `Ctrl+Shift+A` | Start analyzing a pull request |
+| `Azure DevOps PR Reviewer: Quick Analyze PR by ID` | `Ctrl+Shift+Q` | Analyze a specific PR by ID |
+| `Azure DevOps PR Reviewer: Select Language Model` | - | Choose your preferred AI model |
+| `Azure DevOps PR Reviewer: Test Connection` | - | Verify your Azure DevOps connection |
+| `Azure DevOps PR Reviewer: Show Status` | - | View extension status and diagnostics |
 
-## Configuration Options
+## ⚙️ Configuration
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| `azdo-pr-reviewer.organizationUrl` | Azure DevOps organization URL | - |
-| `azdo-pr-reviewer.defaultProject` | Default project name (optional) | - |
-| `azdo-pr-reviewer.selectedModel` | Preferred language model | `gpt-4` |
-| `azdo-pr-reviewer.customInstructions` | Custom review instructions | Default quality-focused instructions |
-| `azdo-pr-reviewer.batchSize` | Number of files to process in parallel | `10` |
-| `azdo-pr-reviewer.enableTelemetry` | Enable usage telemetry | `true` |
+Access settings via **File** → **Preferences** → **Settings** → Search for "Azure DevOps PR Reviewer"
 
-## Development
+### Core Settings
+
+| Setting | Description | Default | Type |
+|---------|-------------|---------|------|
+| `organizationUrl` | Azure DevOps organization URL | - | `string` |
+| `defaultProject` | Default project name (optional) | - | `string` |
+| `selectedModel` | Preferred language model | `"gpt-4"` | `enum` |
+| `customInstructions` | Custom review instructions | See below | `string` |
+| `batchSize` | Files to process in parallel | `10` | `number` |
+| `enableTelemetry` | Enable usage telemetry | `true` | `boolean` |
+
+### Default Custom Instructions
+
+```
+Focus on code quality, security vulnerabilities, performance issues, and maintainability. 
+Provide specific suggestions for improvement.
+```
+
+### Example Custom Instructions
+
+```
+- Prioritize security vulnerabilities and potential exploits
+- Check for proper error handling and input validation  
+- Verify TypeScript type safety and avoid 'any' types
+- Ensure consistent code formatting and naming conventions
+- Look for performance bottlenecks and optimization opportunities
+- Validate accessibility compliance for frontend code
+- Check for proper unit test coverage
+```
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+**🔴 "No language models available"**
+- Install and activate GitHub Copilot or another supported extension
+- Ensure you have an active subscription/license
+
+**🔴 "Authentication failed"**
+- Verify your Personal Access Token has the correct permissions
+- Check if the token has expired
+- Ensure the organization URL is correct
+
+**🔴 "Pull request not found"**
+- Verify you have access to the project and repository
+- Check if the PR ID is correct
+- Ensure the PR hasn't been deleted or moved
+
+**🔴 "Rate limit exceeded"**
+- Wait a few minutes before retrying
+- Reduce the batch size in settings
+- Check Azure DevOps service status
+
+### Debug Information
+
+Run **"Azure DevOps PR Reviewer: Show Status"** to view:
+- Connection status
+- Available language models
+- Recent error logs
+- Performance metrics
+
+### Support
+
+- 🐛 **Report Issues**: [GitHub Issues](https://github.com/forgeflow/azdo-pr-code-reviewer/issues)
+- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/forgeflow/azdo-pr-code-reviewer/discussions)
+- 📧 **Contact**: support@forgeflow.dev
+
+## 🔒 Security & Privacy
+
+### Data Handling
+- **Personal Access Tokens**: Stored securely using VS Code Secret Storage API
+- **Code Content**: Only changed lines are sent to language models for analysis
+- **No Data Retention**: Code content is not stored or logged by the extension
+- **API Communications**: All requests use HTTPS encryption
+
+### Permissions
+The extension requires minimal permissions:
+- Azure DevOps API access (for reading PRs and posting comments)
+- VS Code Language Model API access (for code analysis)
+- Local storage (for configuration and caching)
+
+## 🏗️ Development
 
 ### Prerequisites
-
-- Node.js 18+ 
+- Node.js 18+
 - npm or yarn
+- Git
 
-### Building
-
+### Setup
 ```bash
+git clone https://github.com/forgeflow/azdo-pr-code-reviewer.git
+cd azdo-pr-code-reviewer
 npm install
-npm run compile
 ```
 
-### Running Tests
-
+### Development Workflow
 ```bash
+# Start development build with watch mode
+npm run watch
+
+# Run tests
 npm test
-```
 
-### Packaging
+# Lint code
+npm run lint
 
-```bash
+# Build for production
+npm run compile
+
+# Package extension
 npm run package
 ```
 
-## Contributing
+### Project Structure
+```
+src/
+├── extension.ts              # Main extension entry point
+├── commands/                 # Command implementations
+├── services/                 # Core business logic
+├── models/                   # Data models and interfaces
+├── utils/                    # Utility functions
+├── webview/                  # Comment preview UI
+└── test/                     # Test suites
+    ├── suite/               # Unit tests
+    └── integration/         # Integration tests
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
 3. Make your changes
 4. Add tests for new functionality
-5. Submit a pull request
+5. Ensure tests pass: `npm test`
+6. Commit changes: `git commit -m 'Add amazing feature'`
+7. Push to branch: `git push origin feature/amazing-feature`
+8. Submit a Pull Request
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Security
+## 🙏 Acknowledgments
 
-This extension handles sensitive information (Personal Access Tokens). All tokens are stored securely using VS Code's Secret Storage API and are never logged or transmitted outside of authenticated Azure DevOps API calls.
+- VS Code team for the excellent Language Model API
+- Azure DevOps team for comprehensive REST APIs
+- The open-source community for inspiration and feedback
 
-## Support
+---
 
-If you encounter any issues or have feature requests, please open an issue on GitHub.
+**Made with ❤️ by ForgeFlow** | [Website](https://forgeflow.dev) | [GitHub](https://github.com/forgeflow)
 
-````
