@@ -76,21 +76,21 @@
   - Implement request throttling to respect Azure DevOps and Language Model API rate limits
   - Requirements: Performance requirements (Req 9)
 
-- [ ] 12. Create comprehensive unit tests for core components
+- [x] 12. Create comprehensive unit tests for core components
   - Write unit tests for ConfigurationManager with mocked VSCode APIs
   - Create tests for AzureDevOpsClient with mocked HTTP responses
   - Implement tests for LanguageModelService with mocked LM API responses
   - Add tests for comment generation logic and error handling scenarios
   - Requirements: All functional requirements validation
 
-- [ ] 13. Implement integration tests and end-to-end workflows
+- [x] 13. Implement integration tests and end-to-end workflows
   - Create integration tests for complete PR analysis workflow
   - Write tests for comment posting and error recovery scenarios
   - Implement tests for configuration and authentication flows
   - Add performance tests for large pull request handling
   - Requirements: All functional requirements validation
 
-- [ ] 14. Polish extension packaging and marketplace preparation
+- [x] 14. Polish extension packaging and marketplace preparation
   - Configure extension manifest with proper metadata, categories, and keywords
   - Create README documentation with setup instructions and usage examples
   - Add extension icon, screenshots, and marketplace description
