@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # ForgeFlow.Vscode
 =======
 # Azure DevOps PR Code Reviewer
