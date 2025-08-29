@@ -17,7 +17,6 @@
     "url": "https://github.com/forgeflow/azdo-pr-code-reviewer/issues"
   },
   "homepage": "https://github.com/forgeflow/azdo-pr-code-reviewer#readme",
-  "icon": "images/icon.png",
   "galleryBanner": {
     "color": "#0078d4",
     "theme": "dark"
