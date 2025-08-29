@@ -323,21 +323,45 @@ export class AzureDevOpsClient {
                     'includeContent': includeContent
                 }
             });
-            // Normalize response: prefer .changes, fall back to .changeEntries
-            let changes: FileChange[] = [];
-            if (response && response.data) {
-                if (Array.isArray(response.data.changes)) {
-                    changes = response.data.changes;
-                } else if (Array.isArray(response.data.changeEntries)) {
-                    changes = response.data.changeEntries;
-                } else if (Array.isArray(response.data.value)) {
-                    // Some APIs return { value: [...] }
-                    changes = response.data.value;
-                } else {
-                    console.warn('[AzureDevOpsClient] Unexpected changes response shape', Object.keys(response.data));
-                }
+            // Normalize response: the Azure DevOps API may return several shapes
+            //  - AxiosResponse with .data: { changes: [...] } | { changeEntries: [...] } | { value: [...] }
+            //  - Direct payload: an array of changes
+            //  - AxiosResponse where .data is already an array
+            let payload: any = null;
+
+            // If this is an Axios response, prefer .data
+            if (response && typeof response === 'object' && 'data' in response) {
+                payload = (response as any).data;
+            } else {
+                // Could be a direct payload
+                payload = response;
             }
-            return this.filterAndEnhanceFileChanges(changes);
+
+            let changes: FileChange[] = [];
+
+            if (Array.isArray(payload)) {
+                changes = payload;
+            } else if (payload && typeof payload === 'object') {
+                if (Array.isArray(payload.changes)) {
+                    changes = payload.changes;
+                } else if (Array.isArray(payload.changeEntries)) {
+                    changes = payload.changeEntries;
+                } else if (Array.isArray(payload.value)) {
+                    changes = payload.value;
+                } else {
+                    // Try to find the first array property that looks like changes
+                    const arrayProp = Object.keys(payload).find(k => Array.isArray((payload as any)[k]));
+                    if (arrayProp) {
+                        changes = (payload as any)[arrayProp];
+                    } else {
+                        console.warn('[AzureDevOpsClient] Unexpected changes response shape', Object.keys(payload));
+                    }
+                }
+            } else {
+                console.warn('[AzureDevOpsClient] Empty changes payload for PR changes');
+            }
+
+            return this.filterAndEnhanceFileChanges(changes || []);
         } catch (error) {
             console.error(`Failed to fetch changes for PR ${pullRequestId}:`, error);
             throw error;
@@ -505,16 +529,50 @@ export class AzureDevOpsClient {
     /**
      * Parse unified diff format into structured diff lines
      */
-    private parseDiff(diffContent: string): { lines: DiffLine[], addedLines: number, deletedLines: number } {
+    private parseDiff(diffContent: any): { lines: DiffLine[], addedLines: number, deletedLines: number } {
         const lines: DiffLine[] = [];
         let addedLines = 0;
         let deletedLines = 0;
         let currentLineNumber = 0;
         let currentOriginalLineNumber = 0;
 
-        const diffLines = diffContent.split('\n');
-        
+        // Normalize diffContent to string safely
+        let contentStr = '';
+        try {
+            if (diffContent == null) {
+                contentStr = '';
+            } else if (typeof diffContent === 'string') {
+                contentStr = diffContent;
+            } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(diffContent)) {
+                contentStr = diffContent.toString('utf8');
+            } else if (diffContent instanceof ArrayBuffer || ArrayBuffer.isView(diffContent)) {
+                const view = diffContent instanceof ArrayBuffer ? new Uint8Array(diffContent) : new Uint8Array((diffContent as any).buffer || diffContent);
+                contentStr = new TextDecoder('utf-8').decode(view);
+            } else if (typeof diffContent === 'object') {
+                // Try to extract common text properties
+                if (typeof (diffContent as any).content === 'string') {
+                    contentStr = (diffContent as any).content;
+                } else if (typeof (diffContent as any).diff === 'string') {
+                    contentStr = (diffContent as any).diff;
+                } else if (typeof (diffContent as any).value === 'string') {
+                    contentStr = (diffContent as any).value;
+                } else {
+                    // Fallback to JSON representation which will at least be parseable
+                    contentStr = JSON.stringify(diffContent);
+                }
+            } else {
+                contentStr = String(diffContent);
+            }
+        } catch (err) {
+            console.warn('[AzureDevOpsClient] parseDiff normalization failed:', err);
+            contentStr = '';
+        }
+
+        const diffLines = contentStr.split(/\r?\n/);
+
         for (const line of diffLines) {
+            if (!line) continue;
+
             if (line.startsWith('@@')) {
                 // Parse hunk header: @@ -oldStart,oldCount +newStart,newCount @@
                 const match = line.match(/@@ -(\d+),?\d* \+(\d+),?\d* @@/);
@@ -605,7 +663,9 @@ export class AzureDevOpsClient {
                 },
                 headers: {
                     'Accept': 'text/plain'
-                }
+                },
+                // Request raw text so axios will return a string in response.data
+                responseType: 'text'
             });
 
             return response.data;
