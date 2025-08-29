@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "compile",
+      "group": "build",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "silent",
+        "clear": false
+      },
+      "problemMatcher": "$tsc"
+    },
+    {
+      "type": "npm",
+      "script": "watch",
+      "group": "build",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "never"
+      },
+      "isBackground": true,
+      "problemMatcher": "$tsc-watch"
+    },
+    {
+      "type": "npm",
+      "script": "lint",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "panel": "shared",
+        "reveal": "silent",
+        "clear": false
+      }
+    }
+  ]
+}

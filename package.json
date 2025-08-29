@@ -1,0 +1,180 @@
+{
+  "name": "azdo-pr-code-reviewer",
+  "displayName": "Azure DevOps PR Code Reviewer",
+  "description": "AI-powered code review assistant for Azure DevOps pull requests",
+  "version": "0.1.0",
+  "publisher": "forgeflow",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/forgeflow/azdo-pr-code-reviewer"
+  },
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "azure-devops",
+    "pull-request",
+    "code-review",
+    "ai",
+    "copilot"
+  ],
+  "activationEvents": [
+    "onCommand:azdo-pr-reviewer.configure",
+    "onCommand:azdo-pr-reviewer.analyzePR",
+    "onCommand:azdo-pr-reviewer.selectModel",
+    "onCommand:azdo-pr-reviewer.quickAnalyze",
+    "onCommand:azdo-pr-reviewer.testConnection",
+    "onCommand:azdo-pr-reviewer.showStatus"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "azdo-pr-reviewer.configure",
+        "title": "Configure Azure DevOps PR Reviewer",
+        "category": "Azure DevOps PR Reviewer",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "azdo-pr-reviewer.analyzePR",
+        "title": "Analyze Pull Request",
+        "category": "Azure DevOps PR Reviewer",
+        "icon": "$(search)"
+      },
+      {
+        "command": "azdo-pr-reviewer.selectModel",
+        "title": "Select Language Model",
+        "category": "Azure DevOps PR Reviewer",
+        "icon": "$(robot)"
+      },
+      {
+        "command": "azdo-pr-reviewer.quickAnalyze",
+        "title": "Quick Analyze PR by ID",
+        "category": "Azure DevOps PR Reviewer",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "azdo-pr-reviewer.testConnection",
+        "title": "Test Azure DevOps Connection",
+        "category": "Azure DevOps PR Reviewer",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "azdo-pr-reviewer.showStatus",
+        "title": "Show Extension Status",
+        "category": "Azure DevOps PR Reviewer",
+        "icon": "$(info)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "azdo-pr-reviewer.analyzePR",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a",
+        "when": "!terminalFocus"
+      },
+      {
+        "command": "azdo-pr-reviewer.quickAnalyze",
+        "key": "ctrl+shift+q",
+        "mac": "cmd+shift+q",
+        "when": "!terminalFocus"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "azdo-pr-reviewer.configure"
+        },
+        {
+          "command": "azdo-pr-reviewer.analyzePR"
+        },
+        {
+          "command": "azdo-pr-reviewer.selectModel"
+        },
+        {
+          "command": "azdo-pr-reviewer.quickAnalyze"
+        },
+        {
+          "command": "azdo-pr-reviewer.testConnection"
+        },
+        {
+          "command": "azdo-pr-reviewer.showStatus"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Azure DevOps PR Code Reviewer",
+      "properties": {
+        "azdo-pr-reviewer.organizationUrl": {
+          "type": "string",
+          "description": "Azure DevOps organization URL (e.g., https://dev.azure.com/myorg)",
+          "pattern": "^https://dev\\.azure\\.com/[^/]+/?$"
+        },
+        "azdo-pr-reviewer.defaultProject": {
+          "type": "string",
+          "description": "Default project name (optional)"
+        },
+        "azdo-pr-reviewer.selectedModel": {
+          "type": "string",
+          "default": "gpt-4",
+          "description": "Preferred language model for code analysis",
+          "enum": [
+            "gpt-4",
+            "gpt-4-turbo",
+            "gpt-3.5-turbo",
+            "claude-3-opus",
+            "claude-3-sonnet"
+          ]
+        },
+        "azdo-pr-reviewer.customInstructions": {
+          "type": "string",
+          "default": "Focus on code quality, security vulnerabilities, performance issues, and maintainability. Provide specific suggestions for improvement.",
+          "description": "Custom instructions for the AI code reviewer"
+        },
+        "azdo-pr-reviewer.batchSize": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Number of file changes to process in parallel"
+        },
+        "azdo-pr-reviewer.enableTelemetry": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable telemetry to help improve the extension"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "webpack --mode production",
+    "watch": "webpack --mode development --watch",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.1",
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "@vscode/test-electron": "^2.2.0",
+    "@vscode/vsce": "^2.15.0",
+    "eslint": "^8.28.0",
+    "mocha": "^10.1.0",
+    "ts-loader": "^9.4.1",
+    "typescript": "^4.9.4",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
