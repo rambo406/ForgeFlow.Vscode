@@ -4,6 +4,7 @@ import { AzureDevOpsClient } from '../services/AzureDevOpsClient';
 import { LanguageModelService } from '../services/LanguageModelService';
 import { CommentManager, CommentManagerOptions } from '../services/CommentManager';
 import { PullRequest } from '../models/AzureDevOpsModels';
+import { PRDashboardController } from '../controllers/PRDashboardController';
 
 /**
  * Information about pull request selection
@@ -89,6 +90,7 @@ export class ExtensionCommands implements vscode.Disposable {
     private languageModelService?: LanguageModelService;
     private commentManager?: CommentManager;
     private statusBarManager: StatusBarManager;
+    private dashboardController?: PRDashboardController;
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -129,6 +131,11 @@ export class ExtensionCommands implements vscode.Disposable {
         // Register test connection command
         this.disposables.push(
             vscode.commands.registerCommand('azdo-pr-reviewer.testConnection', this.handleTestConnectionCommand.bind(this))
+        );
+
+        // Register dashboard command
+        this.disposables.push(
+            vscode.commands.registerCommand('azdo-pr-reviewer.openDashboard', this.handleOpenDashboardCommand.bind(this))
         );
 
         console.log('Extension commands registered successfully');
@@ -695,6 +702,33 @@ export class ExtensionCommands implements vscode.Disposable {
     }
 
     /**
+     * Handle the open dashboard command
+     */
+    private async handleOpenDashboardCommand(): Promise<void> {
+        try {
+            // Initialize services if needed
+            await this.initializeServices();
+
+            // Initialize dashboard controller if not already done
+            if (!this.dashboardController) {
+                this.dashboardController = new PRDashboardController(
+                    this.context,
+                    this.configurationManager,
+                    this.azureDevOpsClient
+                );
+            }
+
+            // Create or show the dashboard
+            await this.dashboardController.createOrShow();
+
+        } catch (error) {
+            console.error('Open dashboard command failed:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            vscode.window.showErrorMessage(`Failed to open dashboard: ${errorMessage}`);
+        }
+    }
+
+    /**
      * Show detailed analysis results
      */
     private async showAnalysisDetails(summary: string): Promise<void> {
@@ -777,6 +811,11 @@ ${summary.replace(/\n/g, '<br>')}
         // Dispose comment manager if it exists
         if (this.commentManager) {
             this.commentManager.dispose();
+        }
+
+        // Dispose dashboard controller if it exists
+        if (this.dashboardController) {
+            this.dashboardController.dispose();
         }
     }
 }

@@ -52,7 +52,8 @@
     "onCommand:azdo-pr-reviewer.selectModel",
     "onCommand:azdo-pr-reviewer.quickAnalyze",
     "onCommand:azdo-pr-reviewer.testConnection",
-    "onCommand:azdo-pr-reviewer.showStatus"
+    "onCommand:azdo-pr-reviewer.showStatus",
+    "onCommand:azdo-pr-reviewer.openDashboard"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -92,6 +93,12 @@
         "title": "Show Extension Status",
         "category": "Azure DevOps PR Reviewer",
         "icon": "$(info)"
+      },
+      {
+        "command": "azdo-pr-reviewer.openDashboard",
+        "title": "Open PR Dashboard",
+        "category": "Azure DevOps PR Reviewer",
+        "icon": "$(dashboard)"
       }
     ],
     "keybindings": [
@@ -105,6 +112,12 @@
         "command": "azdo-pr-reviewer.quickAnalyze",
         "key": "ctrl+shift+q",
         "mac": "cmd+shift+q",
+        "when": "!terminalFocus"
+      },
+      {
+        "command": "azdo-pr-reviewer.openDashboard",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d",
         "when": "!terminalFocus"
       }
     ],
@@ -127,6 +140,9 @@
         },
         {
           "command": "azdo-pr-reviewer.showStatus"
+        },
+        {
+          "command": "azdo-pr-reviewer.openDashboard"
         }
       ]
     },
