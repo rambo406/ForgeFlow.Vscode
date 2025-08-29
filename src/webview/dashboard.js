@@ -23,7 +23,17 @@
         EXPORT_COMMENTS: 'exportComments',
         UPDATE_VIEW: 'updateView',
         SHOW_ERROR: 'showError',
-        SHOW_SUCCESS: 'showSuccess'
+        SHOW_SUCCESS: 'showSuccess',
+        // Settings-related message types
+        OPEN_SETTINGS: 'openSettings',
+        CLOSE_SETTINGS: 'closeSettings',
+        VALIDATE_SETTING: 'validateSetting',
+        SAVE_SETTINGS: 'saveSettings',
+        RESET_SETTINGS: 'resetSettings',
+        EXPORT_SETTINGS: 'exportSettings',
+        IMPORT_SETTINGS: 'importSettings',
+        SETTINGS_CHANGED: 'settingsChanged',
+        LOAD_AVAILABLE_MODELS: 'loadAvailableModels'
     };
 
     // Dashboard views
@@ -58,6 +68,7 @@
         // Cache DOM elements
         elements = {
             configBtn: document.getElementById('configBtn'),
+            settingsBtn: document.getElementById('settingsBtn'),
             prListBtn: document.getElementById('prListBtn'),
             prDetailBtn: document.getElementById('prDetailBtn'),
             backBtn: document.getElementById('backBtn'),
@@ -71,7 +82,28 @@
             prTitle: document.getElementById('prTitle'),
             loadingOverlay: document.getElementById('loadingOverlay'),
             errorToast: document.getElementById('errorToast'),
-            successToast: document.getElementById('successToast')
+            successToast: document.getElementById('successToast'),
+            // Settings elements
+            settingsModal: document.getElementById('settingsModal'),
+            closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+            settingsNavItems: document.querySelectorAll('.settings-nav-item'),
+            settingsSections: document.querySelectorAll('.settings-section'),
+            saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+            cancelSettingsBtn: document.getElementById('cancelSettingsBtn'),
+            resetSettingsBtn: document.getElementById('resetSettingsBtn'),
+            exportSettingsBtn: document.getElementById('exportSettingsBtn'),
+            importSettingsBtn: document.getElementById('importSettingsBtn'),
+            // Form elements
+            organizationUrl: document.getElementById('organizationUrl'),
+            patToken: document.getElementById('patToken'),
+            defaultProject: document.getElementById('defaultProject'),
+            selectedModel: document.getElementById('selectedModel'),
+            customInstructions: document.getElementById('customInstructions'),
+            batchSize: document.getElementById('batchSize'),
+            enableTelemetry: document.getElementById('enableTelemetry'),
+            theme: document.getElementById('theme'),
+            fontSize: document.getElementById('fontSize'),
+            compactMode: document.getElementById('compactMode')
         };
 
         // Setup event listeners
@@ -90,11 +122,49 @@
     function setupEventListeners() {
         // Navigation
         elements.configBtn.addEventListener('click', () => showView(DashboardView.CONFIGURATION));
+        elements.settingsBtn.addEventListener('click', openSettingsModal);
         elements.prListBtn.addEventListener('click', () => showView(DashboardView.PULL_REQUEST_LIST));
         elements.backBtn.addEventListener('click', () => showView(DashboardView.PULL_REQUEST_LIST));
         
         // Actions
         elements.refreshBtn.addEventListener('click', loadPullRequests);
+
+        // Settings modal handlers
+        elements.closeSettingsBtn.addEventListener('click', closeSettingsModal);
+        elements.cancelSettingsBtn.addEventListener('click', closeSettingsModal);
+        elements.saveSettingsBtn.addEventListener('click', saveSettings);
+        elements.resetSettingsBtn.addEventListener('click', resetSettings);
+        elements.exportSettingsBtn.addEventListener('click', exportSettings);
+        elements.importSettingsBtn.addEventListener('click', importSettings);
+
+        // Settings navigation
+        elements.settingsNavItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                const section = e.currentTarget.dataset.section;
+                switchSettingsSection(section);
+            });
+        });
+
+        // Modal backdrop click to close
+        const backdrop = document.querySelector('.settings-modal-backdrop');
+        if (backdrop) {
+            backdrop.addEventListener('click', closeSettingsModal);
+        }
+
+        // Keyboard shortcuts for settings modal
+        document.addEventListener('keydown', handleSettingsKeyboardShortcuts);
+
+        // Real-time validation handlers
+        setupSettingsValidation();
+
+        // Test connection buttons
+        setupTestConnectionButtons();
+
+        // Range input value updates
+        setupRangeInputs();
+
+        // Template buttons
+        setupTemplateButtons();
 
         // Toast close buttons
         document.querySelectorAll('.toast-close').forEach(btn => {
@@ -164,6 +234,34 @@
                 break;
             case MessageType.SHOW_SUCCESS:
                 showSuccess(message.payload.message);
+                break;
+            // Settings handlers
+            case MessageType.OPEN_SETTINGS:
+                handleOpenSettingsResponse(message);
+                break;
+            case MessageType.CLOSE_SETTINGS:
+                handleCloseSettingsResponse(message);
+                break;
+            case MessageType.VALIDATE_SETTING:
+                handleValidateSettingResponse(message);
+                break;
+            case MessageType.SAVE_SETTINGS:
+                handleSaveSettingsResponse(message);
+                break;
+            case MessageType.RESET_SETTINGS:
+                handleResetSettingsResponse(message);
+                break;
+            case MessageType.EXPORT_SETTINGS:
+                handleExportSettingsResponse(message);
+                break;
+            case MessageType.IMPORT_SETTINGS:
+                handleImportSettingsResponse(message);
+                break;
+            case MessageType.SETTINGS_CHANGED:
+                handleSettingsChangedResponse(message);
+                break;
+            case MessageType.LOAD_AVAILABLE_MODELS:
+                handleLoadAvailableModelsResponse(message);
                 break;
             default:
                 console.log('Unhandled message type:', message.type);
@@ -2812,6 +2910,744 @@
     function handleExportResponse(message) {
         if (message.payload.success) {
             showSuccess(`Comments exported successfully to ${message.payload.filename}`);
+        }
+    }
+
+    // Settings-related functions
+    let currentSettings = {};
+    let settingsValidationTimeouts = new Map();
+
+    /**
+     * Open settings modal
+     */
+    function openSettingsModal() {
+        sendMessage(MessageType.OPEN_SETTINGS);
+    }
+
+    /**
+     * Close settings modal
+     */
+    function closeSettingsModal() {
+        elements.settingsModal.style.display = 'none';
+        sendMessage(MessageType.CLOSE_SETTINGS);
+    }
+
+    /**
+     * Handle open settings response
+     */
+    function handleOpenSettingsResponse(message) {
+        if (message.payload.settings) {
+            currentSettings = message.payload.settings;
+            populateSettingsForm(currentSettings);
+            elements.settingsModal.style.display = 'block';
+            
+            // Load available models
+            loadAvailableModels();
+        }
+    }
+
+    /**
+     * Handle close settings response
+     */
+    function handleCloseSettingsResponse(message) {
+        // Settings modal is already hidden by closeSettingsModal()
+    }
+
+    /**
+     * Populate settings form with current values
+     */
+    function populateSettingsForm(settings) {
+        if (settings.azureDevOps) {
+            if (elements.organizationUrl) elements.organizationUrl.value = settings.azureDevOps.organizationUrl || '';
+            if (elements.defaultProject) elements.defaultProject.value = settings.azureDevOps.defaultProject || '';
+        }
+
+        if (settings.languageModel) {
+            if (elements.selectedModel) elements.selectedModel.value = settings.languageModel.selectedModel || '';
+            if (elements.customInstructions) elements.customInstructions.value = settings.languageModel.customInstructions || '';
+        }
+
+        if (settings.performance) {
+            if (elements.batchSize) {
+                elements.batchSize.value = settings.performance.batchSize || 10;
+                updateRangeValue(elements.batchSize);
+            }
+            if (elements.enableTelemetry) elements.enableTelemetry.checked = settings.performance.enableTelemetry !== false;
+        }
+
+        if (settings.ui) {
+            if (elements.theme) elements.theme.value = settings.ui.theme || 'auto';
+            if (elements.fontSize) {
+                elements.fontSize.value = settings.ui.fontSize || 14;
+                updateRangeValue(elements.fontSize);
+            }
+            if (elements.compactMode) elements.compactMode.checked = settings.ui.compactMode || false;
+        }
+
+        // Update character count for text areas
+        updateCharacterCount();
+    }
+
+    /**
+     * Switch settings section
+     */
+    function switchSettingsSection(sectionName) {
+        // Update navigation
+        elements.settingsNavItems.forEach(item => {
+            item.classList.toggle('active', item.dataset.section === sectionName);
+        });
+
+        // Update sections
+        elements.settingsSections.forEach(section => {
+            section.classList.toggle('active', section.id === sectionName + 'Section');
+        });
+    }
+
+    /**
+     * Setup test connection buttons
+     */
+    function setupTestConnectionButtons() {
+        const testOrgBtn = document.getElementById('testOrgConnection');
+        const testPatBtn = document.getElementById('testPatToken');
+        const testProjectBtn = document.getElementById('testProjectConnection');
+        const testModelBtn = document.getElementById('testModelAvailability');
+
+        if (testOrgBtn) testOrgBtn.addEventListener('click', testOrganizationConnection);
+        if (testPatBtn) testPatBtn.addEventListener('click', testPatTokenConnection);
+        if (testProjectBtn) testProjectBtn.addEventListener('click', testProjectConnection);
+        if (testModelBtn) testModelBtn.addEventListener('click', testModelAvailability);
+    }
+
+    /**
+     * Setup settings validation with debouncing
+     */
+    function setupSettingsValidation() {
+        const settingsInputs = [
+            { element: elements.organizationUrl, key: 'organizationUrl' },
+            { element: elements.patToken, key: 'patToken' },
+            { element: elements.defaultProject, key: 'defaultProject' },
+            { element: elements.selectedModel, key: 'selectedModel' },
+            { element: elements.customInstructions, key: 'customInstructions' },
+            { element: elements.batchSize, key: 'batchSize' }
+        ];
+
+        settingsInputs.forEach(({ element, key }) => {
+            if (element) {
+                element.addEventListener('input', () => {
+                    validateSettingWithDebounce(key, element.value);
+                });
+            }
+        });
+    }
+
+    /**
+     * Validate setting with debouncing
+     */
+    function validateSettingWithDebounce(settingKey, value, delay = 300) {
+        // Clear existing timeout
+        if (settingsValidationTimeouts.has(settingKey)) {
+            clearTimeout(settingsValidationTimeouts.get(settingKey));
+        }
+
+        // Set new timeout
+        const timeout = setTimeout(() => {
+            sendMessage(MessageType.VALIDATE_SETTING, {
+                settingKey,
+                settingValue: value,
+                context: getCurrentSettingsContext()
+            });
+            settingsValidationTimeouts.delete(settingKey);
+        }, delay);
+
+        settingsValidationTimeouts.set(settingKey, timeout);
+    }
+
+    /**
+     * Get current settings context for validation
+     */
+    function getCurrentSettingsContext() {
+        return {
+            organizationUrl: elements.organizationUrl?.value,
+            patToken: elements.patToken?.value,
+            defaultProject: elements.defaultProject?.value
+        };
+    }
+
+    /**
+     * Handle validate setting response
+     */
+    function handleValidateSettingResponse(message) {
+        const { settingKey, validation } = message.payload;
+        showValidationResult(settingKey, validation);
+    }
+
+    /**
+     * Show validation result
+     */
+    function showValidationResult(settingKey, validation) {
+        const validationElement = document.getElementById(settingKey + 'Validation');
+        if (validationElement) {
+            validationElement.style.display = 'block';
+            validationElement.className = `validation-message ${validation.isValid ? 'success' : 'error'}`;
+            validationElement.textContent = validation.error || validation.details || '';
+        }
+    }
+
+    /**
+     * Setup range inputs value display
+     */
+    function setupRangeInputs() {
+        const rangeInputs = document.querySelectorAll('input[type="range"]');
+        rangeInputs.forEach(input => {
+            const valueSpan = input.nextElementSibling;
+            if (valueSpan && valueSpan.classList.contains('range-value')) {
+                input.addEventListener('input', () => updateRangeValue(input));
+                updateRangeValue(input); // Set initial value
+            }
+        });
+    }
+
+    /**
+     * Update range input value display
+     */
+    function updateRangeValue(input) {
+        const valueSpan = input.nextElementSibling;
+        if (valueSpan && valueSpan.classList.contains('range-value')) {
+            valueSpan.textContent = input.value;
+        }
+    }
+
+    /**
+     * Setup template buttons
+     */
+    function setupTemplateButtons() {
+        const templateButtons = document.querySelectorAll('.template-btn');
+        templateButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const template = e.target.dataset.template;
+                applyInstructionTemplate(template);
+            });
+        });
+    }
+
+    /**
+     * Apply instruction template
+     */
+    function applyInstructionTemplate(templateName) {
+        const templates = {
+            basic: `Focus on the following areas:
+- Code quality and readability
+- Potential bugs and logic errors
+- Best practices adherence
+- Documentation completeness
+
+Provide specific, actionable feedback for improvements.`,
+            security: `Perform a security-focused code review:
+- Check for security vulnerabilities (SQL injection, XSS, etc.)
+- Validate input sanitization and validation
+- Review authentication and authorization logic
+- Check for sensitive data exposure
+- Examine cryptographic implementations
+- Look for insecure dependencies
+
+Prioritize security issues and provide remediation suggestions.`,
+            performance: `Focus on performance optimization:
+- Identify potential performance bottlenecks
+- Review algorithm efficiency and time complexity
+- Check for memory leaks and resource management
+- Examine database query optimization
+- Look for unnecessary computations or operations
+- Review caching strategies
+
+Suggest specific performance improvements with expected impact.`
+        };
+
+        if (templates[templateName] && elements.customInstructions) {
+            elements.customInstructions.value = templates[templateName];
+            updateCharacterCount();
+        }
+    }
+
+    /**
+     * Update character count for text areas
+     */
+    function updateCharacterCount() {
+        if (elements.customInstructions) {
+            const count = elements.customInstructions.value.length;
+            const countElement = document.querySelector('.character-count');
+            if (countElement) {
+                countElement.textContent = `${count} / 10000 characters`;
+                countElement.style.color = count > 10000 ? 'var(--vscode-errorForeground)' : '';
+            }
+
+            // Add input listener for real-time updates
+            elements.customInstructions.addEventListener('input', updateCharacterCount);
+        }
+    }
+
+    /**
+     * Load available models
+     */
+    function loadAvailableModels() {
+        sendMessage(MessageType.LOAD_AVAILABLE_MODELS);
+    }
+
+    /**
+     * Handle load available models response
+     */
+    function handleLoadAvailableModelsResponse(message) {
+        if (message.payload.success && message.payload.models) {
+            const models = message.payload.models;
+            
+            if (elements.selectedModel) {
+                // Save current selection
+                const currentValue = elements.selectedModel.value;
+                
+                // Clear and populate with available models
+                elements.selectedModel.innerHTML = '<option value="">Select a model...</option>';
+                
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = `${model.name} (${model.vendor})`;
+                    if (model.maxTokens) {
+                        option.textContent += ` - Max tokens: ${model.maxTokens}`;
+                    }
+                    elements.selectedModel.appendChild(option);
+                });
+                
+                // Restore selection if still available
+                if (currentValue && models.some(m => m.id === currentValue)) {
+                    elements.selectedModel.value = currentValue;
+                }
+            }
+        } else {
+            // Fallback to default models if loading fails
+            loadDefaultModels();
+        }
+    }
+
+    /**
+     * Load default models as fallback
+     */
+    function loadDefaultModels() {
+        const defaultModels = [
+            { id: 'copilot-gpt-4', name: 'GitHub Copilot (GPT-4)', vendor: 'OpenAI' },
+            { id: 'copilot-gpt-3.5-turbo', name: 'GitHub Copilot (GPT-3.5 Turbo)', vendor: 'OpenAI' }
+        ];
+
+        if (elements.selectedModel) {
+            const currentValue = elements.selectedModel.value;
+            elements.selectedModel.innerHTML = '<option value="">Select a model...</option>';
+            
+            defaultModels.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = `${model.name} (${model.vendor})`;
+                elements.selectedModel.appendChild(option);
+            });
+            
+            if (currentValue && defaultModels.some(m => m.id === currentValue)) {
+                elements.selectedModel.value = currentValue;
+            }
+        }
+    }
+
+    /**
+     * Save settings
+     */
+    function saveSettings() {
+        // Validate all settings before saving
+        if (!validateAllSettingsBeforeSave()) {
+            showError('Please fix all validation errors before saving');
+            return;
+        }
+
+        const settings = collectCurrentSettings();
+        sendMessage(MessageType.SAVE_SETTINGS, { settings });
+    }
+
+    /**
+     * Validate all settings before save
+     */
+    function validateAllSettingsBeforeSave() {
+        let allValid = true;
+        const requiredFields = [
+            { element: elements.organizationUrl, name: 'Organization URL' },
+            { element: elements.selectedModel, name: 'Language Model' }
+        ];
+
+        // Check required fields
+        requiredFields.forEach(({ element, name }) => {
+            if (element && !element.value.trim()) {
+                showValidationResult(element.id, {
+                    isValid: false,
+                    error: `${name} is required`,
+                    category: 'required'
+                });
+                allValid = false;
+            }
+        });
+
+        // Check for any existing validation errors
+        const errorElements = document.querySelectorAll('.validation-message.error');
+        if (errorElements.length > 0) {
+            allValid = false;
+        }
+
+        return allValid;
+    }
+
+    /**
+     * Collect current settings from form
+     */
+    function collectCurrentSettings() {
+        return {
+            version: '1.0.0',
+            exportDate: new Date().toISOString(),
+            azureDevOps: {
+                organizationUrl: elements.organizationUrl?.value || '',
+                defaultProject: elements.defaultProject?.value || ''
+            },
+            languageModel: {
+                selectedModel: elements.selectedModel?.value || '',
+                customInstructions: elements.customInstructions?.value || ''
+            },
+            performance: {
+                batchSize: parseInt(elements.batchSize?.value || '10'),
+                enableTelemetry: elements.enableTelemetry?.checked !== false
+            },
+            ui: {
+                theme: elements.theme?.value || 'auto',
+                fontSize: parseInt(elements.fontSize?.value || '14'),
+                compactMode: elements.compactMode?.checked || false
+            }
+        };
+    }
+
+    /**
+     * Handle save settings response
+     */
+    function handleSaveSettingsResponse(message) {
+        if (message.payload.success) {
+            showSuccess(message.payload.message || 'Settings saved successfully');
+            closeSettingsModal();
+            
+            // Show backup reminder after successful save
+            showBackupReminder();
+        } else {
+            showError(message.payload.message || 'Failed to save settings');
+        }
+    }
+
+    /**
+     * Show backup reminder
+     */
+    function showBackupReminder() {
+        const lastBackupReminder = localStorage.getItem('lastBackupReminder');
+        const now = Date.now();
+        const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000);
+
+        if (!lastBackupReminder || parseInt(lastBackupReminder) < oneWeekAgo) {
+            setTimeout(() => {
+                if (confirm('Your settings have been saved successfully!\n\nWould you like to export a backup of your settings? This is recommended to prevent data loss.')) {
+                    exportSettings();
+                }
+                localStorage.setItem('lastBackupReminder', now.toString());
+            }, 1000);
+        }
+    }
+
+    /**
+     * Reset settings
+     */
+    function resetSettings() {
+        if (confirm('Are you sure you want to reset all settings to their default values? This action cannot be undone.')) {
+            sendMessage(MessageType.RESET_SETTINGS, { includeSecrets: false });
+        }
+    }
+
+    /**
+     * Handle reset settings response
+     */
+    function handleResetSettingsResponse(message) {
+        if (message.payload.success) {
+            showSuccess(message.payload.message || 'Settings reset to defaults');
+            populateSettingsForm(message.payload.settings);
+        } else {
+            showError(message.payload.message || 'Failed to reset settings');
+        }
+    }
+
+    /**
+     * Export settings
+     */
+    function exportSettings() {
+        const includeSecrets = confirm('Include sensitive data (PAT tokens) in export? Click "Cancel" for a safer export without secrets.');
+        sendMessage(MessageType.EXPORT_SETTINGS, { includeSecrets, format: 'json' });
+    }
+
+    /**
+     * Handle export settings response
+     */
+    function handleExportSettingsResponse(message) {
+        if (message.payload.success) {
+            // Create download link
+            const blob = new Blob([message.payload.data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = message.payload.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showSuccess('Settings exported successfully');
+        } else {
+            showError(message.payload.message || 'Failed to export settings');
+        }
+    }
+
+    /**
+     * Import settings
+     */
+    function importSettings() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = e.target.result;
+                        const options = {
+                            categories: ['azureDevOps', 'languageModel', 'performance', 'ui'], // Import all categories by default
+                            overwriteExisting: true
+                        };
+                        sendMessage(MessageType.IMPORT_SETTINGS, { data, options });
+                    } catch (error) {
+                        showError('Failed to read settings file: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+        input.click();
+    }
+
+    /**
+     * Handle import settings response
+     */
+    function handleImportSettingsResponse(message) {
+        if (message.payload.success) {
+            showSuccess(message.payload.message || 'Settings imported successfully');
+            populateSettingsForm(message.payload.settings);
+        } else {
+            showError(message.payload.message || 'Failed to import settings');
+        }
+    }
+
+    /**
+     * Handle settings changed response
+     */
+    function handleSettingsChangedResponse(message) {
+        // Update current settings cache
+        if (message.payload.settings) {
+            currentSettings = message.payload.settings;
+            // Optionally refresh UI based on new settings
+        }
+    }
+
+    /**
+     * Test Azure DevOps connection functions
+     */
+    function testOrganizationConnection() {
+        const organizationUrl = elements.organizationUrl?.value;
+        if (!organizationUrl) {
+            showError('Please enter an organization URL first');
+            return;
+        }
+
+        sendMessage(MessageType.TEST_CONNECTION, {
+            testType: 'organization',
+            organizationUrl: organizationUrl
+        });
+    }
+
+    function testPatTokenConnection() {
+        const organizationUrl = elements.organizationUrl?.value;
+        const patToken = elements.patToken?.value;
+        
+        if (!organizationUrl || !patToken) {
+            showError('Please enter both organization URL and PAT token first');
+            return;
+        }
+
+        sendMessage(MessageType.TEST_CONNECTION, {
+            testType: 'patToken',
+            organizationUrl: organizationUrl,
+            patToken: patToken
+        });
+    }
+
+    function testProjectConnection() {
+        const organizationUrl = elements.organizationUrl?.value;
+        const patToken = elements.patToken?.value;
+        const projectName = elements.defaultProject?.value;
+        
+        if (!organizationUrl || !patToken || !projectName) {
+            showError('Please enter organization URL, PAT token, and project name first');
+            return;
+        }
+
+        sendMessage(MessageType.TEST_CONNECTION, {
+            testType: 'project',
+            organizationUrl: organizationUrl,
+            patToken: patToken,
+            projectName: projectName
+        });
+    }
+
+    function testModelAvailability() {
+        const modelName = elements.selectedModel?.value;
+        if (!modelName) {
+            showError('Please select a model first');
+            return;
+        }
+
+        sendMessage(MessageType.TEST_CONNECTION, {
+            testType: 'model',
+            modelName: modelName
+        });
+    }
+
+    /**
+     * Enhanced test connection response handler
+     */
+    function handleTestConnectionResponse(message) {
+        const { payload } = message;
+        const { success, message: responseMessage, error, testType } = payload;
+
+        if (success) {
+            showSuccess(`${getTestTypeLabel(testType)} test successful: ${responseMessage || 'Connection verified'}`);
+            
+            // Update validation UI for specific test type
+            if (testType) {
+                updateTestResult(testType, true, responseMessage);
+            }
+        } else {
+            showError(`${getTestTypeLabel(testType)} test failed: ${error || 'Unknown error'}`);
+            
+            // Update validation UI for specific test type
+            if (testType) {
+                updateTestResult(testType, false, error);
+            }
+        }
+    }
+
+    /**
+     * Get user-friendly label for test type
+     */
+    function getTestTypeLabel(testType) {
+        const labels = {
+            organization: 'Organization',
+            patToken: 'PAT Token',
+            project: 'Project',
+            model: 'Language Model'
+        };
+        return labels[testType] || 'Connection';
+    }
+
+    /**
+     * Update test result in UI
+     */
+    function updateTestResult(testType, success, message) {
+        const testButtons = {
+            organization: 'testOrgConnection',
+            patToken: 'testPatToken',
+            project: 'testProjectConnection',
+            model: 'testModelAvailability'
+        };
+
+        const buttonId = testButtons[testType];
+        const button = document.getElementById(buttonId);
+        
+        if (button) {
+            // Update button appearance
+            button.classList.remove('success', 'error');
+            button.classList.add(success ? 'success' : 'error');
+            
+            // Update button text temporarily
+            const originalText = button.textContent;
+            button.textContent = success ? '✓ Success' : '✗ Failed';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.classList.remove('success', 'error');
+            }, 3000);
+        }
+
+        // Also update validation message if available
+        const validationKey = testType === 'organization' ? 'organizationUrl' :
+                             testType === 'patToken' ? 'patToken' :
+                             testType === 'project' ? 'defaultProject' :
+                             testType === 'model' ? 'selectedModel' : null;
+
+        if (validationKey) {
+            showValidationResult(validationKey, {
+                isValid: success,
+                error: success ? undefined : message,
+                details: success ? message : undefined
+            });
+        }
+    }
+
+    /**
+     * Handle keyboard shortcuts for settings modal
+     */
+    function handleSettingsKeyboardShortcuts(event) {
+        const isSettingsOpen = elements.settingsModal.style.display === 'block';
+        
+        if (!isSettingsOpen) {
+            // Global shortcuts
+            if (event.ctrlKey && event.key === ',') {
+                event.preventDefault();
+                openSettingsModal();
+            }
+            return;
+        }
+
+        // Settings modal shortcuts
+        switch (event.key) {
+            case 'Escape':
+                event.preventDefault();
+                closeSettingsModal();
+                break;
+            case 'Enter':
+                if (event.ctrlKey) {
+                    event.preventDefault();
+                    saveSettings();
+                }
+                break;
+            case 's':
+                if (event.ctrlKey) {
+                    event.preventDefault();
+                    saveSettings();
+                }
+                break;
+        }
+
+        // Section navigation with numbers
+        if (event.altKey && !isNaN(parseInt(event.key))) {
+            const sectionIndex = parseInt(event.key) - 1;
+            const sections = ['azureDevOps', 'languageModel', 'reviewInstructions', 'performance', 'ui'];
+            if (sectionIndex >= 0 && sectionIndex < sections.length) {
+                event.preventDefault();
+                switchSettingsSection(sections[sectionIndex]);
+            }
         }
     }
 

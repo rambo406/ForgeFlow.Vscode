@@ -313,7 +313,8 @@ export class AzureDevOpsClient {
             const iteration = iterationId || await this.getLatestIterationId(project, repositoryId, pullRequestId);
             const url = `/${encodeURIComponent(project)}/_apis/git/repositories/${encodeURIComponent(repositoryId)}/pullrequests/${pullRequestId}/iterations/${iteration}/changes`;
             
-            const response = await this.makeRequestWithRetry<{ changeEntries: FileChange[] }>({
+            // The Azure DevOps API may return either { changes: [...] } or { changeEntries: [...] }
+            const response = await this.makeRequestWithRetry<any>({
                 method: 'GET',
                 url: url,
                 params: {
@@ -322,8 +323,20 @@ export class AzureDevOpsClient {
                     'includeContent': includeContent
                 }
             });
-
-            const changes = response.data.changeEntries || [];
+            // Normalize response: prefer .changes, fall back to .changeEntries
+            let changes: FileChange[] = [];
+            if (response && response.data) {
+                if (Array.isArray(response.data.changes)) {
+                    changes = response.data.changes;
+                } else if (Array.isArray(response.data.changeEntries)) {
+                    changes = response.data.changeEntries;
+                } else if (Array.isArray(response.data.value)) {
+                    // Some APIs return { value: [...] }
+                    changes = response.data.value;
+                } else {
+                    console.warn('[AzureDevOpsClient] Unexpected changes response shape', Object.keys(response.data));
+                }
+            }
             return this.filterAndEnhanceFileChanges(changes);
         } catch (error) {
             console.error(`Failed to fetch changes for PR ${pullRequestId}:`, error);

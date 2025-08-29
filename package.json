@@ -2,7 +2,7 @@
   "name": "azdo-pr-code-reviewer",
   "displayName": "Azure DevOps PR Code Reviewer",
   "description": "AI-powered code review assistant that integrates with Azure DevOps pull requests. Automatically analyze code changes, generate review comments, and improve code quality using advanced language models.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "forgeflow",
   "author": {
     "name": "ForgeFlow",

@@ -4,6 +4,9 @@ import { ConfigurationManager } from '../services/ConfigurationManager';
 import { AzureDevOpsClient } from '../services/AzureDevOpsClient';
 import { CommentAnalysisEngine, AnalysisProgress, AnalysisResult } from '../services/CommentAnalysisEngine';
 import { LanguageModelService } from '../services/LanguageModelService';
+import { SettingsValidationService } from '../services/SettingsValidationService';
+import { SettingsConfiguration, ValidationResult } from '../models/AzureDevOpsModels';
+import { SettingsUtils } from '../utils/SettingsUtils';
 
 /**
  * Message types for webview communication
@@ -39,7 +42,18 @@ export enum MessageType {
     // UI Updates
     UPDATE_VIEW = 'updateView',
     SHOW_ERROR = 'showError',
-    SHOW_SUCCESS = 'showSuccess'
+    SHOW_SUCCESS = 'showSuccess',
+    
+    // Settings
+    OPEN_SETTINGS = 'openSettings',
+    CLOSE_SETTINGS = 'closeSettings',
+    VALIDATE_SETTING = 'validateSetting',
+    SAVE_SETTINGS = 'saveSettings',
+    RESET_SETTINGS = 'resetSettings',
+    EXPORT_SETTINGS = 'exportSettings',
+    IMPORT_SETTINGS = 'importSettings',
+    SETTINGS_CHANGED = 'settingsChanged',
+    LOAD_AVAILABLE_MODELS = 'loadAvailableModels'
 }
 
 /**
@@ -71,12 +85,18 @@ export class PRDashboardController {
         cancellationTokenSource: vscode.CancellationTokenSource;
         prId: number;
     } | undefined;
+    private settingsValidationService: SettingsValidationService;
+    private languageModelService: LanguageModelService;
+    private settingsPanelOpen = false;
 
     constructor(
         private context: vscode.ExtensionContext,
         private configurationManager: ConfigurationManager,
         private azureDevOpsClient: AzureDevOpsClient | undefined
-    ) {}
+    ) {
+        this.languageModelService = new LanguageModelService();
+        this.settingsValidationService = new SettingsValidationService(this.languageModelService);
+    }
 
     /**
      * Create or show the dashboard panel
@@ -188,6 +208,34 @@ export class PRDashboardController {
                 break;
             case MessageType.EXPORT_COMMENTS:
                 await this.handleExportComments(message);
+                break;
+            // Settings-related handlers
+            case MessageType.OPEN_SETTINGS:
+                await this.handleOpenSettings(message);
+                break;
+            case MessageType.CLOSE_SETTINGS:
+                await this.handleCloseSettings(message);
+                break;
+            case MessageType.VALIDATE_SETTING:
+                await this.handleValidateSetting(message);
+                break;
+            case MessageType.SAVE_SETTINGS:
+                await this.handleSaveSettings(message);
+                break;
+            case MessageType.RESET_SETTINGS:
+                await this.handleResetSettings(message);
+                break;
+            case MessageType.EXPORT_SETTINGS:
+                await this.handleExportSettings(message);
+                break;
+            case MessageType.IMPORT_SETTINGS:
+                await this.handleImportSettings(message);
+                break;
+            case MessageType.LOAD_AVAILABLE_MODELS:
+                await this.handleLoadAvailableModels(message);
+                break;
+            case MessageType.TEST_CONNECTION:
+                await this.handleTestConnection(message);
                 break;
             default:
                 console.warn('Unknown message type:', message.type);
@@ -319,46 +367,25 @@ export class PRDashboardController {
      */
     private async handleTestConnection(message: WebviewMessage): Promise<void> {
         try {
-            const config = message.payload?.config;
-            if (!config || !config.organizationUrl || !config.personalAccessToken) {
-                this.sendMessage({
-                    type: MessageType.SHOW_ERROR,
-                    payload: { message: 'Organization URL and Personal Access Token are required for testing' },
-                    requestId: message.requestId
-                });
-                return;
-            }
+            const { config, testType, ...testParams } = message.payload || {};
 
-            // Test the connection using the configuration manager
-            const validationResult = await this.configurationManager.validatePatToken(
-                config.personalAccessToken,
-                config.organizationUrl
-            );
-
-            if (validationResult.isValid) {
-                this.sendMessage({
-                    type: MessageType.TEST_CONNECTION,
-                    payload: { success: true, message: validationResult.details },
-                    requestId: message.requestId
-                });
-
-                this.sendMessage({
-                    type: MessageType.SHOW_SUCCESS,
-                    payload: { message: 'Connection test successful: ' + validationResult.details },
-                    requestId: message.requestId
-                });
-            } else {
-                this.sendMessage({
-                    type: MessageType.TEST_CONNECTION,
-                    payload: { success: false, error: validationResult.error },
-                    requestId: message.requestId
-                });
-
-                this.sendMessage({
-                    type: MessageType.SHOW_ERROR,
-                    payload: { message: 'Connection test failed: ' + validationResult.error },
-                    requestId: message.requestId
-                });
+            switch (testType) {
+                case 'organization':
+                    await this.handleTestOrganization(message, testParams);
+                    break;
+                case 'patToken':
+                    await this.handleTestPatToken(message, testParams);
+                    break;
+                case 'project':
+                    await this.handleTestProject(message, testParams);
+                    break;
+                case 'model':
+                    await this.handleTestModel(message, testParams);
+                    break;
+                default:
+                    // Legacy connection test
+                    await this.handleLegacyTestConnection(message);
+                    break;
             }
 
         } catch (error) {
@@ -369,6 +396,165 @@ export class PRDashboardController {
                 requestId: message.requestId
             });
         }
+    }
+
+    /**
+     * Handle legacy connection test (backward compatibility)
+     */
+    private async handleLegacyTestConnection(message: WebviewMessage): Promise<void> {
+        const config = message.payload?.config;
+        if (!config || !config.organizationUrl || !config.personalAccessToken) {
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Organization URL and Personal Access Token are required for testing' },
+                requestId: message.requestId
+            });
+            return;
+        }
+
+        // Test the connection using the configuration manager
+        const validationResult = await this.configurationManager.validatePatToken(
+            config.personalAccessToken,
+            config.organizationUrl
+        );
+
+        if (validationResult.isValid) {
+            this.sendMessage({
+                type: MessageType.TEST_CONNECTION,
+                payload: { success: true, message: validationResult.details },
+                requestId: message.requestId
+            });
+
+            this.sendMessage({
+                type: MessageType.SHOW_SUCCESS,
+                payload: { message: 'Connection test successful: ' + validationResult.details },
+                requestId: message.requestId
+            });
+        } else {
+            this.sendMessage({
+                type: MessageType.TEST_CONNECTION,
+                payload: { success: false, error: validationResult.error },
+                requestId: message.requestId
+            });
+
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Connection test failed: ' + validationResult.error },
+                requestId: message.requestId
+            });
+        }
+    }
+
+    /**
+     * Handle organization URL test
+     */
+    private async handleTestOrganization(message: WebviewMessage, params: any): Promise<void> {
+        const { organizationUrl } = params;
+        if (!organizationUrl) {
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Organization URL is required' },
+                requestId: message.requestId
+            });
+            return;
+        }
+
+        const validationResult = await this.settingsValidationService.validateOrganizationUrl(organizationUrl);
+        
+        this.sendMessage({
+            type: MessageType.TEST_CONNECTION,
+            payload: { 
+                success: validationResult.isValid, 
+                message: validationResult.details,
+                error: validationResult.error,
+                testType: 'organization'
+            },
+            requestId: message.requestId
+        });
+    }
+
+    /**
+     * Handle PAT token test
+     */
+    private async handleTestPatToken(message: WebviewMessage, params: any): Promise<void> {
+        const { patToken, organizationUrl } = params;
+        if (!patToken || !organizationUrl) {
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'PAT token and organization URL are required' },
+                requestId: message.requestId
+            });
+            return;
+        }
+
+        const validationResult = await this.settingsValidationService.validatePatToken(patToken, organizationUrl);
+        
+        this.sendMessage({
+            type: MessageType.TEST_CONNECTION,
+            payload: { 
+                success: validationResult.isValid, 
+                message: validationResult.details,
+                error: validationResult.error,
+                testType: 'patToken'
+            },
+            requestId: message.requestId
+        });
+    }
+
+    /**
+     * Handle project test
+     */
+    private async handleTestProject(message: WebviewMessage, params: any): Promise<void> {
+        const { projectName, organizationUrl, patToken } = params;
+        if (!projectName || !organizationUrl || !patToken) {
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Project name, organization URL, and PAT token are required' },
+                requestId: message.requestId
+            });
+            return;
+        }
+
+        const validationResult = await this.settingsValidationService.validateProject(projectName, organizationUrl, patToken);
+        
+        this.sendMessage({
+            type: MessageType.TEST_CONNECTION,
+            payload: { 
+                success: validationResult.isValid, 
+                message: validationResult.details,
+                error: validationResult.error,
+                testType: 'project'
+            },
+            requestId: message.requestId
+        });
+    }
+
+    /**
+     * Handle language model test
+     */
+    private async handleTestModel(message: WebviewMessage, params: any): Promise<void> {
+        const { modelName } = params;
+        if (!modelName) {
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Model name is required' },
+                requestId: message.requestId
+            });
+            return;
+        }
+
+        const validationResult = await this.settingsValidationService.validateLanguageModel(modelName);
+        
+        this.sendMessage({
+            type: MessageType.TEST_CONNECTION,
+            payload: { 
+                success: validationResult.isValid, 
+                message: validationResult.details,
+                error: validationResult.error,
+                testType: 'model'
+            },
+            requestId: message.requestId
+        });
     }
 
     /**
@@ -835,11 +1021,202 @@ export class PRDashboardController {
         <header class="dashboard-header">
             <h1>Azure DevOps PR Dashboard</h1>
             <div class="header-actions">
-                <button id="configBtn" class="config-btn" title="Configuration">
+                <button id="settingsBtn" class="settings-btn" title="Settings" aria-label="Open Settings">
                     <span class="codicon codicon-gear"></span>
+                </button>
+                <button id="configBtn" class="config-btn" title="Configuration">
+                    <span class="codicon codicon-settings"></span>
                 </button>
             </div>
         </header>
+        
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="settings-modal" style="display: none;" role="dialog" aria-labelledby="settingsTitle" aria-modal="true">
+            <div class="settings-modal-content">
+                <header class="settings-header">
+                    <h2 id="settingsTitle">Extension Settings</h2>
+                    <button id="closeSettingsBtn" class="close-btn" title="Close Settings" aria-label="Close Settings">
+                        <span class="codicon codicon-close"></span>
+                    </button>
+                </header>
+                
+                <div class="settings-content">
+                    <div class="settings-sidebar">
+                        <nav class="settings-nav">
+                            <button class="settings-nav-item active" data-section="azureDevOps">
+                                <span class="codicon codicon-azure-devops"></span>
+                                Azure DevOps
+                            </button>
+                            <button class="settings-nav-item" data-section="languageModel">
+                                <span class="codicon codicon-copilot"></span>
+                                Language Model
+                            </button>
+                            <button class="settings-nav-item" data-section="reviewInstructions">
+                                <span class="codicon codicon-checklist"></span>
+                                Review Instructions
+                            </button>
+                            <button class="settings-nav-item" data-section="performance">
+                                <span class="codicon codicon-pulse"></span>
+                                Performance
+                            </button>
+                            <button class="settings-nav-item" data-section="ui">
+                                <span class="codicon codicon-color-mode"></span>
+                                UI Preferences
+                            </button>
+                        </nav>
+                    </div>
+                    
+                    <div class="settings-main">
+                        <!-- Azure DevOps Section -->
+                        <section id="azureDevOpsSection" class="settings-section active">
+                            <h3>Azure DevOps Configuration</h3>
+                            <div class="settings-form">
+                                <div class="form-group">
+                                    <label for="organizationUrl">Organization URL</label>
+                                    <input type="url" id="organizationUrl" placeholder="https://dev.azure.com/your-org" />
+                                    <div class="validation-message" id="organizationUrlValidation"></div>
+                                    <button type="button" class="test-connection-btn" id="testOrgConnection">Test Connection</button>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="patToken">Personal Access Token</label>
+                                    <input type="password" id="patToken" placeholder="Enter your PAT token" />
+                                    <div class="validation-message" id="patTokenValidation"></div>
+                                    <button type="button" class="test-connection-btn" id="testPatToken">Validate Token</button>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="defaultProject">Default Project</label>
+                                    <input type="text" id="defaultProject" placeholder="Project name (optional)" />
+                                    <div class="validation-message" id="defaultProjectValidation"></div>
+                                    <button type="button" class="test-connection-btn" id="testProjectConnection">Test Project</button>
+                                </div>
+                            </div>
+                        </section>
+                        
+                        <!-- Language Model Section -->
+                        <section id="languageModelSection" class="settings-section">
+                            <h3>Language Model Configuration</h3>
+                            <div class="settings-form">
+                                <div class="form-group">
+                                    <label for="selectedModel">Selected Model</label>
+                                    <select id="selectedModel">
+                                        <option value="">Loading available models...</option>
+                                    </select>
+                                    <div class="validation-message" id="selectedModelValidation"></div>
+                                    <button type="button" class="test-connection-btn" id="testModelAvailability">Test Model</button>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="modelTemperature">Temperature</label>
+                                    <input type="range" id="modelTemperature" min="0" max="2" step="0.1" value="0.1" />
+                                    <span class="range-value">0.1</span>
+                                    <div class="help-text">Controls randomness (0 = deterministic, 2 = very creative)</div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="maxTokens">Max Tokens</label>
+                                    <input type="number" id="maxTokens" min="100" max="8000" value="4000" />
+                                    <div class="validation-message" id="maxTokensValidation"></div>
+                                </div>
+                            </div>
+                        </section>
+                        
+                        <!-- Review Instructions Section -->
+                        <section id="reviewInstructionsSection" class="settings-section">
+                            <h3>Review Instructions</h3>
+                            <div class="settings-form">
+                                <div class="form-group">
+                                    <label for="customInstructions">Custom Instructions</label>
+                                    <textarea id="customInstructions" rows="10" placeholder="Enter custom review instructions..."></textarea>
+                                    <div class="validation-message" id="customInstructionsValidation"></div>
+                                    <div class="character-count">0 / 10000 characters</div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Instruction Templates</label>
+                                    <div class="template-buttons">
+                                        <button type="button" class="template-btn" data-template="basic">Basic Review</button>
+                                        <button type="button" class="template-btn" data-template="security">Security-Focused</button>
+                                        <button type="button" class="template-btn" data-template="performance">Performance-Focused</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        
+                        <!-- Performance Section -->
+                        <section id="performanceSection" class="settings-section">
+                            <h3>Performance Settings</h3>
+                            <div class="settings-form">
+                                <div class="form-group">
+                                    <label for="batchSize">Batch Size</label>
+                                    <input type="range" id="batchSize" min="1" max="100" value="10" />
+                                    <span class="range-value">10</span>
+                                    <div class="help-text">Number of files to process simultaneously</div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="requestTimeout">Request Timeout (seconds)</label>
+                                    <input type="range" id="requestTimeout" min="5" max="300" value="30" />
+                                    <span class="range-value">30</span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="enableTelemetry" />
+                                        Enable Telemetry
+                                    </label>
+                                    <div class="help-text">Help improve the extension by sharing anonymous usage data</div>
+                                </div>
+                            </div>
+                        </section>
+                        
+                        <!-- UI Preferences Section -->
+                        <section id="uiSection" class="settings-section">
+                            <h3>UI Preferences</h3>
+                            <div class="settings-form">
+                                <div class="form-group">
+                                    <label for="theme">Theme</label>
+                                    <select id="theme">
+                                        <option value="auto">Auto (Follow VS Code)</option>
+                                        <option value="light">Light</option>
+                                        <option value="dark">Dark</option>
+                                        <option value="high-contrast">High Contrast</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="fontSize">Font Size</label>
+                                    <input type="range" id="fontSize" min="8" max="24" value="14" />
+                                    <span class="range-value">14</span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="compactMode" />
+                                        Compact Mode
+                                    </label>
+                                    <div class="help-text">Use more compact layout to save space</div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+                
+                <footer class="settings-footer">
+                    <div class="settings-actions-left">
+                        <button type="button" id="exportSettingsBtn" class="secondary-btn">Export</button>
+                        <button type="button" id="importSettingsBtn" class="secondary-btn">Import</button>
+                        <button type="button" id="resetSettingsBtn" class="danger-btn">Reset to Defaults</button>
+                    </div>
+                    <div class="settings-actions-right">
+                        <button type="button" id="cancelSettingsBtn" class="secondary-btn">Cancel</button>
+                        <button type="button" id="saveSettingsBtn" class="primary-btn">Save Settings</button>
+                    </div>
+                </footer>
+            </div>
+            <div class="settings-modal-backdrop"></div>
+        </div>
         
         <nav class="dashboard-nav">
             <button id="prListBtn" class="nav-btn active" data-view="pullRequestList">
@@ -923,6 +1300,11 @@ export class PRDashboardController {
         if (this.currentAnalysis) {
             this.currentAnalysis.cancellationTokenSource.cancel();
             this.currentAnalysis = undefined;
+        }
+
+        // Dispose settings validation service
+        if (this.settingsValidationService) {
+            this.settingsValidationService.dispose();
         }
 
         if (this.panel) {
@@ -1310,6 +1692,417 @@ export class PRDashboardController {
             this.sendMessage({
                 type: MessageType.SHOW_ERROR,
                 payload: { message: 'Failed to refresh pull requests: ' + (error instanceof Error ? error.message : 'Unknown error') },
+                requestId: message.requestId
+            });
+        }
+    }
+
+    /**
+     * Handle open settings panel
+     */
+    private async handleOpenSettings(message: WebviewMessage): Promise<void> {
+        try {
+            this.settingsPanelOpen = true;
+            
+            // Get current settings configuration
+            const settings = await this.configurationManager.exportSettings();
+            const validationResult = await this.configurationManager.validateAllSettings();
+            
+            this.sendMessage({
+                type: MessageType.OPEN_SETTINGS,
+                payload: { 
+                    settings,
+                    validation: validationResult,
+                    isOpen: true
+                },
+                requestId: message.requestId
+            });
+
+        } catch (error) {
+            console.error('Failed to open settings:', error);
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Failed to open settings: ' + (error instanceof Error ? error.message : 'Unknown error') },
+                requestId: message.requestId
+            });
+        }
+    }
+
+    /**
+     * Handle close settings panel
+     */
+    private async handleCloseSettings(message: WebviewMessage): Promise<void> {
+        try {
+            this.settingsPanelOpen = false;
+            
+            this.sendMessage({
+                type: MessageType.CLOSE_SETTINGS,
+                payload: { isOpen: false },
+                requestId: message.requestId
+            });
+
+        } catch (error) {
+            console.error('Failed to close settings:', error);
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Failed to close settings: ' + (error instanceof Error ? error.message : 'Unknown error') },
+                requestId: message.requestId
+            });
+        }
+    }
+
+    /**
+     * Handle validate setting
+     */
+    private async handleValidateSetting(message: WebviewMessage): Promise<void> {
+        try {
+            const { settingKey, settingValue, context } = message.payload || {};
+            
+            if (!settingKey) {
+                this.sendMessage({
+                    type: MessageType.SHOW_ERROR,
+                    payload: { message: 'Setting key is required for validation' },
+                    requestId: message.requestId
+                });
+                return;
+            }
+
+            let validationResult: ValidationResult;
+
+            // Perform specific validation based on setting type
+            switch (settingKey) {
+                case 'organizationUrl':
+                    validationResult = await this.settingsValidationService.validateOrganizationUrl(settingValue);
+                    break;
+                case 'patToken':
+                    const orgUrl = context?.organizationUrl || this.configurationManager.getOrganizationUrl();
+                    if (orgUrl) {
+                        validationResult = await this.settingsValidationService.validatePatToken(settingValue, orgUrl);
+                    } else {
+                        validationResult = {
+                            isValid: false,
+                            error: 'Organization URL required',
+                            details: 'Please set organization URL before validating PAT token',
+                            category: 'azureDevOps'
+                        };
+                    }
+                    break;
+                case 'defaultProject':
+                    const orgUrlForProject = context?.organizationUrl || this.configurationManager.getOrganizationUrl();
+                    const patToken = context?.patToken || await this.configurationManager.getPatToken();
+                    if (orgUrlForProject && patToken) {
+                        validationResult = await this.settingsValidationService.validateProject(settingValue, orgUrlForProject, patToken);
+                    } else {
+                        validationResult = {
+                            isValid: false,
+                            error: 'Prerequisites missing',
+                            details: 'Organization URL and PAT token are required to validate project',
+                            category: 'azureDevOps'
+                        };
+                    }
+                    break;
+                case 'selectedModel':
+                    validationResult = await this.settingsValidationService.validateLanguageModel(settingValue);
+                    break;
+                case 'customInstructions':
+                    validationResult = this.settingsValidationService.validateCustomInstructions(settingValue);
+                    break;
+                case 'batchSize':
+                    validationResult = this.settingsValidationService.validatePerformanceSettings(settingValue, 30);
+                    break;
+                default:
+                    // Use generic validation from SettingsUtils
+                    validationResult = SettingsUtils.validateSettingValue(settingKey, settingValue);
+            }
+
+            this.sendMessage({
+                type: MessageType.VALIDATE_SETTING,
+                payload: { 
+                    settingKey,
+                    validation: validationResult
+                },
+                requestId: message.requestId
+            });
+
+        } catch (error) {
+            console.error('Failed to validate setting:', error);
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Failed to validate setting: ' + (error instanceof Error ? error.message : 'Unknown error') },
+                requestId: message.requestId
+            });
+        }
+    }
+
+    /**
+     * Handle save settings
+     */
+    private async handleSaveSettings(message: WebviewMessage): Promise<void> {
+        try {
+            const { settings, categories } = message.payload || {};
+            
+            if (!settings) {
+                this.sendMessage({
+                    type: MessageType.SHOW_ERROR,
+                    payload: { message: 'Settings data is required' },
+                    requestId: message.requestId
+                });
+                return;
+            }
+
+            // Create backup before saving
+            const currentSettings = await this.configurationManager.exportSettings();
+            const backupDir = vscode.Uri.joinPath(this.context.globalStorageUri, 'backups');
+            await vscode.workspace.fs.createDirectory(backupDir);
+            await SettingsUtils.createBackup(currentSettings, backupDir);
+
+            // Import the new settings
+            const importResult = await this.configurationManager.importSettings(settings, { categories });
+            
+            if (!importResult.isValid) {
+                this.sendMessage({
+                    type: MessageType.SHOW_ERROR,
+                    payload: { message: `Failed to save settings: ${importResult.error}` },
+                    requestId: message.requestId
+                });
+                return;
+            }
+
+            // Validate all settings after save
+            const validationResult = await this.configurationManager.validateAllSettings();
+
+            this.sendMessage({
+                type: MessageType.SAVE_SETTINGS,
+                payload: { 
+                    success: true,
+                    validation: validationResult,
+                    message: 'Settings saved successfully'
+                },
+                requestId: message.requestId
+            });
+
+            // Notify of settings change
+            this.sendMessage({
+                type: MessageType.SETTINGS_CHANGED,
+                payload: { 
+                    settings: await this.configurationManager.exportSettings(),
+                    validation: validationResult
+                }
+            });
+
+        } catch (error) {
+            console.error('Failed to save settings:', error);
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Failed to save settings: ' + (error instanceof Error ? error.message : 'Unknown error') },
+                requestId: message.requestId
+            });
+        }
+    }
+
+    /**
+     * Handle reset settings
+     */
+    private async handleResetSettings(message: WebviewMessage): Promise<void> {
+        try {
+            const { categories, includeSecrets } = message.payload || {};
+
+            // Create backup before reset
+            const currentSettings = await this.configurationManager.exportSettings();
+            const backupDir = vscode.Uri.joinPath(this.context.globalStorageUri, 'backups');
+            await vscode.workspace.fs.createDirectory(backupDir);
+            await SettingsUtils.createBackup(currentSettings, backupDir);
+
+            if (categories && Array.isArray(categories)) {
+                // Reset specific categories
+                const defaultValues = SettingsUtils.getDefaultValues();
+                const config = vscode.workspace.getConfiguration('azdo-pr-reviewer');
+                
+                for (const category of categories) {
+                    const categorySettings = SettingsUtils.getSettingsCategories()[category] || [];
+                    for (const settingKey of categorySettings) {
+                        if (defaultValues.hasOwnProperty(settingKey)) {
+                            await config.update(settingKey, defaultValues[settingKey], vscode.ConfigurationTarget.Global);
+                        }
+                    }
+                }
+
+                if (includeSecrets && categories.includes('azureDevOps')) {
+                    await this.configurationManager.clearPatToken();
+                }
+            } else {
+                // Reset all settings to defaults
+                await this.configurationManager.resetSettingsToDefault();
+                if (includeSecrets) {
+                    await this.configurationManager.clearPatToken();
+                }
+            }
+
+            // Get updated settings and validation
+            const updatedSettings = await this.configurationManager.exportSettings();
+            const validationResult = await this.configurationManager.validateAllSettings();
+
+            this.sendMessage({
+                type: MessageType.RESET_SETTINGS,
+                payload: { 
+                    success: true,
+                    settings: updatedSettings,
+                    validation: validationResult,
+                    message: 'Settings reset to defaults'
+                },
+                requestId: message.requestId
+            });
+
+            // Notify of settings change
+            this.sendMessage({
+                type: MessageType.SETTINGS_CHANGED,
+                payload: { 
+                    settings: updatedSettings,
+                    validation: validationResult
+                }
+            });
+
+        } catch (error) {
+            console.error('Failed to reset settings:', error);
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Failed to reset settings: ' + (error instanceof Error ? error.message : 'Unknown error') },
+                requestId: message.requestId
+            });
+        }
+    }
+
+    /**
+     * Handle export settings
+     */
+    private async handleExportSettings(message: WebviewMessage): Promise<void> {
+        try {
+            const { includeSecrets, format } = message.payload || {};
+            
+            const settings = await this.configurationManager.exportSettings();
+            
+            // Remove sensitive data if not requested
+            if (!includeSecrets && settings.azureDevOps) {
+                settings.azureDevOps.hasPatToken = false;
+            }
+
+            const exportData = SettingsUtils.serializeSettings(settings);
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `azdo-pr-reviewer-settings-${timestamp}.json`;
+
+            this.sendMessage({
+                type: MessageType.EXPORT_SETTINGS,
+                payload: { 
+                    data: exportData,
+                    filename,
+                    format: format || 'json',
+                    success: true
+                },
+                requestId: message.requestId
+            });
+
+        } catch (error) {
+            console.error('Failed to export settings:', error);
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Failed to export settings: ' + (error instanceof Error ? error.message : 'Unknown error') },
+                requestId: message.requestId
+            });
+        }
+    }
+
+    /**
+     * Handle import settings
+     */
+    private async handleImportSettings(message: WebviewMessage): Promise<void> {
+        try {
+            const { data, options } = message.payload || {};
+            
+            if (!data) {
+                this.sendMessage({
+                    type: MessageType.SHOW_ERROR,
+                    payload: { message: 'Import data is required' },
+                    requestId: message.requestId
+                });
+                return;
+            }
+
+            // Parse settings data
+            const settings = SettingsUtils.deserializeSettings(data);
+
+            // Create backup before import
+            const currentSettings = await this.configurationManager.exportSettings();
+            const backupDir = vscode.Uri.joinPath(this.context.globalStorageUri, 'backups');
+            await vscode.workspace.fs.createDirectory(backupDir);
+            await SettingsUtils.createBackup(currentSettings, backupDir);
+
+            // Import settings
+            const importResult = await this.configurationManager.importSettings(settings, options);
+            
+            if (!importResult.isValid) {
+                this.sendMessage({
+                    type: MessageType.SHOW_ERROR,
+                    payload: { message: `Failed to import settings: ${importResult.error}` },
+                    requestId: message.requestId
+                });
+                return;
+            }
+
+            // Get updated settings and validation
+            const updatedSettings = await this.configurationManager.exportSettings();
+            const validationResult = await this.configurationManager.validateAllSettings();
+
+            this.sendMessage({
+                type: MessageType.IMPORT_SETTINGS,
+                payload: { 
+                    success: true,
+                    settings: updatedSettings,
+                    validation: validationResult,
+                    message: 'Settings imported successfully'
+                },
+                requestId: message.requestId
+            });
+
+            // Notify of settings change
+            this.sendMessage({
+                type: MessageType.SETTINGS_CHANGED,
+                payload: { 
+                    settings: updatedSettings,
+                    validation: validationResult
+                }
+            });
+
+        } catch (error) {
+            console.error('Failed to import settings:', error);
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Failed to import settings: ' + (error instanceof Error ? error.message : 'Unknown error') },
+                requestId: message.requestId
+            });
+        }
+    }
+
+    /**
+     * Handle loading available language models
+     */
+    private async handleLoadAvailableModels(message: WebviewMessage): Promise<void> {
+        try {
+            const models = await this.languageModelService.getAvailableModels();
+            
+            this.sendMessage({
+                type: MessageType.LOAD_AVAILABLE_MODELS,
+                payload: { 
+                    models,
+                    success: true
+                },
+                requestId: message.requestId
+            });
+
+        } catch (error) {
+            console.error('Failed to load available models:', error);
+            this.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Failed to load available models: ' + (error instanceof Error ? error.message : 'Unknown error') },
                 requestId: message.requestId
             });
         }

@@ -495,6 +495,21 @@ Deleted Lines: ${deletedLines}
     }
 
     /**
+     * Check if a specific language model is available
+     */
+    async isModelAvailable(modelId: string): Promise<boolean> {
+        try {
+            const models = await vscode.lm.selectChatModels({
+                id: modelId
+            });
+            return models.length > 0;
+        } catch (error) {
+            console.error(`Error checking availability of model ${modelId}:`, error);
+            return false;
+        }
+    }
+
+    /**
      * Get information about language model usage and limitations
      */
     async getModelUsageInfo(modelId?: string): Promise<string> {

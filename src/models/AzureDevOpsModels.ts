@@ -158,6 +158,51 @@ export interface ValidationResult {
     isValid: boolean;
     error?: string;
     details?: string;
+    category?: string;
+}
+
+export interface SettingsValidationResult {
+    isValid: boolean;
+    results: ValidationResult[];
+    errors: string[];
+    summary: string;
+}
+
+export interface ConfigurationChange {
+    key: string;
+    category: string;
+    newValue: any;
+    oldValue?: any;
+    timestamp: Date;
+}
+
+export interface SettingsConfiguration {
+    version: string;
+    exportDate: string;
+    azureDevOps?: {
+        organizationUrl?: string;
+        defaultProject?: string;
+        hasPatToken?: boolean;
+    };
+    languageModel?: {
+        selectedModel?: string;
+        customInstructions?: string;
+    };
+    performance?: {
+        batchSize?: number;
+        enableTelemetry?: boolean;
+    };
+    ui?: {
+        theme?: string;
+        fontSize?: number;
+        compactMode?: boolean;
+    };
+}
+
+export interface ImportOptions {
+    categories?: string[];
+    overwriteExisting?: boolean;
+    validateOnly?: boolean;
 }
 
 export interface AzureDevOpsError {

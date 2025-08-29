@@ -1,6 +1,14 @@
 import * as vscode from 'vscode';
 import axios, { AxiosResponse, AxiosError } from 'axios';
-import { ValidationResult, Profile, AzureDevOpsError } from '../models/AzureDevOpsModels';
+import { 
+    ValidationResult, 
+    Profile, 
+    AzureDevOpsError, 
+    SettingsValidationResult, 
+    ConfigurationChange, 
+    SettingsConfiguration, 
+    ImportOptions 
+} from '../models/AzureDevOpsModels';
 import { 
     CONFIG_KEYS, 
     DEFAULT_VALUES, 
@@ -455,5 +463,321 @@ export class ConfigurationManager {
         
         // Clear version tracking
         await this.context.globalState.update('configVersion', undefined);
+    }
+
+    /**
+     * Validate all settings with detailed results
+     */
+    async validateAllSettings(): Promise<SettingsValidationResult> {
+        const results: ValidationResult[] = [];
+        const errors: string[] = [];
+        
+        // Validate Azure DevOps settings
+        const patToken = await this.getPatToken();
+        const orgUrl = this.getOrganizationUrl();
+        
+        if (!patToken) {
+            results.push({
+                isValid: false,
+                error: 'PAT token not configured',
+                details: 'Please configure your Azure DevOps Personal Access Token',
+                category: 'azureDevOps'
+            });
+            errors.push('PAT token missing');
+        }
+        
+        if (!orgUrl) {
+            results.push({
+                isValid: false,
+                error: 'Organization URL not configured', 
+                details: 'Please configure your Azure DevOps organization URL',
+                category: 'azureDevOps'
+            });
+            errors.push('Organization URL missing');
+        } else {
+            const urlValidation = this.validateOrganizationUrl(orgUrl);
+            if (!urlValidation.isValid) {
+                results.push({
+                    ...urlValidation,
+                    category: 'azureDevOps'
+                });
+                errors.push('Invalid organization URL');
+            }
+        }
+        
+        // Validate Language Model settings
+        const selectedModel = this.getSelectedModel();
+        if (!this.isValidModel(selectedModel)) {
+            results.push({
+                isValid: false,
+                error: 'Invalid language model',
+                details: `Model '${selectedModel}' is not supported`,
+                category: 'languageModel'
+            });
+            errors.push('Invalid language model');
+        }
+        
+        // Validate Performance settings
+        const batchSize = this.getBatchSize();
+        if (batchSize < 1 || batchSize > 100) {
+            results.push({
+                isValid: false,
+                error: 'Invalid batch size',
+                details: 'Batch size must be between 1 and 100',
+                category: 'performance'
+            });
+            errors.push('Invalid batch size');
+        }
+        
+        // Validate Review Instructions
+        const customInstructions = this.getCustomInstructions();
+        if (customInstructions.length > 10000) {
+            results.push({
+                isValid: false,
+                error: 'Custom instructions too long',
+                details: 'Custom instructions must be less than 10,000 characters',
+                category: 'reviewInstructions'
+            });
+            errors.push('Custom instructions too long');
+        }
+
+        return {
+            isValid: errors.length === 0,
+            results,
+            errors,
+            summary: errors.length === 0 ? 'All settings are valid' : `${errors.length} validation error(s) found`
+        };
+    }
+
+    /**
+     * Export current settings configuration
+     */
+    async exportSettings(): Promise<SettingsConfiguration> {
+        const config = vscode.workspace.getConfiguration(ConfigurationManager.EXTENSION_ID);
+        const patToken = await this.getPatToken();
+        
+        return {
+            version: '1.0.0',
+            exportDate: new Date().toISOString(),
+            azureDevOps: {
+                organizationUrl: this.getOrganizationUrl(),
+                defaultProject: this.getDefaultProject(),
+                hasPatToken: !!patToken
+            },
+            languageModel: {
+                selectedModel: this.getSelectedModel(),
+                customInstructions: this.getCustomInstructions()
+            },
+            performance: {
+                batchSize: this.getBatchSize(),
+                enableTelemetry: this.isTelemetryEnabled()
+            },
+            ui: {
+                theme: config.get<string>('ui.theme', 'auto'),
+                fontSize: config.get<number>('ui.fontSize', 14),
+                compactMode: config.get<boolean>('ui.compactMode', false)
+            }
+        };
+    }
+
+    /**
+     * Import settings configuration
+     */
+    async importSettings(settings: SettingsConfiguration, options: ImportOptions = {}): Promise<ValidationResult> {
+        try {
+            // Validate settings structure
+            const validation = this.validateImportedSettings(settings);
+            if (!validation.isValid) {
+                return validation;
+            }
+
+            const config = vscode.workspace.getConfiguration(ConfigurationManager.EXTENSION_ID);
+            
+            // Import Azure DevOps settings
+            if (settings.azureDevOps && (!options.categories || options.categories.includes('azureDevOps'))) {
+                if (settings.azureDevOps.organizationUrl) {
+                    await config.update('organizationUrl', settings.azureDevOps.organizationUrl, vscode.ConfigurationTarget.Global);
+                }
+                if (settings.azureDevOps.defaultProject) {
+                    await config.update('defaultProject', settings.azureDevOps.defaultProject, vscode.ConfigurationTarget.Global);
+                }
+            }
+
+            // Import Language Model settings
+            if (settings.languageModel && (!options.categories || options.categories.includes('languageModel'))) {
+                if (settings.languageModel.selectedModel) {
+                    await config.update('selectedModel', settings.languageModel.selectedModel, vscode.ConfigurationTarget.Global);
+                }
+                if (settings.languageModel.customInstructions) {
+                    await config.update('customInstructions', settings.languageModel.customInstructions, vscode.ConfigurationTarget.Global);
+                }
+            }
+
+            // Import Performance settings
+            if (settings.performance && (!options.categories || options.categories.includes('performance'))) {
+                if (settings.performance.batchSize !== undefined) {
+                    await config.update('batchSize', settings.performance.batchSize, vscode.ConfigurationTarget.Global);
+                }
+                if (settings.performance.enableTelemetry !== undefined) {
+                    await config.update('enableTelemetry', settings.performance.enableTelemetry, vscode.ConfigurationTarget.Global);
+                }
+            }
+
+            // Import UI settings
+            if (settings.ui && (!options.categories || options.categories.includes('ui'))) {
+                if (settings.ui.theme) {
+                    await config.update('ui.theme', settings.ui.theme, vscode.ConfigurationTarget.Global);
+                }
+                if (settings.ui.fontSize !== undefined) {
+                    await config.update('ui.fontSize', settings.ui.fontSize, vscode.ConfigurationTarget.Global);
+                }
+                if (settings.ui.compactMode !== undefined) {
+                    await config.update('ui.compactMode', settings.ui.compactMode, vscode.ConfigurationTarget.Global);
+                }
+            }
+
+            return {
+                isValid: true,
+                details: 'Settings imported successfully'
+            };
+
+        } catch (error) {
+            return {
+                isValid: false,
+                error: 'Import failed',
+                details: `Failed to import settings: ${error}`
+            };
+        }
+    }
+
+    /**
+     * Validate imported settings structure
+     */
+    private validateImportedSettings(settings: SettingsConfiguration): ValidationResult {
+        if (!settings || typeof settings !== 'object') {
+            return {
+                isValid: false,
+                error: 'Invalid settings format',
+                details: 'Settings must be a valid JSON object'
+            };
+        }
+
+        if (!settings.version) {
+            return {
+                isValid: false,
+                error: 'Missing version',
+                details: 'Settings file must include a version number'
+            };
+        }
+
+        // Validate Azure DevOps settings
+        if (settings.azureDevOps) {
+            if (settings.azureDevOps.organizationUrl && !VALIDATION_PATTERNS.ORGANIZATION_URL.test(settings.azureDevOps.organizationUrl)) {
+                return {
+                    isValid: false,
+                    error: 'Invalid organization URL in import',
+                    details: 'Organization URL must be in correct format'
+                };
+            }
+        }
+
+        // Validate Language Model settings
+        if (settings.languageModel) {
+            if (settings.languageModel.selectedModel && !this.isValidModel(settings.languageModel.selectedModel)) {
+                return {
+                    isValid: false,
+                    error: 'Invalid model in import',
+                    details: 'Selected model is not supported'
+                };
+            }
+        }
+
+        // Validate Performance settings
+        if (settings.performance) {
+            if (settings.performance.batchSize !== undefined && 
+                (settings.performance.batchSize < 1 || settings.performance.batchSize > 100)) {
+                return {
+                    isValid: false,
+                    error: 'Invalid batch size in import',
+                    details: 'Batch size must be between 1 and 100'
+                };
+            }
+        }
+
+        return { isValid: true };
+    }
+
+    /**
+     * Register configuration change event handler
+     */
+    onConfigurationChanged(callback: (changes: ConfigurationChange[]) => void): vscode.Disposable {
+        return vscode.workspace.onDidChangeConfiguration((event) => {
+            const changes: ConfigurationChange[] = [];
+            
+            if (event.affectsConfiguration(`${ConfigurationManager.EXTENSION_ID}.organizationUrl`)) {
+                changes.push({
+                    key: 'organizationUrl',
+                    category: 'azureDevOps',
+                    newValue: this.getOrganizationUrl(),
+                    timestamp: new Date()
+                });
+            }
+            
+            if (event.affectsConfiguration(`${ConfigurationManager.EXTENSION_ID}.selectedModel`)) {
+                changes.push({
+                    key: 'selectedModel',
+                    category: 'languageModel', 
+                    newValue: this.getSelectedModel(),
+                    timestamp: new Date()
+                });
+            }
+            
+            if (event.affectsConfiguration(`${ConfigurationManager.EXTENSION_ID}.batchSize`)) {
+                changes.push({
+                    key: 'batchSize',
+                    category: 'performance',
+                    newValue: this.getBatchSize(),
+                    timestamp: new Date()
+                });
+            }
+            
+            if (event.affectsConfiguration(`${ConfigurationManager.EXTENSION_ID}.enableTelemetry`)) {
+                changes.push({
+                    key: 'enableTelemetry',
+                    category: 'performance',
+                    newValue: this.isTelemetryEnabled(),
+                    timestamp: new Date()
+                });
+            }
+            
+            if (event.affectsConfiguration(`${ConfigurationManager.EXTENSION_ID}.customInstructions`)) {
+                changes.push({
+                    key: 'customInstructions',
+                    category: 'reviewInstructions',
+                    newValue: this.getCustomInstructions(),
+                    timestamp: new Date()
+                });
+            }
+
+            if (changes.length > 0) {
+                callback(changes);
+            }
+        });
+    }
+
+    /**
+     * Reset settings to default values
+     */
+    async resetSettingsToDefault(): Promise<void> {
+        const config = vscode.workspace.getConfiguration(ConfigurationManager.EXTENSION_ID);
+        
+        // Reset to default values
+        await config.update('selectedModel', DEFAULT_VALUES.SELECTED_MODEL, vscode.ConfigurationTarget.Global);
+        await config.update('customInstructions', DEFAULT_VALUES.CUSTOM_INSTRUCTIONS, vscode.ConfigurationTarget.Global);
+        await config.update('batchSize', DEFAULT_VALUES.BATCH_SIZE, vscode.ConfigurationTarget.Global);
+        await config.update('enableTelemetry', DEFAULT_VALUES.ENABLE_TELEMETRY, vscode.ConfigurationTarget.Global);
+        await config.update('ui.theme', 'auto', vscode.ConfigurationTarget.Global);
+        await config.update('ui.fontSize', 14, vscode.ConfigurationTarget.Global);
+        await config.update('ui.compactMode', false, vscode.ConfigurationTarget.Global);
     }
 }
