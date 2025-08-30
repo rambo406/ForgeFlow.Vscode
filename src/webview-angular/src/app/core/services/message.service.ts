@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { Observable, fromEvent, map, filter } from 'rxjs';
 import { VSCodeApiService } from './vscode-api.service';
 
 /**
@@ -101,7 +102,7 @@ export class MessageService {
   /**
    * Send a message to the extension host
    */
-  private sendMessage<T = any>(type: MessageType, payload?: T): void {
+  sendMessage<T = any>(type: MessageType, payload?: T): void {
     const message: WebviewMessage<T> = {
       type,
       payload: payload as T,
@@ -253,6 +254,24 @@ export class MessageService {
 
   showInfo(message: string): void {
     this.sendMessage(MessageType.SHOW_INFO, { message });
+  }
+
+  /**
+   * Observable for incoming messages
+   */
+  onMessage<T = any>(): Observable<WebviewMessage<T>> {
+    return fromEvent<CustomEvent>(window, 'vscode-message').pipe(
+      map(event => event.detail as WebviewMessage<T>)
+    );
+  }
+
+  /**
+   * Observable for specific message types
+   */
+  onMessageOfType<T = any>(messageType: MessageType): Observable<WebviewMessage<T>> {
+    return this.onMessage<T>().pipe(
+      filter(message => message.type === messageType)
+    );
   }
 
   /**

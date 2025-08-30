@@ -9,9 +9,10 @@ class GlobalErrorHandler implements ErrorHandler {
     console.error('Global error:', error);
     
     // In a webview, we might want to send errors to the extension host
-    if (typeof acquireVsCodeApi !== 'undefined') {
+    const vscodeApi = (globalThis as any).acquireVsCodeApi;
+    if (typeof vscodeApi !== 'undefined') {
       try {
-        const vscode = acquireVsCodeApi();
+        const vscode = (globalThis as any).acquireVsCodeApi();
         vscode.postMessage({
           type: 'error',
           payload: {

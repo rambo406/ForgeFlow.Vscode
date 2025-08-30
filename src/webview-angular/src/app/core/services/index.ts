@@ -4,3 +4,4 @@ export * from './message.service';
 export * from './theme.service';
 export * from './notification.service';
 export * from './error-handler.service';
+export * from './webview-lifecycle.service';
