@@ -1,0 +1,264 @@
+import { Injectable, signal } from '@angular/core';
+import { VSCodeApiService } from './vscode-api.service';
+
+/**
+ * Message types for communication between webview and extension host
+ */
+export enum MessageType {
+  // Configuration messages
+  LOAD_CONFIG = 'loadConfig',
+  SAVE_CONFIG = 'saveConfig',
+  TEST_CONNECTION = 'testConnection',
+  
+  // Pull request messages
+  LOAD_PULL_REQUESTS = 'loadPullRequests',
+  SELECT_PULL_REQUEST = 'selectPullRequest',
+  LOAD_PR_DETAILS = 'loadPRDetails',
+  
+  // AI Analysis messages
+  START_AI_ANALYSIS = 'startAIAnalysis',
+  AI_ANALYSIS_PROGRESS = 'aiAnalysisProgress',
+  AI_ANALYSIS_COMPLETE = 'aiAnalysisComplete',
+  AI_ANALYSIS_CANCEL = 'aiAnalysisCancel',
+  
+  // Comment management messages
+  APPROVE_COMMENT = 'approveComment',
+  DISMISS_COMMENT = 'dismissComment',
+  MODIFY_COMMENT = 'modifyComment',
+  EXPORT_COMMENTS = 'exportComments',
+  
+  // Repository and project messages
+  LOAD_REPOSITORIES = 'loadRepositories',
+  LOAD_PROJECTS = 'loadProjects',
+  
+  // UI state messages
+  UPDATE_VIEW = 'updateView',
+  
+  // Notification messages
+  SHOW_ERROR = 'showError',
+  SHOW_SUCCESS = 'showSuccess',
+  SHOW_WARNING = 'showWarning',
+  SHOW_INFO = 'showInfo',
+  
+  // Settings messages
+  OPEN_SETTINGS = 'openSettings',
+  CLOSE_SETTINGS = 'closeSettings',
+  VALIDATE_SETTING = 'validateSetting',
+  SAVE_SETTINGS = 'saveSettings',
+  RESET_SETTINGS = 'resetSettings',
+  EXPORT_SETTINGS = 'exportSettings',
+  IMPORT_SETTINGS = 'importSettings',
+  SETTINGS_CHANGED = 'settingsChanged',
+  LOAD_AVAILABLE_MODELS = 'loadAvailableModels'
+}
+
+/**
+ * Generic message interface
+ */
+export interface WebviewMessage<T = any> {
+  type: MessageType;
+  payload: T;
+  requestId?: string;
+  timestamp?: string;
+}
+
+/**
+ * Service for handling typed message communication between webview and extension host
+ */
+@Injectable({
+  providedIn: 'root'
+})
+export class MessageService {
+  private _lastError = signal<string | null>(null);
+  private _isLoading = signal(false);
+  
+  readonly lastError = this._lastError.asReadonly();
+  readonly isLoading = this._isLoading.asReadonly();
+
+  constructor(private vscodeApi: VSCodeApiService) {
+    // Set up message handlers
+    this.setupMessageHandlers();
+  }
+
+  /**
+   * Set up handlers for incoming messages
+   */
+  private setupMessageHandlers(): void {
+    this.vscodeApi.onMessage((message: WebviewMessage) => {
+      switch (message.type) {
+        case MessageType.SHOW_ERROR:
+          this._lastError.set(message.payload.message);
+          break;
+        case MessageType.SHOW_SUCCESS:
+        case MessageType.SHOW_WARNING:
+        case MessageType.SHOW_INFO:
+          this._lastError.set(null);
+          break;
+      }
+    });
+  }
+
+  /**
+   * Send a message to the extension host
+   */
+  private sendMessage<T = any>(type: MessageType, payload?: T): void {
+    const message: WebviewMessage<T> = {
+      type,
+      payload: payload as T,
+      timestamp: new Date().toISOString()
+    };
+    
+    this.vscodeApi.postMessage(message);
+  }
+
+  /**
+   * Send a request and wait for response
+   */
+  private async sendRequest<TRequest = any, TResponse = any>(
+    type: MessageType, 
+    payload?: TRequest,
+    timeout?: number
+  ): Promise<TResponse> {
+    this._isLoading.set(true);
+    try {
+      const message: WebviewMessage<TRequest> = {
+        type,
+        payload: payload as TRequest,
+        timestamp: new Date().toISOString()
+      };
+      
+      const response = await this.vscodeApi.sendRequest<TResponse>(message, timeout);
+      this._lastError.set(null);
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this._lastError.set(errorMessage);
+      throw error;
+    } finally {
+      this._isLoading.set(false);
+    }
+  }
+
+  // Configuration methods
+  async loadConfiguration(): Promise<any> {
+    return this.sendRequest(MessageType.LOAD_CONFIG);
+  }
+
+  async saveConfiguration(config: any): Promise<void> {
+    return this.sendRequest(MessageType.SAVE_CONFIG, { config });
+  }
+
+  async testConnection(config: any): Promise<any> {
+    return this.sendRequest(MessageType.TEST_CONNECTION, { config });
+  }
+
+  // Pull request methods
+  async loadPullRequests(): Promise<any> {
+    return this.sendRequest(MessageType.LOAD_PULL_REQUESTS);
+  }
+
+  async selectPullRequest(prId: number): Promise<any> {
+    return this.sendRequest(MessageType.SELECT_PULL_REQUEST, { prId });
+  }
+
+  async loadPRDetails(prId: number): Promise<any> {
+    return this.sendRequest(MessageType.LOAD_PR_DETAILS, { prId });
+  }
+
+  // AI Analysis methods
+  startAIAnalysis(prId: number): void {
+    this.sendMessage(MessageType.START_AI_ANALYSIS, { prId });
+  }
+
+  cancelAIAnalysis(prId: number): void {
+    this.sendMessage(MessageType.AI_ANALYSIS_CANCEL, { prId });
+  }
+
+  // Comment management methods
+  approveComment(commentId: string): void {
+    this.sendMessage(MessageType.APPROVE_COMMENT, { commentId });
+  }
+
+  dismissComment(commentId: string): void {
+    this.sendMessage(MessageType.DISMISS_COMMENT, { commentId });
+  }
+
+  modifyComment(commentId: string, content: string): void {
+    this.sendMessage(MessageType.MODIFY_COMMENT, { commentId, content });
+  }
+
+  exportComments(): void {
+    this.sendMessage(MessageType.EXPORT_COMMENTS);
+  }
+
+  // Repository and project methods
+  async loadRepositories(): Promise<any> {
+    return this.sendRequest(MessageType.LOAD_REPOSITORIES);
+  }
+
+  async loadProjects(): Promise<any> {
+    return this.sendRequest(MessageType.LOAD_PROJECTS);
+  }
+
+  // UI state methods
+  updateView(view: string): void {
+    this.sendMessage(MessageType.UPDATE_VIEW, { view });
+  }
+
+  // Settings methods
+  async openSettings(): Promise<void> {
+    return this.sendRequest(MessageType.OPEN_SETTINGS);
+  }
+
+  closeSettings(): void {
+    this.sendMessage(MessageType.CLOSE_SETTINGS);
+  }
+
+  async validateSetting(key: string, value: any): Promise<any> {
+    return this.sendRequest(MessageType.VALIDATE_SETTING, { key, value });
+  }
+
+  async saveSettings(settings: any): Promise<void> {
+    return this.sendRequest(MessageType.SAVE_SETTINGS, { settings });
+  }
+
+  resetSettings(): void {
+    this.sendMessage(MessageType.RESET_SETTINGS);
+  }
+
+  exportSettings(): void {
+    this.sendMessage(MessageType.EXPORT_SETTINGS);
+  }
+
+  importSettings(settings: any): void {
+    this.sendMessage(MessageType.IMPORT_SETTINGS, { settings });
+  }
+
+  async loadAvailableModels(): Promise<any> {
+    return this.sendRequest(MessageType.LOAD_AVAILABLE_MODELS);
+  }
+
+  // Notification methods
+  showError(message: string, details?: string): void {
+    this.sendMessage(MessageType.SHOW_ERROR, { message, details });
+  }
+
+  showSuccess(message: string): void {
+    this.sendMessage(MessageType.SHOW_SUCCESS, { message });
+  }
+
+  showWarning(message: string): void {
+    this.sendMessage(MessageType.SHOW_WARNING, { message });
+  }
+
+  showInfo(message: string): void {
+    this.sendMessage(MessageType.SHOW_INFO, { message });
+  }
+
+  /**
+   * Clear the last error
+   */
+  clearError(): void {
+    this._lastError.set(null);
+  }
+}

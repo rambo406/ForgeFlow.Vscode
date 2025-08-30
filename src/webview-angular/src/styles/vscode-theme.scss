@@ -1,0 +1,187 @@
+/* VS Code theme variables and integration */
+
+/* VS Code theme variables will be injected by the webview */
+:root {
+  /* Default theme variables (will be overridden by VS Code) */
+  --vscode-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --vscode-font-size: 13px;
+  --vscode-font-weight: 400;
+  
+  /* Color variables */
+  --vscode-foreground: #cccccc;
+  --vscode-descriptionForeground: rgba(204, 204, 204, 0.7);
+  --vscode-errorForeground: #f14c4c;
+  --vscode-warningForeground: #ffcc02;
+  --vscode-infoForeground: #3794ff;
+  
+  /* Background colors */
+  --vscode-editor-background: #1e1e1e;
+  --vscode-panel-background: #252526;
+  --vscode-sideBar-background: #252526;
+  --vscode-statusBar-background: #007acc;
+  
+  /* Border colors */
+  --vscode-panel-border: #2b2b2b;
+  --vscode-focusBorder: #007acc;
+  
+  /* Button colors */
+  --vscode-button-background: #0e639c;
+  --vscode-button-foreground: #ffffff;
+  --vscode-button-hoverBackground: #1177bb;
+  --vscode-button-secondaryBackground: transparent;
+  --vscode-button-secondaryForeground: var(--vscode-foreground);
+  --vscode-button-secondaryHoverBackground: rgba(90, 93, 94, 0.31);
+  
+  /* Input colors */
+  --vscode-input-background: #3c3c3c;
+  --vscode-input-foreground: #cccccc;
+  --vscode-input-border: #3c3c3c;
+  --vscode-input-placeholderForeground: rgba(204, 204, 204, 0.6);
+  
+  /* List colors */
+  --vscode-list-hoverBackground: rgba(90, 93, 94, 0.31);
+  --vscode-list-activeSelectionBackground: #094771;
+  --vscode-list-inactiveSelectionBackground: #37373d;
+  
+  /* Notification colors */
+  --vscode-notificationsErrorIcon-foreground: #f14c4c;
+  --vscode-notificationsWarningIcon-foreground: #ffcc02;
+  --vscode-notificationsInfoIcon-foreground: #3794ff;
+  
+  /* Progress bar colors */
+  --vscode-progressBar-background: #0e70c0;
+  
+  /* Scrollbar colors */
+  --vscode-scrollbarSlider-background: rgba(121, 121, 121, 0.4);
+  --vscode-scrollbarSlider-hoverBackground: rgba(121, 121, 121, 0.7);
+  --vscode-scrollbarSlider-activeBackground: rgba(191, 191, 191, 0.4);
+}
+
+/* Dark theme overrides (for when VS Code is in dark mode) */
+[data-vscode-theme-kind="vscode-dark"] {
+  --vscode-foreground: #cccccc;
+  --vscode-editor-background: #1e1e1e;
+  --vscode-panel-background: #252526;
+}
+
+/* Light theme overrides (for when VS Code is in light mode) */
+[data-vscode-theme-kind="vscode-light"] {
+  --vscode-foreground: #333333;
+  --vscode-editor-background: #ffffff;
+  --vscode-panel-background: #f3f3f3;
+  --vscode-panel-border: #e0e0e0;
+  --vscode-input-background: #ffffff;
+  --vscode-input-foreground: #333333;
+  --vscode-input-border: #cecece;
+}
+
+/* High contrast theme overrides */
+[data-vscode-theme-kind="vscode-high-contrast"] {
+  --vscode-foreground: #ffffff;
+  --vscode-editor-background: #000000;
+  --vscode-panel-background: #000000;
+  --vscode-panel-border: #6fc3df;
+  --vscode-focusBorder: #f38518;
+}
+
+/* VS Code webview specific styles */
+body.vscode-light {
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-editor-background);
+}
+
+body.vscode-dark {
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-editor-background);
+}
+
+body.vscode-high-contrast {
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-editor-background);
+}
+
+/* Theme-aware semantic color mapping */
+:root {
+  /* Primary colors */
+  --color-primary: var(--vscode-button-background);
+  --color-primary-foreground: var(--vscode-button-foreground);
+  --color-primary-hover: var(--vscode-button-hoverBackground);
+  
+  /* Secondary colors */
+  --color-secondary: var(--vscode-button-secondaryBackground);
+  --color-secondary-foreground: var(--vscode-button-secondaryForeground);
+  --color-secondary-hover: var(--vscode-button-secondaryHoverBackground);
+  
+  /* Background colors */
+  --color-background: var(--vscode-editor-background);
+  --color-surface: var(--vscode-panel-background);
+  --color-foreground: var(--vscode-foreground);
+  --color-muted: var(--vscode-descriptionForeground);
+  
+  /* Border colors */
+  --color-border: var(--vscode-panel-border);
+  --color-border-focus: var(--vscode-focusBorder);
+  
+  /* Input colors */
+  --color-input-background: var(--vscode-input-background);
+  --color-input-foreground: var(--vscode-input-foreground);
+  --color-input-border: var(--vscode-input-border);
+  --color-input-placeholder: var(--vscode-input-placeholderForeground);
+  
+  /* State colors */
+  --color-error: var(--vscode-errorForeground);
+  --color-warning: var(--vscode-warningForeground);
+  --color-info: var(--vscode-infoForeground);
+  --color-success: #89d185;
+  
+  /* Interactive colors */
+  --color-hover: var(--vscode-list-hoverBackground);
+  --color-active: var(--vscode-list-activeSelectionBackground);
+  
+  /* Shadow colors */
+  --color-shadow: rgba(0, 0, 0, 0.3);
+}
+
+/* Animation for theme transitions */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* VS Code specific utility classes */
+.vscode-font {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  font-weight: var(--vscode-font-weight);
+}
+
+.vscode-text-primary {
+  color: var(--color-primary);
+}
+
+.vscode-text-error {
+  color: var(--color-error);
+}
+
+.vscode-text-warning {
+  color: var(--color-warning);
+}
+
+.vscode-text-info {
+  color: var(--color-info);
+}
+
+.vscode-text-muted {
+  color: var(--color-muted);
+}
+
+.vscode-bg-surface {
+  background-color: var(--color-surface);
+}
+
+.vscode-border {
+  border-color: var(--color-border);
+}
+
+.vscode-border-focus {
+  border-color: var(--color-border-focus);
+}

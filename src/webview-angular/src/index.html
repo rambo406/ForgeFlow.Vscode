@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Azure DevOps PR Code Reviewer</title>
+  <base href="./">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <style>
+    /* VS Code webview styles - will be injected by the extension */
+    :root {
+      /* Default values that will be overridden by VS Code */
+      --vscode-foreground: #cccccc;
+      --vscode-editor-background: #1e1e1e;
+      --vscode-button-background: #0e639c;
+      --vscode-button-foreground: #ffffff;
+      --vscode-button-hoverBackground: #1177bb;
+      --vscode-input-background: #3c3c3c;
+      --vscode-input-foreground: #cccccc;
+      --vscode-input-border: #3c3c3c;
+      --vscode-panel-background: #252526;
+      --vscode-panel-border: #2b2b2b;
+      --vscode-sideBar-background: #252526;
+      --vscode-sideBar-foreground: #cccccc;
+      --vscode-errorForeground: #f14c4c;
+      --vscode-warningForeground: #ffcc02;
+      --vscode-infoForeground: #3794ff;
+      --vscode-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      --vscode-font-size: 13px;
+    }
+    
+    /* Map VS Code theme variables to semantic tokens */
+    :root {
+      --color-primary: var(--vscode-button-background);
+      --color-primary-foreground: var(--vscode-button-foreground);
+      --color-secondary: var(--vscode-panel-background);
+      --color-secondary-foreground: var(--vscode-foreground);
+      --color-background: var(--vscode-editor-background);
+      --color-foreground: var(--vscode-foreground);
+      --color-muted: var(--vscode-panel-background);
+      --color-muted-foreground: var(--vscode-sideBar-foreground);
+      --color-border: var(--vscode-panel-border);
+      --color-input: var(--vscode-input-background);
+      --color-ring: var(--vscode-button-background);
+      --color-destructive: var(--vscode-errorForeground);
+      --color-destructive-foreground: #ffffff;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      background-color: var(--vscode-editor-background);
+      color: var(--vscode-foreground);
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>
