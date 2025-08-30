@@ -1,21 +1,23 @@
-import { Component, OnInit, OnDestroy, inject, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
 
 import { CommentPreviewStore } from '../store/comment-preview.store';
 import { MessageService } from '../../../core/services/message.service';
+import { MessageType } from '../../../core/models/enums';
 import { CommentHeaderComponent } from './comment-header.component';
 import { CommentFiltersComponent } from './comment-filters.component';
 import { CommentListComponent } from './comment-list.component';
 import { CommentActionsComponent } from './comment-actions.component';
 
-import { HlmSkeletonModule } from '@spartan-ng/ui-skeleton-helm';
-import { HlmAlertModule } from '@spartan-ng/ui-alert-helm';
-import { HlmButtonModule } from '@spartan-ng/ui-button-helm';
-import { HlmIconModule } from '@spartan-ng/ui-icon-helm';
+import { HlmSkeletonModule } from '../../../../../libs/ui/ui-skeleton-helm/src';
+import { HlmAlertModule } from '../../../../../libs/ui/ui-alert-helm/src';
+import { HlmButtonModule } from '../../../../../libs/ui/ui-button-helm/src';
+import { HlmIconModule } from '../../../../../libs/ui/ui-icon-helm/src';
 
 /**
  * Main comment preview component that orchestrates the comment review interface
+ * Uses OnPush change detection for optimal performance
  */
 @Component({
   selector: 'app-comment-preview',
@@ -31,6 +33,7 @@ import { HlmIconModule } from '@spartan-ng/ui-icon-helm';
     HlmButtonModule,
     HlmIconModule
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="comment-preview-container h-full flex flex-col bg-background text-foreground">
       <!-- Header Section -->
@@ -45,88 +48,98 @@ import { HlmIconModule } from '@spartan-ng/ui-icon-helm';
         />
       </div>
 
-      <!-- Filters Section -->
+      <!-- Filters Section - Responsive Layout -->
       <div class="flex-shrink-0 border-b border-border bg-muted/30">
-        <app-comment-filters
-          [filters]="store.filters()"
-          [groupBy]="store.groupBy()"
-          [viewMode]="store.viewMode()"
-          [uniqueFiles]="store.uniqueFilePaths()"
-          [uniqueCategories]="store.uniqueCategories()"
-          [isLoading]="store.isLoading()"
-          (onFiltersChange)="handleFiltersChange($event)"
-          (onGroupByChange)="handleGroupByChange($event)"
-          (onViewModeChange)="handleViewModeChange($event)"
-          (onClearFilters)="handleClearFilters()"
-        />
+        <div class="container-vscode py-2 vscode-md:py-3">
+          <app-comment-filters
+            [filters]="store.filters()"
+            [groupBy]="store.groupBy()"
+            [viewMode]="store.viewMode()"
+            [uniqueFiles]="store.uniqueFilePaths()"
+            [uniqueCategories]="store.uniqueCategories()"
+            [isLoading]="store.isLoading()"
+            (onFiltersChange)="handleFiltersChange($event)"
+            (onGroupByChange)="handleGroupByChange($event)"
+            (onViewModeChange)="handleViewModeChange($event)"
+            (onClearFilters)="handleClearFilters()"
+          />
+        </div>
       </div>
 
-      <!-- Main Content Area -->
+      <!-- Main Content Area - Responsive Grid Layout -->
       <div class="flex-1 flex flex-col min-h-0">
         <!-- Error Display -->
         @if (store.error(); as error) {
           <div class="flex-shrink-0 p-4">
-            <div hlmAlert variant="destructive">
-              <lucide-icon name="alert-circle" hlmIcon size="sm" class="mr-2" />
-              <div>
-                <h4 class="font-semibold">Error</h4>
-                <p class="text-sm mt-1">{{ error }}</p>
-                <button 
-                  hlmBtn
-                  variant="outline"
-                  size="sm"
-                  class="mt-2"
-                  (click)="handleClearError()"
-                >
-                  <lucide-icon name="x" hlmIcon size="xs" class="mr-1" />
-                  Dismiss
-                </button>
+            <div class="container-vscode">
+              <div hlmAlert variant="destructive">
+                <lucide-icon name="alert-circle" hlmIcon size="sm" class="mr-2" />
+                <div class="flex-responsive items-start">
+                  <div class="flex-1 min-w-0">
+                    <h4 class="font-semibold text-sm vscode-md:text-base">Error</h4>
+                    <p class="text-xs vscode-md:text-sm mt-1 break-words">{{ error }}</p>
+                  </div>
+                  <button 
+                    hlmBtn
+                    variant="outline"
+                    size="sm"
+                    class="btn-responsive flex-shrink-0 mt-2 vscode-md:mt-0 vscode-md:ml-4"
+                    (click)="handleClearError()"
+                  >
+                    <lucide-icon name="x" hlmIcon size="xs" class="mr-1" />
+                    <span class="hide-vscode-sm">Dismiss</span>
+                    <span class="show-vscode-sm sr-only">Dismiss</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         }
 
-        <!-- Loading State -->
+        <!-- Loading State - Responsive Grid -->
         @if (store.isLoading()) {
-          <div class="flex-1 p-4 space-y-4">
-            <div class="space-y-3">
-              @for (skeleton of skeletonArray; track $index) {
-                <div class="border border-border rounded-lg p-4 space-y-3">
-                  <div hlmSkeleton class="h-4 w-1/4"></div>
-                  <div hlmSkeleton class="h-3 w-full"></div>
-                  <div hlmSkeleton class="h-3 w-3/4"></div>
-                  <div class="flex space-x-2">
-                    <div hlmSkeleton class="h-6 w-16"></div>
-                    <div hlmSkeleton class="h-6 w-20"></div>
-                    <div hlmSkeleton class="h-6 w-14"></div>
+          <div class="flex-1 p-4">
+            <div class="container-vscode">
+              <div class="comment-preview-grid">
+                @for (skeleton of skeletonArray; track $index) {
+                  <div class="border border-border rounded-lg p-4 space-y-3 panel-vscode">
+                    <div hlmSkeleton class="h-4 w-1/4"></div>
+                    <div hlmSkeleton class="h-3 w-full"></div>
+                    <div hlmSkeleton class="h-3 w-3/4"></div>
+                    <div class="flex space-x-2">
+                      <div hlmSkeleton class="h-6 w-16"></div>
+                      <div hlmSkeleton class="h-6 w-20"></div>
+                      <div hlmSkeleton class="h-6 w-14"></div>
+                    </div>
                   </div>
-                </div>
-              }
+                }
+              </div>
             </div>
           </div>
         }
 
-        <!-- Comments List -->
+        <!-- Comments List - Responsive Layout -->
         @if (!store.isLoading()) {
           <div class="flex-1 min-h-0">
             @if (store.comments().length === 0) {
-              <!-- Empty State -->
-              <div class="flex-1 flex items-center justify-center p-8">
-                <div class="text-center">
+              <!-- Empty State - Responsive -->
+              <div class="flex-1 flex items-center justify-center p-4 vscode-md:p-8">
+                <div class="text-center max-w-md">
                   <lucide-icon 
                     name="message-square" 
                     hlmIcon 
                     size="xl" 
                     class="mx-auto mb-4 text-muted-foreground opacity-50"
                   />
-                  <h3 class="text-lg font-semibold mb-2">No Comments Available</h3>
-                  <p class="text-muted-foreground mb-4 max-w-md">
+                  <h3 class="text-base vscode-md:text-lg font-semibold mb-2">No Comments Available</h3>
+                  <p class="text-xs vscode-md:text-sm text-muted-foreground mb-4">
                     No review comments have been generated for this pull request yet. 
                     Start an analysis to get AI-powered code review suggestions.
                   </p>
                   <button 
                     hlmBtn
                     variant="outline"
+                    class="btn-responsive text-sm"
                     (click)="handleRefresh()"
                   >
                     <lucide-icon name="refresh-cw" hlmIcon size="sm" class="mr-2" />
@@ -135,22 +148,23 @@ import { HlmIconModule } from '@spartan-ng/ui-icon-helm';
                 </div>
               </div>
             } @else if (store.filteredComments().length === 0) {
-              <!-- No Results State -->
-              <div class="flex-1 flex items-center justify-center p-8">
-                <div class="text-center">
+              <!-- No Results State - Responsive -->
+              <div class="flex-1 flex items-center justify-center p-4 vscode-md:p-8">
+                <div class="text-center max-w-md">
                   <lucide-icon 
                     name="filter-x" 
                     hlmIcon 
                     size="xl" 
                     class="mx-auto mb-4 text-muted-foreground opacity-50"
                   />
-                  <h3 class="text-lg font-semibold mb-2">No Comments Match Filters</h3>
-                  <p class="text-muted-foreground mb-4 max-w-md">
+                  <h3 class="text-base vscode-md:text-lg font-semibold mb-2">No Comments Match Filters</h3>
+                  <p class="text-xs vscode-md:text-sm text-muted-foreground mb-4">
                     Try adjusting your filter criteria or clearing all filters to see more results.
                   </p>
                   <button 
                     hlmBtn
                     variant="outline"
+                    class="btn-responsive text-sm"
                     (click)="handleClearFilters()"
                   >
                     <lucide-icon name="filter-x" hlmIcon size="sm" class="mr-2" />
@@ -159,38 +173,44 @@ import { HlmIconModule } from '@spartan-ng/ui-icon-helm';
                 </div>
               </div>
             } @else {
-              <!-- Comments List Component -->
-              <app-comment-list
-                [comments]="store.filteredComments()"
-                [groupedComments]="store.groupedComments()"
-                [viewMode]="store.viewMode()"
-                [selectedComments]="store.selectedComments()"
-                [isLoading]="store.isLoading()"
-                (onCommentSelect)="handleCommentSelect($event)"
-                (onCommentUpdate)="handleCommentUpdate($event)"
-                (onCommentApprove)="handleCommentApprove($event)"
-                (onCommentDismiss)="handleCommentDismiss($event)"
-                (onApplySuggestion)="handleApplySuggestion($event)"
-                (onSelectAll)="handleSelectAll()"
-              />
+              <!-- Comments List Component - Full Height with Responsive Containers -->
+              <div class="h-full overflow-auto">
+                <div class="container-vscode py-4">
+                  <app-comment-list
+                    [comments]="store.filteredComments()"
+                    [groupedComments]="store.groupedComments()"
+                    [viewMode]="store.viewMode()"
+                    [selectedComments]="store.selectedComments()"
+                    [isLoading]="store.isLoading()"
+                    (onCommentSelect)="handleCommentSelect($event)"
+                    (onCommentUpdate)="handleCommentUpdate($event)"
+                    (onCommentApprove)="handleCommentApprove($event)"
+                    (onCommentDismiss)="handleCommentDismiss($event)"
+                    (onApplySuggestion)="handleApplySuggestion($event)"
+                    (onSelectAll)="handleSelectAll()"
+                  />
+                </div>
+              </div>
             }
           </div>
         }
       </div>
 
-      <!-- Actions Footer -->
+      <!-- Actions Footer - Responsive -->
       @if (store.selectedCommentsCount() > 0) {
         <div class="flex-shrink-0 border-t border-border bg-muted/30">
-          <app-comment-actions
-            [selectedCount]="store.selectedCommentsCount()"
-            [allSelected]="store.allFilteredCommentsSelected()"
-            [pendingActionsCount]="store.pendingActionsCount()"
-            [isLoading]="store.isLoading()"
-            (onBulkApprove)="handleBulkApprove()"
-            (onBulkDismiss)="handleBulkDismiss()"
-            (onSelectAll)="handleSelectAll()"
-            (onClearSelection)="handleClearSelection()"
-          />
+          <div class="container-vscode py-3">
+            <app-comment-actions
+              [selectedCount]="store.selectedCommentsCount()"
+              [allSelected]="store.allFilteredCommentsSelected()"
+              [pendingActionsCount]="store.pendingActionsCount()"
+              [isLoading]="store.isLoading()"
+              (onBulkApprove)="handleBulkApprove()"
+              (onBulkDismiss)="handleBulkDismiss()"
+              (onSelectAll)="handleSelectAll()"
+              (onClearSelection)="handleClearSelection()"
+            />
+          </div>
         </div>
       }
     </div>
@@ -254,9 +274,9 @@ export class CommentPreviewComponent implements OnInit, OnDestroy {
     this.messageService.onMessage()
       .pipe(takeUntil(this.destroy$))
       .subscribe(message => {
-        if (message.type === 'COMMENTS_LOADED') {
+        if (message.type === MessageType.COMMENTS_LOADED) {
           this.store.updateComments(message.payload.comments);
-        } else if (message.type === 'COMMENT_UPDATED') {
+        } else if (message.type === MessageType.COMMENT_UPDATED) {
           // Handle individual comment updates
           const updatedComment = message.payload.comment;
           const currentComments = this.store.comments();

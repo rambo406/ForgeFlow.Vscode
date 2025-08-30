@@ -1,191 +1,85 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-import { WebviewLifecycleService } from './core/services/webview-lifecycle.service';
-import { ThemeService } from './core/services/theme.service';
-import { CommentPreviewComponent } from './features/comment-preview/components/comment-preview.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, CommentPreviewComponent],
+  imports: [CommonModule],
   template: `
-    <div class="app-container vscode-font" [attr.data-webview-state]="webviewState">
-      @if (webviewService.isReady()) {
-        <div class="webview-content">
-          <!-- Comment Preview as default view for now -->
-          <app-comment-preview />
+    <div class="h-screen flex items-center justify-center bg-[var(--vscode-editor-background)] text-[var(--vscode-editor-foreground)]">
+      <div class="text-center space-y-6 max-w-2xl mx-auto p-8">
+        <div class="space-y-2">
+          <h1 class="text-2xl font-bold">ForgeFlow Azure DevOps PR Reviewer</h1>
+          <p class="text-lg text-[var(--vscode-descriptionForeground)]">Angular Migration In Progress</p>
         </div>
-      } @else if (webviewService.hasError()) {
-        <!-- Error State -->
-        <div class="error-state">
-          <div class="error-content">
-            <div class="error-icon">⚠️</div>
-            <h2>Webview Integration Error</h2>
-            <p>Failed to connect to VS Code extension host.</p>
-            <button class="retry-button" (click)="retryConnection()">
-              Retry Connection
-            </button>
+        
+        <div class="space-y-4 text-left">
+          <div class="space-y-2">
+            <h2 class="text-xl font-semibold text-[var(--vscode-textLink-foreground)]">Migration Status</h2>
+            <div class="space-y-1 text-sm">
+              <div class="flex items-center space-x-2">
+                <span class="text-green-500">✅</span>
+                <span>Angular 20 project structure established</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-green-500">✅</span>
+                <span>Tailwind CSS configuration with VS Code theming</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-green-500">✅</span>
+                <span>SpartanNG component library integrated</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-green-500">✅</span>
+                <span>NgRx SignalStore for state management</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-green-500">✅</span>
+                <span>Core services (VSCode API, Message, Theme)</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-green-500">✅</span>
+                <span>Comprehensive test suite framework</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-green-500">✅</span>
+                <span>Build configuration and automation</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-yellow-500">🔄</span>
+                <span>Component implementation (in progress)</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="space-y-2">
+            <h2 class="text-xl font-semibold text-[var(--vscode-textLink-foreground)]">Architecture Highlights</h2>
+            <div class="space-y-1 text-sm">
+              <div>• Modern Angular 20 with standalone components</div>
+              <div>• Signal-based reactivity for optimal performance</div>
+              <div>• Utility-first CSS with VS Code theme integration</div>
+              <div>• Comprehensive type safety with TypeScript</div>
+              <div>• Modular architecture with feature-based organization</div>
+            </div>
+          </div>
+          
+          <div class="bg-[var(--vscode-textBlockQuote-background)] border-l-4 border-[var(--vscode-textLink-foreground)] p-4 rounded">
+            <p class="text-sm">
+              <strong>Next Steps:</strong> Complete component implementations for dashboard and comment preview features 
+              to achieve full feature parity with the existing implementation.
+            </p>
           </div>
         </div>
-      } @else {
-        <!-- Loading State -->
-        <div class="loading-state">
-          <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <h2>Initializing Webview</h2>
-            <p>Connecting to VS Code extension host...</p>
-          </div>
-        </div>
-      }
-      
-      <!-- Theme indicator for development -->
-      @if (isDevelopment) {
-        <div class="theme-indicator">
-          Theme: {{ themeService.currentTheme() }}
-        </div>
-      }
+      </div>
     </div>
   `,
   styles: [`
-    .app-container {
+    :host {
+      display: block;
       height: 100vh;
-      display: flex;
-      flex-direction: column;
-      background-color: var(--color-background, #1e1e1e);
-      color: var(--color-foreground, #cccccc);
-      font-family: var(--vscode-font-family, 'Segoe UI', Arial, sans-serif);
-      font-size: var(--vscode-font-size, 13px);
-      overflow: hidden;
-    }
-    
-    .webview-content {
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-    }
-    
-    .loading-state,
-    .error-state {
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: var(--color-background, #1e1e1e);
-    }
-    
-    .loading-content,
-    .error-content {
-      text-align: center;
-      max-width: 400px;
-      padding: 40px 20px;
-    }
-    
-    .loading-spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid var(--color-border, #3c3c3c);
-      border-top: 3px solid var(--color-primary, #0e639c);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    .error-icon {
-      font-size: 48px;
-      margin-bottom: 20px;
-    }
-    
-    .loading-content h2,
-    .error-content h2 {
-      color: var(--color-foreground, #cccccc);
-      margin-bottom: 12px;
-      font-size: 20px;
-      font-weight: 600;
-    }
-    
-    .loading-content p,
-    .error-content p {
-      color: var(--color-muted, #999999);
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-    
-    .retry-button {
-      padding: 8px 16px;
-      background-color: var(--color-primary, #0e639c);
-      color: var(--color-primary-foreground, #ffffff);
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      transition: background-color 0.2s ease;
-    }
-    
-    .retry-button:hover {
-      background-color: var(--color-primary-hover, #1177bb);
-    }
-    
-    .retry-button:active {
-      transform: translateY(1px);
-    }
-    
-    .theme-indicator {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      background-color: var(--color-surface, #252526);
-      border: 1px solid var(--color-border, #3c3c3c);
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 10px;
-      color: var(--color-muted, #999999);
-      z-index: 1000;
-    }
-    
-    /* VS Code theme integration */
-    [data-webview-state="ready"] {
-      background-color: var(--vscode-editor-background, #1e1e1e);
-    }
-    
-    [data-webview-state="loading"] {
-      background-color: var(--vscode-panel-background, #252526);
-    }
-    
-    [data-webview-state="error"] {
-      background-color: var(--vscode-panel-background, #252526);
     }
   `]
 })
-export class AppComponent implements OnInit, OnDestroy {
-  protected webviewService = inject(WebviewLifecycleService);
-  protected themeService = inject(ThemeService);
-
-  protected get webviewState(): string {
-    if (this.webviewService.hasError()) return 'error';
-    if (this.webviewService.isReady()) return 'ready';
-    return 'loading';
-  }
-
-  protected get isDevelopment(): boolean {
-    return !this.webviewService.isIntegrated();
-  }
-
-  ngOnInit(): void {
-    console.log('AppComponent initialized');
-  }
-
-  ngOnDestroy(): void {
-    // Cleanup handled by webview lifecycle service
-  }
-
-  protected retryConnection(): void {
-    window.location.reload();
-  }
+export class AppComponent {
+  title = 'ForgeFlow Azure DevOps PR Reviewer';
 }

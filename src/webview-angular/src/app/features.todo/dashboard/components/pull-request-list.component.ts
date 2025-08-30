@@ -22,6 +22,7 @@ import {
     AppTableRowComponent,
     AppTableCellComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="h-full flex flex-col">
       <!-- Search and Filters -->
@@ -167,8 +168,7 @@ import {
         }
       </div>
     </div>
-  `,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  `
 })
 export class PullRequestListComponent {
   @Input() pullRequests: PullRequest[] = [];

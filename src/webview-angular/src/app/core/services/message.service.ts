@@ -1,6 +1,7 @@
-import { Injectable, signal } from '@angular/core';
-import { Observable, fromEvent, map, filter } from 'rxjs';
+import { Injectable, signal, inject } from '@angular/core';
+import { Observable, fromEvent, map, filter, timeout, retry, catchError, throwError } from 'rxjs';
 import { VSCodeApiService } from './vscode-api.service';
+import { ErrorHandlerService } from './error-handler.service';
 
 /**
  * Message types for communication between webview and extension host
@@ -72,9 +73,26 @@ export interface WebviewMessage<T = any> {
 export class MessageService {
   private _lastError = signal<string | null>(null);
   private _isLoading = signal(false);
+  private _retryCount = signal(0);
+  private errorHandler = inject(ErrorHandlerService);
   
   readonly lastError = this._lastError.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
+  readonly retryCount = this._retryCount.asReadonly();
+
+  // Default timeouts for different operations (in milliseconds)
+  private readonly DEFAULT_TIMEOUTS = {
+    [MessageType.LOAD_CONFIG]: 5000,
+    [MessageType.SAVE_CONFIG]: 10000,
+    [MessageType.TEST_CONNECTION]: 30000,
+    [MessageType.LOAD_PULL_REQUESTS]: 30000,
+    [MessageType.LOAD_PR_DETAILS]: 15000,
+    [MessageType.START_AI_ANALYSIS]: 60000,
+    [MessageType.LOAD_REPOSITORIES]: 15000,
+    [MessageType.LOAD_PROJECTS]: 15000,
+    [MessageType.LOAD_AVAILABLE_MODELS]: 10000,
+    DEFAULT: 10000
+  };
 
   constructor(private vscodeApi: VSCodeApiService) {
     // Set up message handlers
@@ -100,43 +118,98 @@ export class MessageService {
   }
 
   /**
-   * Send a message to the extension host
+   * Generate a unique request ID for tracking responses
    */
-  sendMessage<T = any>(type: MessageType, payload?: T): void {
-    const message: WebviewMessage<T> = {
-      type,
-      payload: payload as T,
-      timestamp: new Date().toISOString()
-    };
-    
-    this.vscodeApi.postMessage(message);
+  private generateRequestId(): string {
+    return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
-   * Send a request and wait for response
+   * Safe message sending with error handling
+   */
+  sendMessage<T = any>(type: MessageType, payload?: T): void {
+    try {
+      const message: WebviewMessage<T> = {
+        type,
+        payload: payload as T,
+        timestamp: new Date().toISOString(),
+        requestId: this.generateRequestId()
+      };
+      
+      this.vscodeApi.postMessage(message);
+      this._lastError.set(null);
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
+      this._lastError.set(errorMessage);
+      
+      this.errorHandler.handleError(
+        error instanceof Error ? error : new Error(errorMessage),
+        `Send ${type} message`,
+        'medium'
+      );
+    }
+  }
+
+  /**
+   * Send a request and wait for response with error handling and retry
    */
   private async sendRequest<TRequest = any, TResponse = any>(
     type: MessageType, 
     payload?: TRequest,
-    timeout?: number
+    timeoutMs?: number,
+    retryAttempts: number = 2
   ): Promise<TResponse> {
     this._isLoading.set(true);
+    this._retryCount.set(0);
+    
+    const operationTimeout = timeoutMs || (this.DEFAULT_TIMEOUTS as any)[type] || this.DEFAULT_TIMEOUTS.DEFAULT;
+    const operationName = `${type} request`;
+    
     try {
-      const message: WebviewMessage<TRequest> = {
-        type,
-        payload: payload as TRequest,
-        timestamp: new Date().toISOString()
-      };
+      const result = await this.errorHandler.retryOperation(
+        async () => {
+          const message: WebviewMessage<TRequest> = {
+            type,
+            payload: payload as TRequest,
+            timestamp: new Date().toISOString(),
+            requestId: this.generateRequestId()
+          };
+          
+          // Use the existing vscodeApi.sendRequest method with timeout
+          const response = await this.vscodeApi.sendRequest<TResponse>(message, operationTimeout);
+          return response;
+        },
+        operationName,
+        retryAttempts,
+        1000 // Base delay for retry
+      );
       
-      const response = await this.vscodeApi.sendRequest<TResponse>(message, timeout);
       this._lastError.set(null);
-      return response;
+      return result;
+      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this._lastError.set(errorMessage);
+      
+      // Enhanced error context for different error types
+      let context = operationName;
+      if (errorMessage.includes('timeout')) {
+        context = `${operationName} (timeout after ${operationTimeout}ms)`;
+      } else if (errorMessage.includes('network')) {
+        context = `${operationName} (network error)`;
+      }
+      
+      this.errorHandler.handleApiError(
+        error instanceof Error ? error : new Error(errorMessage),
+        context,
+        () => this.sendRequest(type, payload, timeoutMs, retryAttempts)
+      );
+      
       throw error;
     } finally {
       this._isLoading.set(false);
+      this._retryCount.set(0);
     }
   }
 

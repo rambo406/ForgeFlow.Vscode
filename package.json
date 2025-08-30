@@ -191,13 +191,21 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "webpack --mode production",
-    "watch": "webpack --mode development --watch",
-    "pretest": "npm run compile && npm run lint",
+    "vscode:prepublish": "node scripts/build.js production",
+    "build": "node scripts/build.js development",
+    "build:prod": "node scripts/build.js production",
+    "compile": "node scripts/build.js production",
+    "watch": "node scripts/watch.js",
+    "dev": "npm run watch",
+    "pretest": "npm run build && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "package": "vsce package"
+    "package": "npm run build:prod && vsce package",
+    "build:webview": "cd src/webview-angular && npm run build:prod",
+    "build:webview:dev": "cd src/webview-angular && npm run build",
+    "install:webview": "cd src/webview-angular && npm install",
+    "clean": "rimraf dist out",
+    "clean:all": "npm run clean && cd src/webview-angular && rimraf dist node_modules"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.1",
@@ -207,8 +215,10 @@
     "@typescript-eslint/parser": "^5.62.0",
     "@vscode/test-electron": "^2.2.0",
     "@vscode/vsce": "^2.15.0",
+    "copy-webpack-plugin": "^13.0.1",
     "eslint": "^8.28.0",
     "mocha": "^10.1.0",
+    "rimraf": "^6.0.1",
     "ts-loader": "^9.4.1",
     "typescript": "^4.9.4",
     "webpack": "^5.75.0",

@@ -1,83 +1,94 @@
-# VS Code Extension Packaging Ignore Rules
+# VS Code ignore file for extension packaging
 
-# Source files (only dist should be included)
+# Source files
 src/**
-!src/webview/**/*.css
-!src/webview/**/*.js
+!src/**/*.js
+!src/**/*.json
 
-# TypeScript configuration
-tsconfig.json
-tsconfig.*.json
+# Webview source (only include built artifacts)
+src/webview-angular/**
+!dist/webview/**
 
-# Build outputs to ignore
-out/
-.vscode-test/
-**/*.map
+# Development and build files
+.vscode/**
+.vscode-test/**
+out/test/**
+test/**
+scripts/**
+.github/**
 
-# Development dependencies and configuration
+# Node modules
 node_modules/
-.gitignore
-.github/
-.kiro/
+src/webview-angular/node_modules/
 
-# Test files
-**/test/**
-**/*.test.ts
-**/*.test.js
-coverage/
+# Build artifacts to exclude
+src/webview-angular/dist/**
+*.map
+*.log
+*.tsbuildinfo
 
-# Development tools
-.eslintrc.json
-.eslintignore
-webpack.config.js
-.nyc_output/
-
-# Documentation (keep only essential files)
-CONTRIBUTING.md
-CODE_OF_CONDUCT.md
-docs/
-.vscode/
+# Development configuration
 .env*
+.eslintrc*
+.gitignore
+.gitattributes
+webpack.config.js
+tsconfig*.json
+jest.config.js
 
-# OS and IDE files
+# Documentation and meta files
+CONTRIBUTING.md
+SECURITY.md
+
+# Temporary and cache files
+.tmp/
+.cache/
 .DS_Store
 Thumbs.db
-*.log
-*.tmp
-.vscode/settings.json
-.vscode/launch.json
-.vscode/tasks.json
 
-# Git files
-.git/
-.gitattributes
-
-# Package manager files
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-package-lock.json
-yarn.lock
-
-# Temporary files
+# IDE files
+.idea/
 *.swp
 *.swo
 *~
-.tmp/
 
-# Image source files (keep only optimized versions)
-images/src/
-images/*.psd
-images/*.ai
-images/*.sketch
+# Angular specific
+src/webview-angular/.angular/
+src/webview-angular/angular.json
+src/webview-angular/tailwind.config.js
+src/webview-angular/components.json
+src/webview-angular/package*.json
+src/webview-angular/tsconfig*.json
+src/webview-angular/jest.config.js
+src/webview-angular/setup-jest.ts
+src/webview-angular/.eslintrc*
+src/webview-angular/BUNDLE_OPTIMIZATION.md
+src/webview-angular/CSS_OPTIMIZATION.md
+src/webview-angular/RESPONSIVE_TESTING.md
+src/webview-angular/bundle-analysis.js
+src/webview-angular/performance-test.js
 
-# Keep only essential files for marketplace
+# Testing files
+**/*.spec.ts
+**/*.test.ts
+**/*.spec.js
+**/*.test.js
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Linting reports
+.eslintcache
+
+# Package artifacts
+*.vsix
+*.tgz
+
+# Keep essential files
 !README.md
 !CHANGELOG.md
 !LICENSE
-!SECURITY.md
 !package.json
 !dist/**
-!images/icon.png
-!images/demo.gif
-!images/screenshot-*.png
+!images/**

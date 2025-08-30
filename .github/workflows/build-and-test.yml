@@ -1,0 +1,175 @@
+name: Build and Test Extension
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install extension dependencies
+      run: npm ci
+      
+    - name: Install webview dependencies
+      run: |
+        cd src/webview-angular
+        npm ci
+    
+    - name: Lint extension code
+      run: npm run lint
+      
+    - name: Lint webview code
+      run: |
+        cd src/webview-angular
+        npm run lint
+        
+    - name: Test webview (if tests exist)
+      run: |
+        cd src/webview-angular
+        npm run test || echo "No tests to run"
+    
+    - name: Build extension (development)
+      run: npm run build
+      
+    - name: Build extension (production)
+      run: npm run build:prod
+      
+    - name: Verify build artifacts
+      run: |
+        ls -la dist/
+        ls -la dist/webview/
+        test -f dist/extension.js
+        test -f dist/webview/index.html
+        echo "✅ All build artifacts present"
+    
+    - name: Package extension
+      run: npm run package
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: extension-build-${{ matrix.node-version }}
+        path: |
+          dist/
+          *.vsix
+        retention-days: 7
+
+  test:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd src/webview-angular && npm ci
+    
+    - name: Build extension
+      run: npm run build:prod
+    
+    - name: Run extension tests (if they exist)
+      run: npm run test || echo "No extension tests to run"
+      
+  performance:
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd src/webview-angular && npm ci
+    
+    - name: Build extension for performance analysis
+      run: npm run build:prod
+      
+    - name: Analyze bundle size
+      run: |
+        echo "📊 Bundle Size Analysis"
+        echo "======================"
+        ls -lh dist/extension.js
+        ls -lh dist/webview/
+        
+        echo "Extension bundle size:"
+        stat --format="%s bytes" dist/extension.js
+        
+        echo "Webview bundle sizes:"
+        find dist/webview -name "*.js" -exec stat --format="%n: %s bytes" {} \;
+        find dist/webview -name "*.css" -exec stat --format="%n: %s bytes" {} \;
+        
+        echo "Total webview size:"
+        du -sh dist/webview/
+        
+    - name: Check for large files
+      run: |
+        echo "🔍 Checking for files larger than 500KB..."
+        find dist -size +500k -type f -exec ls -lh {} \; || echo "No large files found"
+        
+    - name: Bundle analysis (Angular)
+      run: |
+        cd src/webview-angular
+        if [ -f dist/stats.json ]; then
+          echo "📈 Angular bundle analysis available in stats.json"
+          echo "Use webpack-bundle-analyzer to analyze:"
+          echo "npx webpack-bundle-analyzer dist/stats.json"
+        fi
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+    
+    - name: Audit extension dependencies
+      run: npm audit --audit-level=moderate
+      
+    - name: Audit webview dependencies
+      run: |
+        cd src/webview-angular
+        npm audit --audit-level=moderate

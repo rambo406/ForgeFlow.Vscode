@@ -1,5 +1,6 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, ErrorHandler, inject } from '@angular/core';
 import { NotificationService } from './notification.service';
+import { ErrorMessageService } from './error-message.service';
 
 /**
  * Error log interface
@@ -23,6 +24,7 @@ export interface ErrorLog {
 export class ErrorHandlerService {
   private _errors = signal<ErrorLog[]>([]);
   private _isOffline = signal(false);
+  private errorMessageService = inject(ErrorMessageService);
   
   readonly errors = this._errors.asReadonly();
   readonly isOffline = this._isOffline.asReadonly();
@@ -120,7 +122,17 @@ export class ErrorHandlerService {
   ): string {
     console.error('CRITICAL ERROR:', errorLog.error, errorLog.context);
 
+    // Create user-friendly error message
+    const userFriendlyError = this.errorMessageService.createUserFriendlyError(
+      errorLog.error,
+      errorLog.context
+    );
+
     const actions = [
+      ...(userFriendlyError.recoveryActions?.map(action => ({
+        label: action.label,
+        action: action.action
+      })) || []),
       ...(recoveryActions || []),
       {
         label: 'Reload Application',
@@ -130,8 +142,8 @@ export class ErrorHandlerService {
 
     return this.notificationService.showPersistent(
       'error',
-      'Critical Error Occurred',
-      `${errorLog.context}: ${errorLog.error.message}`,
+      userFriendlyError.title,
+      userFriendlyError.message,
       actions
     );
   }
@@ -145,7 +157,17 @@ export class ErrorHandlerService {
   ): string {
     console.error('HIGH ERROR:', errorLog.error, errorLog.context);
 
+    // Create user-friendly error message
+    const userFriendlyError = this.errorMessageService.createUserFriendlyError(
+      errorLog.error,
+      errorLog.context
+    );
+
     const actions = [
+      ...(userFriendlyError.recoveryActions?.map(action => ({
+        label: action.label,
+        action: action.action
+      })) || []),
       ...(recoveryActions || []),
       {
         label: 'Report Issue',
@@ -154,11 +176,12 @@ export class ErrorHandlerService {
     ];
 
     return this.notificationService.showError(
-      'Operation Failed',
-      `${errorLog.context}: ${errorLog.error.message}`,
+      userFriendlyError.title,
+      userFriendlyError.message,
       {
         persistent: true,
-        actions
+        actions,
+        details: userFriendlyError.details
       }
     );
   }
@@ -172,11 +195,26 @@ export class ErrorHandlerService {
   ): string {
     console.warn('MEDIUM ERROR:', errorLog.error, errorLog.context);
 
+    // Create user-friendly error message
+    const userFriendlyError = this.errorMessageService.createUserFriendlyError(
+      errorLog.error,
+      errorLog.context
+    );
+
+    const actions = [
+      ...(userFriendlyError.recoveryActions?.map(action => ({
+        label: action.label,
+        action: action.action
+      })) || []),
+      ...(recoveryActions || [])
+    ];
+
     return this.notificationService.showWarning(
-      'Something went wrong',
-      `${errorLog.context}: ${errorLog.error.message}`,
+      userFriendlyError.title,
+      userFriendlyError.message,
       {
-        actions: recoveryActions
+        actions,
+        details: userFriendlyError.details
       }
     );
   }
@@ -298,8 +336,9 @@ export class ErrorHandlerService {
    */
   private reportError(errorLog: ErrorLog): void {
     try {
-      if (typeof acquireVsCodeApi !== 'undefined') {
-        const vscode = acquireVsCodeApi();
+      // Check if we're in VS Code webview environment
+      if (typeof (window as any).acquireVsCodeApi !== 'undefined') {
+        const vscode = (window as any).acquireVsCodeApi();
         vscode.postMessage({
           type: 'error-report',
           payload: {

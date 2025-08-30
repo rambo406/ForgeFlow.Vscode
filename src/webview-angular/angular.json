@@ -38,7 +38,9 @@
               "src/styles/globals.scss"
             ],
             "scripts": [],
-            "preserveSymlinks": true
+            "preserveSymlinks": true,
+            "baseHref": "./",
+            "deployUrl": "./"
           },
           "configurations": {
             "production": {
@@ -54,14 +56,26 @@
                   "maximumError": "4kb"
                 }
               ],
-              "outputHashing": "all",
-              "optimization": true,
+              "outputHashing": "none",
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
+                "fonts": {
+                  "inline": true
+                }
+              },
               "sourceMap": false,
               "namedChunks": false,
               "aot": true,
               "extractLicenses": true,
               "vendorChunk": false,
-              "buildOptimizer": true
+              "buildOptimizer": true,
+              "statsJson": true,
+              "baseHref": "./",
+              "deployUrl": "./"
             },
             "development": {
               "buildOptimizer": false,
@@ -69,7 +83,10 @@
               "vendorChunk": true,
               "extractLicenses": false,
               "sourceMap": true,
-              "namedChunks": true
+              "namedChunks": true,
+              "outputHashing": "none",
+              "baseHref": "./",
+              "deployUrl": "./"
             }
           },
           "defaultConfiguration": "production"

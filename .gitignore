@@ -1,3 +1,6 @@
+tasksync/**
+.tasksync/**
+
 .angular
 node_modules
 out

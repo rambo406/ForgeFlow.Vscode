@@ -76,7 +76,9 @@ export class ThemeService {
     });
 
     // Also listen for custom VS Code theme change events
-    window.addEventListener('vscode-theme-changed', this.handleThemeChange.bind(this));
+    window.addEventListener('vscode-theme-changed', (event: Event) => {
+      this.handleThemeChange(event as CustomEvent);
+    });
   }
 
   /**
@@ -174,8 +176,9 @@ export class ThemeService {
   private applySemanicColors(): void {
     const root = document.documentElement;
     const colors = this._themeColors();
+    const theme = this._currentTheme();
     
-    // Map VS Code colors to semantic tokens
+    // Base color mappings
     const colorMappings = {
       '--color-primary': colors['--vscode-button-background'] || '#0e639c',
       '--color-primary-foreground': colors['--vscode-button-foreground'] || '#ffffff',
@@ -192,11 +195,76 @@ export class ThemeService {
       '--color-warning': colors['--vscode-warningForeground'] || '#ffcc02',
       '--color-info': colors['--vscode-infoForeground'] || '#3794ff'
     };
-    
-    // Apply color mappings
+
+    // Theme-specific color overrides
+    if (theme === 'vscode-light') {
+      Object.assign(colorMappings, {
+        '--color-background': colors['--vscode-editor-background'] || '#ffffff',
+        '--color-surface': colors['--vscode-panel-background'] || '#f3f3f3',
+        '--color-foreground': colors['--vscode-foreground'] || '#333333',
+        '--color-border': colors['--vscode-panel-border'] || '#e0e0e0',
+        '--color-input-background': colors['--vscode-input-background'] || '#ffffff',
+        '--color-input-foreground': colors['--vscode-input-foreground'] || '#333333',
+        '--color-input-border': colors['--vscode-input-border'] || '#cecece',
+        '--color-muted': 'rgba(51, 51, 51, 0.6)',
+        '--color-muted-foreground': 'rgba(51, 51, 51, 0.7)',
+        '--color-success': '#28a745',
+        '--color-shadow': 'rgba(0, 0, 0, 0.1)'
+      });
+    } else if (theme === 'vscode-high-contrast') {
+      Object.assign(colorMappings, {
+        '--color-background': colors['--vscode-editor-background'] || '#000000',
+        '--color-surface': colors['--vscode-panel-background'] || '#000000',
+        '--color-foreground': colors['--vscode-foreground'] || '#ffffff',
+        '--color-border': colors['--vscode-panel-border'] || '#6fc3df',
+        '--color-border-focus': colors['--vscode-focusBorder'] || '#f38518',
+        '--color-muted': 'rgba(255, 255, 255, 0.6)',
+        '--color-muted-foreground': 'rgba(255, 255, 255, 0.8)',
+        '--color-success': '#89d185',
+        '--color-shadow': 'rgba(255, 255, 255, 0.2)'
+      });
+    } else {
+      // Dark theme (default)
+      Object.assign(colorMappings, {
+        '--color-muted': 'rgba(204, 204, 204, 0.6)',
+        '--color-muted-foreground': 'rgba(204, 204, 204, 0.7)',
+        '--color-success': '#89d185',
+        '--color-shadow': 'rgba(0, 0, 0, 0.3)'
+      });
+    }
+
+    // Apply all color mappings with smooth transitions
     Object.entries(colorMappings).forEach(([property, value]) => {
       root.style.setProperty(property, value);
     });
+
+    // Update Tailwind-specific CSS variables for better integration
+    this.updateTailwindThemeVariables(theme);
+  }
+
+  /**
+   * Update Tailwind theme variables for better integration
+   */
+  private updateTailwindThemeVariables(theme: ThemeKind): void {
+    const root = document.documentElement;
+    
+    if (theme === 'vscode-light') {
+      root.style.setProperty('--background', '0deg 0% 100%');
+      root.style.setProperty('--foreground', '0deg 0.02% 3.94%');
+      root.style.setProperty('--muted', '0deg 0.24% 96.06%');
+      root.style.setProperty('--muted-foreground', '0deg 0.01% 45.16%');
+      root.style.setProperty('--border', '0deg 0.09% 89.82%');
+      root.style.setProperty('--input', '0deg 0.09% 89.82%');
+      root.classList.remove('dark');
+    } else {
+      root.style.setProperty('--background', '0deg 0.02% 3.94%');
+      root.style.setProperty('--foreground', '0deg 0.5% 98.03%');
+      root.style.setProperty('--muted', '0deg 0.01% 14.94%');
+      root.style.setProperty('--muted-foreground', '0deg 0.02% 63.02%');
+      root.style.setProperty('--border', '0deg 0% 13.73%');
+      root.style.setProperty('--input', '0deg 0% 18.43%');
+      root.classList.add('dark');
+    }
   }
 
   /**

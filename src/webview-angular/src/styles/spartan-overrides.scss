@@ -1,0 +1,588 @@
+/* SpartanNG Component Overrides for VS Code Integration */
+
+/* Button Component Overrides */
+.hlm-btn {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  min-height: 32px;
+  
+  /* Primary button matching VS Code button style */
+  &[data-variant="default"] {
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: 1px solid var(--vscode-button-background);
+    
+    &:hover {
+      background-color: var(--vscode-button-hoverBackground);
+      border-color: var(--vscode-button-hoverBackground);
+    }
+    
+    &:focus-visible {
+      outline: 1px solid var(--vscode-focusBorder);
+      outline-offset: 2px;
+    }
+  }
+  
+  /* Secondary button */
+  &[data-variant="secondary"] {
+    background-color: var(--vscode-button-secondaryBackground, transparent);
+    color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+    border: 1px solid var(--vscode-panel-border);
+    
+    &:hover {
+      background-color: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground));
+    }
+  }
+  
+  /* Outline button */
+  &[data-variant="outline"] {
+    background-color: transparent;
+    color: var(--vscode-foreground);
+    border: 1px solid var(--vscode-panel-border);
+    
+    &:hover {
+      background-color: var(--vscode-list-hoverBackground);
+    }
+  }
+  
+  /* Destructive button */
+  &[data-variant="destructive"] {
+    background-color: var(--vscode-errorForeground);
+    color: var(--vscode-button-foreground);
+    border: 1px solid var(--vscode-errorForeground);
+    
+    &:hover {
+      background-color: var(--vscode-errorForeground);
+      opacity: 0.9;
+    }
+  }
+  
+  /* Ghost button */
+  &[data-variant="ghost"] {
+    background-color: transparent;
+    color: var(--vscode-foreground);
+    border: none;
+    
+    &:hover {
+      background-color: var(--vscode-list-hoverBackground);
+    }
+  }
+  
+  /* Size variants */
+  &[data-size="sm"] {
+    padding: 4px 8px;
+    font-size: 12px;
+    min-height: 28px;
+  }
+  
+  &[data-size="lg"] {
+    padding: 8px 16px;
+    font-size: 14px;
+    min-height: 36px;
+  }
+}
+
+/* Input Component Overrides */
+.hlm-input {
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  padding: 6px 8px;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  min-height: 32px;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--vscode-focusBorder);
+    box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+  }
+  
+  &::placeholder {
+    color: var(--vscode-input-placeholderForeground);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+/* Select Component Overrides */
+.hlm-select-trigger {
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 3px;
+  padding: 6px 8px;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  min-height: 32px;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--vscode-focusBorder);
+    box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+  }
+}
+
+.hlm-select-content {
+  background-color: var(--vscode-panel-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  box-shadow: 0 4px 16px var(--color-shadow);
+  
+  .hlm-select-item {
+    color: var(--vscode-foreground);
+    padding: 6px 8px;
+    
+    &:hover,
+    &[data-highlighted] {
+      background-color: var(--vscode-list-hoverBackground);
+    }
+    
+    &[data-state="checked"] {
+      background-color: var(--vscode-list-activeSelectionBackground);
+    }
+  }
+}
+
+/* Table Component Overrides */
+.hlm-table {
+  background-color: var(--vscode-editor-background);
+  border-collapse: collapse;
+  width: 100%;
+  
+  .hlm-table-header {
+    background-color: var(--vscode-panel-background);
+    
+    .hlm-table-head {
+      color: var(--vscode-foreground);
+      font-weight: 600;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--vscode-panel-border);
+      text-align: left;
+    }
+  }
+  
+  .hlm-table-body {
+    .hlm-table-row {
+      border-bottom: 1px solid var(--vscode-panel-border);
+      
+      &:hover {
+        background-color: var(--vscode-list-hoverBackground);
+      }
+      
+      .hlm-table-cell {
+        padding: 8px 12px;
+        color: var(--vscode-foreground);
+      }
+    }
+  }
+}
+
+/* Card Component Overrides */
+.hlm-card {
+  background-color: var(--vscode-panel-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px var(--color-shadow);
+  
+  .hlm-card-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    
+    .hlm-card-title {
+      color: var(--vscode-foreground);
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .hlm-card-description {
+      color: var(--color-muted-foreground);
+      font-size: 14px;
+      margin: 4px 0 0 0;
+    }
+  }
+  
+  .hlm-card-content {
+    padding: 16px;
+  }
+  
+  .hlm-card-footer {
+    padding: 16px;
+    border-top: 1px solid var(--vscode-panel-border);
+    background-color: var(--color-surface);
+  }
+}
+
+/* Badge Component Overrides */
+.hlm-badge {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  
+  &[data-variant="default"] {
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+  }
+  
+  &[data-variant="secondary"] {
+    background-color: var(--vscode-panel-background);
+    color: var(--vscode-foreground);
+    border-color: var(--vscode-panel-border);
+  }
+  
+  &[data-variant="destructive"] {
+    background-color: var(--vscode-errorBackground, rgba(244, 71, 71, 0.1));
+    color: var(--vscode-errorForeground);
+    border-color: var(--vscode-errorForeground);
+  }
+  
+  &[data-variant="outline"] {
+    background-color: transparent;
+    color: var(--vscode-foreground);
+    border-color: var(--vscode-panel-border);
+  }
+}
+
+/* Alert Component Overrides */
+.hlm-alert {
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  margin-bottom: 16px;
+  
+  &[data-variant="default"] {
+    background-color: var(--vscode-infoBackground, rgba(55, 148, 255, 0.1));
+    border-color: var(--vscode-infoForeground);
+    color: var(--vscode-infoForeground);
+  }
+  
+  &[data-variant="destructive"] {
+    background-color: var(--vscode-errorBackground, rgba(244, 71, 71, 0.1));
+    border-color: var(--vscode-errorForeground);
+    color: var(--vscode-errorForeground);
+  }
+  
+  .hlm-alert-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  
+  .hlm-alert-description {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+}
+
+/* Dialog Component Overrides */
+.hlm-dialog-content {
+  background-color: var(--vscode-panel-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  box-shadow: 0 8px 32px var(--color-shadow);
+  
+  .hlm-dialog-header {
+    padding: 16px 16px 0 16px;
+    
+    .hlm-dialog-title {
+      color: var(--vscode-foreground);
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .hlm-dialog-description {
+      color: var(--color-muted-foreground);
+      margin-top: 8px;
+    }
+  }
+  
+  .hlm-dialog-footer {
+    padding: 0 16px 16px 16px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+}
+
+.hlm-dialog-overlay {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Accordion Component Overrides */
+.hlm-accordion {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  overflow: hidden;
+  
+  .hlm-accordion-item {
+    border-bottom: 1px solid var(--vscode-panel-border);
+    
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+  
+  .hlm-accordion-trigger {
+    background-color: var(--vscode-panel-background);
+    color: var(--vscode-foreground);
+    padding: 12px 16px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    border: none;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    
+    &:hover {
+      background-color: var(--vscode-list-hoverBackground);
+    }
+    
+    &:focus-visible {
+      outline: 1px solid var(--vscode-focusBorder);
+      outline-offset: -1px;
+    }
+  }
+  
+  .hlm-accordion-content {
+    background-color: var(--vscode-editor-background);
+    padding: 16px;
+  }
+}
+
+/* Tabs Component Overrides */
+.hlm-tabs-list {
+  background-color: var(--vscode-panel-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  padding: 2px;
+  display: flex;
+  
+  .hlm-tabs-trigger {
+    background-color: transparent;
+    color: var(--vscode-foreground);
+    border: none;
+    border-radius: 2px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    
+    &:hover {
+      background-color: var(--vscode-list-hoverBackground);
+    }
+    
+    &[data-state="active"] {
+      background-color: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+    }
+    
+    &:focus-visible {
+      outline: 1px solid var(--vscode-focusBorder);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.hlm-tabs-content {
+  padding: 16px 0;
+  color: var(--vscode-foreground);
+}
+
+/* Separator Component Overrides */
+.hlm-separator {
+  background-color: var(--vscode-panel-border);
+  
+  &[data-orientation="horizontal"] {
+    height: 1px;
+    width: 100%;
+  }
+  
+  &[data-orientation="vertical"] {
+    width: 1px;
+    height: 100%;
+  }
+}
+
+/* Progress Component Overrides */
+.hlm-progress {
+  background-color: var(--vscode-panel-border);
+  border-radius: 2px;
+  height: 4px;
+  overflow: hidden;
+  
+  .hlm-progress-indicator {
+    background-color: var(--vscode-progressBar-background, #0e70c0);
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+}
+
+/* Skeleton Component Overrides */
+.hlm-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--vscode-panel-background) 25%,
+    var(--vscode-list-hoverBackground) 50%,
+    var(--vscode-panel-background) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 3px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Checkbox Component Overrides */
+.hlm-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  background-color: var(--vscode-input-background);
+  
+  &:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 2px;
+  }
+  
+  &[data-state="checked"] {
+    background-color: var(--vscode-button-background);
+    border-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+  }
+}
+
+/* Radio Group Component Overrides */
+.hlm-radio-group-item {
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 50%;
+  background-color: var(--vscode-input-background);
+  
+  &:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 2px;
+  }
+  
+  &[data-state="checked"] {
+    border-color: var(--vscode-button-background);
+    
+    &::after {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--vscode-button-background);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
+/* Switch Component Overrides */
+.hlm-switch {
+  width: 32px;
+  height: 16px;
+  border-radius: 8px;
+  background-color: var(--vscode-panel-border);
+  position: relative;
+  cursor: pointer;
+  
+  &:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 2px;
+  }
+  
+  &[data-state="checked"] {
+    background-color: var(--vscode-button-background);
+  }
+  
+  .hlm-switch-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--vscode-foreground);
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s ease;
+  }
+  
+  &[data-state="checked"] .hlm-switch-thumb {
+    transform: translateX(16px);
+    background-color: var(--vscode-button-foreground);
+  }
+}
+
+/* Label Component Overrides */
+.hlm-label {
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  font-weight: 500;
+  line-height: 1.4;
+  
+  &[data-disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .hlm-btn {
+    min-height: 36px; /* Larger touch targets on mobile */
+    padding: 8px 12px;
+  }
+  
+  .hlm-input,
+  .hlm-select-trigger {
+    min-height: 36px;
+    padding: 8px 12px;
+  }
+  
+  .hlm-dialog-content {
+    margin: 16px;
+    max-width: calc(100vw - 32px);
+  }
+  
+  .hlm-tabs-trigger {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+}
+
+/* VS Code specific utility classes for SpartanNG integration */
+.spartan-vscode-theme {
+  --spartan-primary: var(--vscode-button-background);
+  --spartan-primary-foreground: var(--vscode-button-foreground);
+  --spartan-background: var(--vscode-editor-background);
+  --spartan-foreground: var(--vscode-foreground);
+  --spartan-muted: var(--color-muted);
+  --spartan-muted-foreground: var(--color-muted-foreground);
+  --spartan-border: var(--vscode-panel-border);
+  --spartan-input: var(--vscode-input-background);
+  --spartan-ring: var(--vscode-focusBorder);
+  --spartan-destructive: var(--vscode-errorForeground);
+  --spartan-destructive-foreground: var(--vscode-button-foreground);
+}

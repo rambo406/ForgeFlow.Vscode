@@ -22,6 +22,9 @@ export enum MessageType {
   AI_ANALYSIS_CANCEL = 'aiAnalysisCancel',
   
   // Comment management messages
+  LOAD_COMMENTS = 'loadComments',
+  COMMENTS_LOADED = 'commentsLoaded',
+  COMMENT_UPDATED = 'commentUpdated',
   APPROVE_COMMENT = 'approveComment',
   DISMISS_COMMENT = 'dismissComment',
   MODIFY_COMMENT = 'modifyComment',
