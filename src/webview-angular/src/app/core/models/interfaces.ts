@@ -366,6 +366,7 @@ export interface DashboardState {
   configuration: ConfigurationData;
   isLoading: boolean;
   error?: string;
+  loadingMessage?: string;
   
   // Analysis state
   currentAnalysis?: AnalysisProgress;

@@ -1,7 +1,7 @@
 import { ApplicationConfig, ErrorHandler, importProvidersFrom } from '@angular/core';
 import { provideRouter, Routes } from '@angular/router';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { GlobalErrorHandler } from './core/error/global-error-handler';
+import { GlobalErrorHandler } from './core/services/global-error-handler.service';
 
 // Simple routes for migration status page
 const routes: Routes = [

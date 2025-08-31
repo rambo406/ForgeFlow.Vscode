@@ -7,6 +7,7 @@ import {
   AppTableComponent,
   AppTableRowComponent,
   AppTableCellComponent,
+  VirtualScrollComponent,
   SelectOption,
   TableColumn
 } from '@shared/components';
@@ -20,7 +21,8 @@ import {
     AppBadgeComponent,
     AppTableComponent,
     AppTableRowComponent,
-    AppTableCellComponent
+    AppTableCellComponent,
+    VirtualScrollComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -49,6 +51,16 @@ import {
           </select>
           
           <select
+            [value]="filters.repository || ''"
+            (change)="onFilterChange('repository', $any($event.target).value)"
+            class="px-3 py-2 border border-border rounded-md bg-background text-foreground"
+          >
+            @for (option of repositoryOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+          
+          <select
             [value]="filters.status || ''"
             (change)="onFilterChange('status', $any($event.target).value)"
             class="px-3 py-2 border border-border rounded-md bg-background text-foreground"
@@ -57,6 +69,24 @@ import {
               <option [value]="option.value">{{ option.label }}</option>
             }
           </select>
+          
+          <div class="flex gap-2 items-center">
+            <input
+              type="date"
+              [value]="filters.dateRange?.from || ''"
+              (change)="onDateRangeChange('from', $any($event.target).value)"
+              placeholder="From date"
+              class="px-3 py-2 border border-border rounded-md bg-background text-foreground text-sm"
+            />
+            <span class="text-muted-foreground text-sm">to</span>
+            <input
+              type="date"
+              [value]="filters.dateRange?.to || ''"
+              (change)="onDateRangeChange('to', $any($event.target).value)"
+              placeholder="To date"
+              class="px-3 py-2 border border-border rounded-md bg-background text-foreground text-sm"
+            />
+          </div>
           
           <app-button
             variant="outline"
@@ -85,7 +115,22 @@ import {
               }
             </div>
           </div>
+        } @else if (enableVirtualScroll && pullRequests.length > 20) {
+          <!-- Virtual Scroll Implementation for Large Lists -->
+          <app-virtual-scroll
+            [items]="pullRequests"
+            [itemTemplate]="prItemTemplate"
+            [containerHeight]="virtualScrollHeight"
+            [config]="{
+              itemHeight: 120,
+              bufferSize: 5,
+              threshold: 0.8,
+              enableDynamicHeight: false
+            }"
+            (scrollToEnd)="scrollToEnd.emit()"
+          ></app-virtual-scroll>
         } @else {
+          <!-- Regular Table Implementation for Smaller Lists -->
           <app-table [columns]="tableColumns" additionalClasses="h-full">
             @for (pr of pullRequests; track pr.id) {
               <app-table-row 
@@ -168,6 +213,72 @@ import {
         }
       </div>
     </div>
+    
+    <!-- Template for Virtual Scroll Items -->
+    <ng-template #prItemTemplate let-pr let-index="index">
+      <div class="pr-virtual-item p-4 border-b border-border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+           (click)="onSelectPR(pr.id)">
+        <div class="flex items-start justify-between gap-4">
+          <!-- Main PR Info -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-2">
+              <h3 class="font-medium text-sm line-clamp-2 flex-1">{{ pr.title }}</h3>
+              <app-badge [variant]="getStatusVariant(pr.status)">
+                {{ getStatusLabel(pr.status) }}
+              </app-badge>
+              @if (pr.isDraft) {
+                <app-badge variant="secondary">Draft</app-badge>
+              }
+            </div>
+            
+            <div class="text-xs text-muted-foreground mb-2">
+              #{{ pr.id }} • {{ pr.repository }}
+            </div>
+            
+            <div class="flex items-center gap-4 text-sm">
+              <div class="flex items-center gap-2">
+                <span>{{ pr.author }}</span>
+                @if (pr.authorImageUrl) {
+                  <img 
+                    [src]="pr.authorImageUrl" 
+                    [alt]="pr.author"
+                    class="w-5 h-5 rounded-full"
+                  />
+                }
+              </div>
+              
+              <div class="text-muted-foreground">
+                {{ formatDate(pr.createdDate) }}
+                @if (pr.ageInDays) {
+                  ({{ pr.ageInDays }} days ago)
+                }
+              </div>
+            </div>
+            
+            <div class="text-xs text-muted-foreground mt-1">
+              {{ pr.sourceRefName }} → {{ pr.targetRefName }}
+            </div>
+          </div>
+          
+          <!-- Actions -->
+          <div class="flex gap-2 flex-shrink-0">
+            <app-button
+              size="sm"
+              variant="outline"
+              (onClick)="onSelectPR(pr.id); $event.stopPropagation()"
+            >
+              View
+            </app-button>
+            <app-button
+              size="sm"
+              (onClick)="onAnalyzePR(pr.id); $event.stopPropagation()"
+            >
+              Analyze
+            </app-button>
+          </div>
+        </div>
+      </div>
+    </ng-template>
   `
 })
 export class PullRequestListComponent {
@@ -177,12 +288,15 @@ export class PullRequestListComponent {
   @Input() searchTerm: string | undefined = '';
   @Input() sortBy: string | undefined = '';
   @Input() sortDirection: 'asc' | 'desc' | undefined = 'desc';
+  @Input() enableVirtualScroll = false;
+  @Input() virtualScrollHeight = 400;
   
   @Output() select = new EventEmitter<number>();
   @Output() search = new EventEmitter<string>();
   @Output() filter = new EventEmitter<Partial<DashboardFilters>>();
   @Output() sort = new EventEmitter<{ sortBy: string; sortDirection?: 'asc' | 'desc' }>();
   @Output() analyze = new EventEmitter<number>();
+  @Output() scrollToEnd = new EventEmitter<void>();
 
   tableColumns: TableColumn[] = [
     { key: 'title', label: 'Pull Request', sortable: true },
@@ -198,6 +312,14 @@ export class PullRequestListComponent {
     return [
       { value: '', label: 'All Authors' },
       ...authors.map(author => ({ value: author, label: author }))
+    ];
+  }
+
+  get repositoryOptions(): SelectOption[] {
+    const repositories = [...new Set(this.pullRequests.map(pr => pr.repository))];
+    return [
+      { value: '', label: 'All Repositories' },
+      ...repositories.map(repo => ({ value: repo, label: repo }))
     ];
   }
 
@@ -217,6 +339,18 @@ export class PullRequestListComponent {
   onFilterChange(filterKey: string, value: string): void {
     const filterValue = value || undefined;
     this.filter.emit({ [filterKey]: filterValue });
+  }
+
+  onDateRangeChange(rangeType: 'from' | 'to', value: string): void {
+    const currentRange = this.filters.dateRange || { from: '', to: '' };
+    const newRange = { ...currentRange, [rangeType]: value || '' };
+    
+    // Only emit if both dates are provided or both are empty
+    if ((newRange.from && newRange.to) || (!newRange.from && !newRange.to)) {
+      this.filter.emit({ 
+        dateRange: (newRange.from || newRange.to) ? newRange : undefined 
+      });
+    }
   }
 
   onClearFilters(): void {

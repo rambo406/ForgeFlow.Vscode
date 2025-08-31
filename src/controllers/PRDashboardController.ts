@@ -119,7 +119,10 @@ export class PRDashboardController {
                 enableScripts: true,
                 retainContextWhenHidden: true,
                 localResourceRoots: [
-                    vscode.Uri.file(path.join(this.context.extensionPath, 'src', 'webview'))
+                    // Angular webview build output
+                    vscode.Uri.file(path.join(this.context.extensionPath, 'dist', 'webview')),
+                    // Legacy webview (for backward compatibility during migration)
+                    vscode.Uri.file(path.join(this.context.extensionPath, 'dist', 'webview-legacy'))
                 ]
             }
         );
@@ -998,298 +1001,200 @@ export class PRDashboardController {
     }
 
     /**
-     * Get webview HTML content
+     * Get webview HTML content - now serves Angular webview
      */
     private getWebviewContent(): string {
-        const scriptUri = this.panel?.webview.asWebviewUri(
-            vscode.Uri.file(path.join(this.context.extensionPath, 'src', 'webview', 'dashboard.js'))
-        );
-        const styleUri = this.panel?.webview.asWebviewUri(
-            vscode.Uri.file(path.join(this.context.extensionPath, 'src', 'webview', 'dashboard.css'))
-        );
+        if (!this.panel) {
+            throw new Error('Webview panel not initialized');
+        }
 
-        return `<!DOCTYPE html>
+        try {
+            // Path to the Angular build output (copied by webpack to dist/webview)
+            const webviewPath = path.join(this.context.extensionPath, 'dist', 'webview');
+            
+            // Get URIs for Angular build files
+            const mainJsUri = this.panel.webview.asWebviewUri(
+                vscode.Uri.file(path.join(webviewPath, 'main.js'))
+            );
+            const polyfillsJsUri = this.panel.webview.asWebviewUri(
+                vscode.Uri.file(path.join(webviewPath, 'polyfills.js'))
+            );
+            const stylesUri = this.panel.webview.asWebviewUri(
+                vscode.Uri.file(path.join(webviewPath, 'styles.css'))
+            );
+            
+            // Generate CSP nonce for security
+            const nonce = this.generateNonce();
+
+            return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel.webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; font-src ${this.panel.webview.cspSource}; img-src ${this.panel.webview.cspSource} data:;">
     <title>Azure DevOps PR Dashboard</title>
-    <link href="${styleUri}" rel="stylesheet">
+    <base href="${this.panel.webview.asWebviewUri(vscode.Uri.file(webviewPath))}/">
+    <link rel="stylesheet" href="${stylesUri}">
+    <style nonce="${nonce}">
+        /* VS Code theme integration */
+        :root {
+            --vscode-foreground: var(--vscode-foreground);
+            --vscode-editor-background: var(--vscode-editor-background);
+            --vscode-button-background: var(--vscode-button-background);
+            --vscode-button-foreground: var(--vscode-button-foreground);
+            --vscode-button-hoverBackground: var(--vscode-button-hoverBackground);
+            --vscode-input-background: var(--vscode-input-background);
+            --vscode-input-foreground: var(--vscode-input-foreground);
+            --vscode-input-border: var(--vscode-input-border);
+            --vscode-panel-background: var(--vscode-panel-background);
+            --vscode-panel-border: var(--vscode-panel-border);
+            --vscode-sideBar-background: var(--vscode-sideBar-background);
+            --vscode-sideBar-foreground: var(--vscode-sideBar-foreground);
+            --vscode-errorForeground: var(--vscode-errorForeground);
+            --vscode-warningForeground: var(--vscode-warningForeground);
+            --vscode-infoForeground: var(--vscode-infoForeground);
+            --vscode-font-family: var(--vscode-font-family);
+            --vscode-font-size: var(--vscode-font-size);
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-foreground);
+            overflow: hidden;
+        }
+        
+        /* Loading state while Angular initializes */
+        .angular-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .angular-loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--vscode-panel-border);
+            border-top: 3px solid var(--vscode-button-background);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .angular-loading-text {
+            color: var(--vscode-foreground);
+            opacity: 0.8;
+        }
+    </style>
 </head>
 <body>
-    <div id="app">
-        <header class="dashboard-header">
-            <h1>Azure DevOps PR Dashboard</h1>
-            <div class="header-actions">
-                <button id="settingsBtn" class="settings-btn" title="Settings" aria-label="Open Settings">
-                    <span class="codicon codicon-gear"></span>
-                </button>
-                <button id="configBtn" class="config-btn" title="Configuration">
-                    <span class="codicon codicon-settings"></span>
-                </button>
-            </div>
-        </header>
-        
-        <!-- Settings Modal -->
-        <div id="settingsModal" class="settings-modal" style="display: none;" role="dialog" aria-labelledby="settingsTitle" aria-modal="true">
-            <div class="settings-modal-content">
-                <header class="settings-header">
-                    <h2 id="settingsTitle">Extension Settings</h2>
-                    <button id="closeSettingsBtn" class="close-btn" title="Close Settings" aria-label="Close Settings">
-                        <span class="codicon codicon-close"></span>
-                    </button>
-                </header>
-                
-                <div class="settings-content">
-                    <div class="settings-sidebar">
-                        <nav class="settings-nav">
-                            <button class="settings-nav-item active" data-section="azureDevOps">
-                                <span class="codicon codicon-azure-devops"></span>
-                                Azure DevOps
-                            </button>
-                            <button class="settings-nav-item" data-section="languageModel">
-                                <span class="codicon codicon-copilot"></span>
-                                Language Model
-                            </button>
-                            <button class="settings-nav-item" data-section="reviewInstructions">
-                                <span class="codicon codicon-checklist"></span>
-                                Review Instructions
-                            </button>
-                            <button class="settings-nav-item" data-section="performance">
-                                <span class="codicon codicon-pulse"></span>
-                                Performance
-                            </button>
-                            <button class="settings-nav-item" data-section="ui">
-                                <span class="codicon codicon-color-mode"></span>
-                                UI Preferences
-                            </button>
-                        </nav>
-                    </div>
-                    
-                    <div class="settings-main">
-                        <!-- Azure DevOps Section -->
-                        <section id="azureDevOpsSection" class="settings-section active">
-                            <h3>Azure DevOps Configuration</h3>
-                            <div class="settings-form">
-                                <div class="form-group">
-                                    <label for="organizationUrl">Organization URL</label>
-                                    <input type="url" id="organizationUrl" placeholder="https://dev.azure.com/your-org" />
-                                    <div class="validation-message" id="organizationUrlValidation"></div>
-                                    <button type="button" class="test-connection-btn" id="testOrgConnection">Test Connection</button>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="patToken">Personal Access Token</label>
-                                    <input type="password" id="patToken" placeholder="Enter your PAT token" />
-                                    <div class="validation-message" id="patTokenValidation"></div>
-                                    <button type="button" class="test-connection-btn" id="testPatToken">Validate Token</button>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="defaultProject">Default Project</label>
-                                    <input type="text" id="defaultProject" placeholder="Project name (optional)" />
-                                    <div class="validation-message" id="defaultProjectValidation"></div>
-                                    <button type="button" class="test-connection-btn" id="testProjectConnection">Test Project</button>
-                                </div>
-                            </div>
-                        </section>
-                        
-                        <!-- Language Model Section -->
-                        <section id="languageModelSection" class="settings-section">
-                            <h3>Language Model Configuration</h3>
-                            <div class="settings-form">
-                                <div class="form-group">
-                                    <label for="selectedModel">Selected Model</label>
-                                    <select id="selectedModel">
-                                        <option value="">Loading available models...</option>
-                                    </select>
-                                    <div class="validation-message" id="selectedModelValidation"></div>
-                                    <button type="button" class="test-connection-btn" id="testModelAvailability">Test Model</button>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="modelTemperature">Temperature</label>
-                                    <input type="range" id="modelTemperature" min="0" max="2" step="0.1" value="0.1" />
-                                    <span class="range-value">0.1</span>
-                                    <div class="help-text">Controls randomness (0 = deterministic, 2 = very creative)</div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="maxTokens">Max Tokens</label>
-                                    <input type="number" id="maxTokens" min="100" max="8000" value="4000" />
-                                    <div class="validation-message" id="maxTokensValidation"></div>
-                                </div>
-                            </div>
-                        </section>
-                        
-                        <!-- Review Instructions Section -->
-                        <section id="reviewInstructionsSection" class="settings-section">
-                            <h3>Review Instructions</h3>
-                            <div class="settings-form">
-                                <div class="form-group">
-                                    <label for="customInstructions">Custom Instructions</label>
-                                    <textarea id="customInstructions" rows="10" placeholder="Enter custom review instructions..."></textarea>
-                                    <div class="validation-message" id="customInstructionsValidation"></div>
-                                    <div class="character-count">0 / 10000 characters</div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>Instruction Templates</label>
-                                    <div class="template-buttons">
-                                        <button type="button" class="template-btn" data-template="basic">Basic Review</button>
-                                        <button type="button" class="template-btn" data-template="security">Security-Focused</button>
-                                        <button type="button" class="template-btn" data-template="performance">Performance-Focused</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                        
-                        <!-- Performance Section -->
-                        <section id="performanceSection" class="settings-section">
-                            <h3>Performance Settings</h3>
-                            <div class="settings-form">
-                                <div class="form-group">
-                                    <label for="batchSize">Batch Size</label>
-                                    <input type="range" id="batchSize" min="1" max="100" value="10" />
-                                    <span class="range-value">10</span>
-                                    <div class="help-text">Number of files to process simultaneously</div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="requestTimeout">Request Timeout (seconds)</label>
-                                    <input type="range" id="requestTimeout" min="5" max="300" value="30" />
-                                    <span class="range-value">30</span>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="enableTelemetry" />
-                                        Enable Telemetry
-                                    </label>
-                                    <div class="help-text">Help improve the extension by sharing anonymous usage data</div>
-                                </div>
-                            </div>
-                        </section>
-                        
-                        <!-- UI Preferences Section -->
-                        <section id="uiSection" class="settings-section">
-                            <h3>UI Preferences</h3>
-                            <div class="settings-form">
-                                <div class="form-group">
-                                    <label for="theme">Theme</label>
-                                    <select id="theme">
-                                        <option value="auto">Auto (Follow VS Code)</option>
-                                        <option value="light">Light</option>
-                                        <option value="dark">Dark</option>
-                                        <option value="high-contrast">High Contrast</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="fontSize">Font Size</label>
-                                    <input type="range" id="fontSize" min="8" max="24" value="14" />
-                                    <span class="range-value">14</span>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="compactMode" />
-                                        Compact Mode
-                                    </label>
-                                    <div class="help-text">Use more compact layout to save space</div>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-                </div>
-                
-                <footer class="settings-footer">
-                    <div class="settings-actions-left">
-                        <button type="button" id="exportSettingsBtn" class="secondary-btn">Export</button>
-                        <button type="button" id="importSettingsBtn" class="secondary-btn">Import</button>
-                        <button type="button" id="resetSettingsBtn" class="danger-btn">Reset to Defaults</button>
-                    </div>
-                    <div class="settings-actions-right">
-                        <button type="button" id="cancelSettingsBtn" class="secondary-btn">Cancel</button>
-                        <button type="button" id="saveSettingsBtn" class="primary-btn">Save Settings</button>
-                    </div>
-                </footer>
-            </div>
-            <div class="settings-modal-backdrop"></div>
+    <app-root>
+        <!-- Loading fallback while Angular bootstraps -->
+        <div class="angular-loading">
+            <div class="angular-loading-spinner"></div>
+            <div class="angular-loading-text">Loading Azure DevOps PR Dashboard...</div>
         </div>
-        
-        <nav class="dashboard-nav">
-            <button id="prListBtn" class="nav-btn active" data-view="pullRequestList">
-                Pull Requests
-            </button>
-            <button id="prDetailBtn" class="nav-btn" data-view="pullRequestDetail" style="display: none;">
-                PR Details
-            </button>
-        </nav>
-        
-        <main class="dashboard-main">
-            <!-- Configuration View -->
-            <div id="configurationView" class="view-container" style="display: none;">
-                <div class="config-section">
-                    <h2>Configuration</h2>
-                    <div id="configContent">
-                        <!-- Configuration form will be loaded here -->
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Pull Request List View -->
-            <div id="pullRequestListView" class="view-container">
-                <div class="pr-list-section">
-                    <div class="pr-list-header">
-                        <h2>Open Pull Requests</h2>
-                        <button id="refreshBtn" class="refresh-btn">
-                            <span class="codicon codicon-refresh"></span>
-                            Refresh
-                        </button>
-                    </div>
-                    <div id="prListContent">
-                        <!-- PR list will be loaded here -->
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Pull Request Detail View -->
-            <div id="pullRequestDetailView" class="view-container" style="display: none;">
-                <div class="pr-detail-section">
-                    <div class="pr-detail-header">
-                        <button id="backBtn" class="back-btn">
-                            <span class="codicon codicon-arrow-left"></span>
-                            Back to List
-                        </button>
-                        <h2 id="prTitle">PR Details</h2>
-                    </div>
-                    <div id="prDetailContent">
-                        <!-- PR details will be loaded here -->
-                    </div>
-                </div>
-            </div>
-        </main>
-        
-        <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">Loading...</div>
-        </div>
-        
-        <div id="errorToast" class="toast error-toast" style="display: none;">
-            <span class="toast-message"></span>
-            <button class="toast-close">×</button>
-        </div>
-        
-        <div id="successToast" class="toast success-toast" style="display: none;">
-            <span class="toast-message"></span>
-            <button class="toast-close">×</button>
-        </div>
-    </div>
+    </app-root>
     
-    <script src="${scriptUri}"></script>
+    <!-- Angular runtime scripts -->
+    <script nonce="${nonce}" src="${polyfillsJsUri}"></script>
+    <script nonce="${nonce}" src="${mainJsUri}"></script>
+    
+    <!-- Initialize webview API for Angular -->
+    <script nonce="${nonce}">
+        // Make VS Code API available to Angular
+        window.vscode = acquireVsCodeApi();
+        
+        // Restore webview state if available
+        const previousState = window.vscode.getState();
+        if (previousState) {
+            window.vsCodeState = previousState;
+        }
+        
+        // Set up error handling for Angular initialization
+        window.addEventListener('error', function(e) {
+            console.error('Angular application error:', e.error);
+            window.vscode.postMessage({
+                type: 'showError',
+                payload: { 
+                    message: 'Angular application failed to initialize: ' + e.error?.message 
+                }
+            });
+        });
+        
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            window.vscode.postMessage({
+                type: 'showError',
+                payload: { 
+                    message: 'Angular application error: ' + e.reason?.message 
+                }
+            });
+        });
+    </script>
 </body>
 </html>`;
+        } catch (error) {
+            console.error('Failed to generate webview content:', error);
+            // Fallback to a simple error page
+            return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure DevOps PR Dashboard - Error</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-foreground);
+        }
+        .error-container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .error-message {
+            color: var(--vscode-errorForeground);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <h1>Failed to Load Dashboard</h1>
+        <div class="error-message">
+            The Angular webview failed to initialize. Please ensure the extension is properly built.
+        </div>
+        <p>Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+    </div>
+</body>
+</html>`;
+        }
+    }
+
+    /**
+     * Generate a cryptographically secure nonce for CSP
+     */
+    private generateNonce(): string {
+        let text = '';
+        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        for (let i = 0; i < 32; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        }
+        return text;
     }
 
     /**

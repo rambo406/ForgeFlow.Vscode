@@ -1,11 +1,13 @@
-import { Component, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subject, takeUntil } from 'rxjs';
 import { DashboardStore, DashboardView } from '../store/dashboard.store';
 import { DashboardHeaderComponent } from './dashboard-header.component';
 import { ConfigurationViewComponent } from './configuration-view.component';
 import { PullRequestListComponent } from './pull-request-list.component';
 import { PullRequestDetailComponent } from './pull-request-detail.component';
 import { AppAlertComponent } from '@shared/components';
+import { MessageService, MessageType } from '../../../core/services/message.service';
 import type { ConfigurationData, DashboardFilters } from '@core/models';
 
 @Component({
@@ -173,9 +175,12 @@ import type { ConfigurationData, DashboardFilters } from '@core/models';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   readonly store = inject(DashboardStore);
+  readonly messageService = inject(MessageService);
   readonly DashboardView = DashboardView;
+  
+  private destroy$ = new Subject<void>();
 
   // Computed getters for template binding
   get activeView(): DashboardView { return this.store.activeView() as DashboardView; }
@@ -188,6 +193,11 @@ export class DashboardComponent implements OnInit {
   get analysisProgress() { return this.store.currentAnalysis?.(); }
 
   async ngOnInit() {
+    console.log('Dashboard component initialized - Angular migration in progress');
+    
+    // Setup message listeners for legacy compatibility
+    this.setupMessageListeners();
+    
     // Initialize dashboard by loading configuration
     await this.store.loadConfiguration();
     
@@ -198,6 +208,71 @@ export class DashboardComponent implements OnInit {
       // Switch to configuration view if not configured
       this.store.setActiveView(DashboardView.CONFIGURATION);
     }
+    
+    console.log('Dashboard initialization complete');
+  }
+  
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+  
+  /**
+   * Setup message listeners to maintain compatibility with legacy message protocol
+   */
+  private setupMessageListeners(): void {
+    this.messageService.onMessage()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(message => {
+        console.log('Received message:', message.type, message.payload);
+        
+        switch (message.type) {
+          case MessageType.UPDATE_VIEW:
+            if (message.payload?.view) {
+              this.onViewChange(message.payload.view as DashboardView);
+            }
+            break;
+            
+          case MessageType.AI_ANALYSIS_PROGRESS:
+            if (message.payload) {
+              this.store.updateAnalysisProgress(message.payload);
+            }
+            break;
+            
+          case MessageType.AI_ANALYSIS_COMPLETE:
+            if (message.payload) {
+              this.store.completeAnalysis(message.payload);
+            }
+            break;
+            
+          case MessageType.SHOW_ERROR:
+            this.handleErrorMessage(message.payload?.message || 'An error occurred');
+            break;
+            
+          case MessageType.SHOW_SUCCESS:
+            this.handleSuccessMessage(message.payload?.message || 'Operation completed');
+            break;
+            
+          default:
+            console.log('Unhandled message type:', message.type);
+        }
+      });
+  }
+  
+  /**
+   * Handle error messages from extension
+   */
+  private handleErrorMessage(message: string): void {
+    console.error('Extension error:', message);
+    // The store will be updated via the message service's error handling
+  }
+  
+  /**
+   * Handle success messages from extension
+   */
+  private handleSuccessMessage(message: string): void {
+    console.log('Extension success:', message);
+    // Could implement toast notifications here if needed
   }
 
   onViewChange(view: DashboardView): void {

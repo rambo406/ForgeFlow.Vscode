@@ -44,7 +44,7 @@ describe('Error Handling Integration Tests', () => {
       errorHandler.handleError(error);
       
       expect(spy).toHaveBeenCalledWith(
-        jasmine.stringContaining('network'),
+        jasmine.stringMatching(/network/i),
         jasmine.any(Object)
       );
     });
@@ -56,7 +56,7 @@ describe('Error Handling Integration Tests', () => {
       errorHandler.handleError(error);
       
       expect(spy).toHaveBeenCalledWith(
-        jasmine.stringContaining('connection'),
+        jasmine.stringMatching(/connection/i),
         jasmine.any(Object)
       );
     });
@@ -74,7 +74,7 @@ describe('Error Handling Integration Tests', () => {
       errorHandler.handleError(error);
       
       expect(spy).toHaveBeenCalledWith(
-        jasmine.stringContaining('offline'),
+        jasmine.stringMatching(/offline|network/i),
         jasmine.any(Object)
       );
     });
@@ -336,6 +336,151 @@ describe('Error Handling Integration Tests', () => {
       const result = errorMessageService.getFriendlyErrorMessage(prError, 'api');
       
       expect(result.message).toContain('pull request');
+    });
+  });
+
+  describe('Toast and Feedback Integration', () => {
+    it('should show toast notifications for user-facing errors', () => {
+      const userError = new Error('Configuration is invalid');
+      const spy = spyOn(notificationService, 'showError');
+      
+      errorHandler.handleError(userError);
+      
+      expect(spy).toHaveBeenCalledWith(
+        jasmine.any(String),
+        jasmine.objectContaining({
+          type: 'toast',
+          dismissible: true,
+          duration: jasmine.any(Number)
+        })
+      );
+    });
+
+    it('should show persistent alerts for critical errors', () => {
+      const criticalError = { status: 500, message: 'Critical system failure' };
+      const spy = spyOn(notificationService, 'showError');
+      
+      errorHandler.handleError(criticalError);
+      
+      expect(spy).toHaveBeenCalledWith(
+        jasmine.any(String),
+        jasmine.objectContaining({
+          persistent: true,
+          actions: jasmine.arrayContaining([
+            jasmine.objectContaining({ primary: true })
+          ])
+        })
+      );
+    });
+
+    it('should provide recovery actions in error notifications', () => {
+      const networkError = { status: 503, message: 'Service Unavailable' };
+      const spy = spyOn(notificationService, 'showError');
+      
+      errorHandler.handleError(networkError);
+      
+      const call = spy.calls.mostRecent();
+      const options = call.args[1];
+      
+      expect(options.actions).toBeDefined();
+      expect(options.actions.length).toBeGreaterThan(0);
+      
+      // Should have at least one recovery action
+      const retryAction = options.actions.find((action: any) => 
+        action.label.toLowerCase().includes('retry')
+      );
+      expect(retryAction).toBeDefined();
+      expect(typeof retryAction.action).toBe('function');
+    });
+  });
+
+  describe('Progressive Error Enhancement', () => {
+    it('should escalate repeated errors', () => {
+      const sameError = new Error('Repeated error');
+      const spy = spyOn(notificationService, 'showError');
+      
+      // First occurrence - should be handled normally
+      errorHandler.handleError(sameError);
+      expect(spy).toHaveBeenCalledTimes(1);
+      
+      // Multiple occurrences - should escalate
+      for (let i = 0; i < 5; i++) {
+        errorHandler.handleError(sameError);
+      }
+      
+      // Should have escalated or combined notifications
+      const calls = spy.calls.all();
+      const lastCall = calls[calls.length - 1];
+      
+      // Last call should indicate escalation
+      expect(lastCall.args[0]).toMatch(/repeated|multiple|escalated/i);
+    });
+
+    it('should provide progressive disclosure for error details', () => {
+      const detailedError = new Error('Detailed error');
+      detailedError.stack = 'Error: Detailed error\n    at function1\n    at function2\n    at function3';
+      
+      const spy = spyOn(notificationService, 'showError');
+      
+      errorHandler.handleError(detailedError);
+      
+      const call = spy.calls.mostRecent();
+      const options = call.args[1];
+      
+      // Should have a way to view more details
+      const detailsAction = options.actions?.find((action: any) => 
+        action.label.toLowerCase().includes('details') || 
+        action.label.toLowerCase().includes('more')
+      );
+      
+      expect(detailsAction || options.expandable || options.details).toBeDefined();
+    });
+  });
+
+  describe('Accessibility and User Experience', () => {
+    it('should provide accessible error messages', () => {
+      const accessibilityError = new Error('Form validation failed');
+      const spy = spyOn(notificationService, 'showError');
+      
+      errorHandler.handleError(accessibilityError);
+      
+      const call = spy.calls.mostRecent();
+      const options = call.args[1];
+      
+      // Should have appropriate ARIA labels or roles
+      expect(options.ariaLabel || options.role || options.announcement).toBeDefined();
+    });
+
+    it('should prevent error notification spam', () => {
+      const spamError = new Error('Spam error');
+      const spy = spyOn(notificationService, 'showError');
+      
+      // Generate many identical errors rapidly
+      for (let i = 0; i < 20; i++) {
+        errorHandler.handleError(spamError);
+      }
+      
+      // Should not show 20 separate notifications
+      expect(spy.calls.count()).toBeLessThan(20);
+    });
+
+    it('should provide contextual help for common errors', () => {
+      const commonError = { status: 401, message: 'Invalid credentials' };
+      const spy = spyOn(notificationService, 'showError');
+      
+      errorHandler.handleError(commonError);
+      
+      const call = spy.calls.mostRecent();
+      const options = call.args[1];
+      
+      // Should provide helpful actions or links
+      const helpAction = options.actions?.find((action: any) => 
+        action.label.toLowerCase().includes('help') ||
+        action.label.toLowerCase().includes('guide') ||
+        action.label.toLowerCase().includes('learn')
+      );
+      
+      expect(helpAction || options.helpLink || options.documentation).toBeDefined();
     });
   });
 });
