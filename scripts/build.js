@@ -35,6 +35,22 @@ function ensureDirectory(dirPath) {
   }
 }
 
+// Helper function to remove a directory reliably without external binaries
+function removeDirectory(dirPath, description) {
+  try {
+    if (fs.existsSync(dirPath)) {
+      console.log(`\n🧹 Removing: ${dirPath}`);
+      fs.rmSync(dirPath, { recursive: true, force: true });
+      console.log(`✅ ${description} removed`);
+    } else {
+      console.log(`ℹ️ ${description} not present, skipping`);
+    }
+  } catch (err) {
+    console.error(`❌ Failed to remove ${dirPath}:`, err.message);
+    process.exit(1);
+  }
+}
+
 async function main() {
   const rootDir = path.resolve(__dirname, '..');
   const webviewDir = path.resolve(rootDir, 'src/webview-angular');
@@ -49,10 +65,10 @@ async function main() {
   if (isProduction) {
     console.log('\n🧹 Cleaning previous builds...');
     if (fs.existsSync(distDir)) {
-      runCommand('rimraf dist', rootDir, 'Cleaning extension dist folder');
+      removeDirectory(distDir, 'Cleaning extension dist folder');
     }
     if (fs.existsSync(path.resolve(webviewDir, 'dist'))) {
-      runCommand('rimraf dist', webviewDir, 'Cleaning webview dist folder');
+      removeDirectory(path.resolve(webviewDir, 'dist'), 'Cleaning webview dist folder');
     }
   }
   
@@ -63,6 +79,15 @@ async function main() {
     runCommand('npm install', webviewDir, 'Installing webview dependencies');
   } else {
     console.log('✅ Webview dependencies already installed');
+  }
+
+  // Ensure root dependencies are installed (needed for webpack etc.)
+  const rootNodeModules = path.resolve(rootDir, 'node_modules');
+  if (!fs.existsSync(rootNodeModules)) {
+    // Install devDependencies as well because build tooling (webpack) is in devDependencies
+    runCommand('npm install --include=dev', rootDir, 'Installing root dependencies (including dev)');
+  } else {
+    console.log('✅ Root dependencies already installed');
   }
   
   // 3. Build Angular webview
@@ -88,7 +113,8 @@ async function main() {
   ensureDirectory(distDir);
   
   // 6. Build extension (webpack will copy webview assets)
-  const extensionBuildCmd = isProduction ? 'webpack --mode production' : 'webpack --mode development';
+  const localWebpack = path.resolve(rootDir, 'node_modules', '.bin', 'webpack');
+  const extensionBuildCmd = isProduction ? `${localWebpack} --mode production` : `${localWebpack} --mode development`;
   runCommand(extensionBuildCmd, rootDir, `Building VS Code extension (${mode})`);
   
   // 7. Verify final build output
