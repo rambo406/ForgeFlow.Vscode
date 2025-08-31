@@ -202,24 +202,50 @@ src/
 ├── services/                 # Core business logic
 ├── models/                   # Data models and interfaces
 ├── utils/                    # Utility functions
-├── webview/                  # Comment preview UI
+├── webview-angular/          # Angular webview application
+│   ├── src/                  # Angular source code
+│   ├── libs/ui/              # Tailwind-based UI component library
+│   └── tailwind.config.js    # Tailwind CSS configuration
 └── test/                     # Test suites
     ├── suite/               # Unit tests
     └── integration/         # Integration tests
+
+docs/tailwind/                # Tailwind CSS documentation
+├── README.md                 # Overview and quick start
+├── getting-started.md        # Setup and basic usage
+├── component-reference.md    # Complete component catalog
+├── design-tokens.md          # Design system tokens
+├── theme-integration.md      # VS Code theme system
+├── utility-guidelines.md     # Best practices
+├── migration-patterns.md     # Migration strategies
+└── developer-onboarding.md   # New developer guide
 ```
 
 ## 🤝 Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
+### UI Development
+
+For UI component development, see our [Tailwind CSS Documentation](docs/tailwind/README.md):
+
+- **[Getting Started](docs/tailwind/getting-started.md)**: Setup and basic usage
+- **[Component Reference](docs/tailwind/component-reference.md)**: Complete component catalog  
+- **[Developer Onboarding](docs/tailwind/developer-onboarding.md)**: New developer guide
+- **[Design Tokens](docs/tailwind/design-tokens.md)**: Design system reference
+- **[Utility Guidelines](docs/tailwind/utility-guidelines.md)**: Best practices
+
+### Development Process
+
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes
+3. Make your changes following our [coding guidelines](docs/tailwind/utility-guidelines.md)
 4. Add tests for new functionality
-5. Ensure tests pass: `npm test`
-6. Commit changes: `git commit -m 'Add amazing feature'`
-7. Push to branch: `git push origin feature/amazing-feature`
-8. Submit a Pull Request
+5. Test across VS Code themes: `./scripts/theme-testing.sh`
+6. Ensure tests pass: `npm test`
+7. Commit changes: `git commit -m 'Add amazing feature'`
+8. Push to branch: `git push origin feature/amazing-feature`
+9. Submit a Pull Request
 
 ## 📄 License
 

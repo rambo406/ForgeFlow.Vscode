@@ -7,9 +7,6 @@
 /* VS Code theme integration */
 @import './vscode-theme.scss';
 
-/* SpartanNG component overrides */
-@import './spartan-overrides.scss';
-
 /* Essential global styles */
 @layer base {
   * {
