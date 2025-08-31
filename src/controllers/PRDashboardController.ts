@@ -138,7 +138,9 @@ export class PRDashboardController {
 
         this.panel.webview.onDidReceiveMessage(
             async (message: WebviewMessage) => {
+                // Log incoming message for debugging request/response flow
                 try {
+                    console.log('[PRDashboard] Received message from webview', { type: message?.type, requestId: message?.requestId });
                     await this.handleMessage(message);
                 } catch (error) {
                     console.error('Error handling webview message:', error);
@@ -248,6 +250,12 @@ export class PRDashboardController {
      */
     private sendMessage(message: WebviewMessage): void {
         if (this.panel) {
+            // Log outgoing messages to help match responses to requests
+            try {
+                console.log('[PRDashboard] Sending message to webview', { type: message?.type, requestId: message?.requestId });
+            } catch (e) {
+                // ignore
+            }
             this.panel.webview.postMessage(message);
         }
     }
@@ -637,6 +645,9 @@ export class PRDashboardController {
                 },
                 requestId: message.requestId
             });
+
+            // Explicit log for visibility in extension output
+            console.log('[PRDashboard] Loaded pull requests', { count: transformedPRs.length, requestId: message.requestId });
 
         } catch (error) {
             console.error('Failed to load pull requests:', error);
@@ -1105,6 +1116,7 @@ export class PRDashboardController {
     </app-root>
     
     <!-- Angular runtime scripts -->
+    <script nonce="${nonce}" src="${this.panel.webview.asWebviewUri(vscode.Uri.file(path.join(webviewPath, 'runtime.js')))}"></script>
     <script nonce="${nonce}" src="${polyfillsJsUri}"></script>
     <script nonce="${nonce}" src="${mainJsUri}"></script>
     

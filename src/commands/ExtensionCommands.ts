@@ -706,6 +706,22 @@ export class ExtensionCommands implements vscode.Disposable {
      */
     private async handleOpenDashboardCommand(): Promise<void> {
         try {
+            // Ensure extension is configured before initializing services
+            const isConfigured = await this.configurationManager.isConfigured();
+            if (!isConfigured) {
+                const result = await vscode.window.showWarningMessage(
+                    'Azure DevOps PR Code Reviewer is not configured. Would you like to configure it now?',
+                    'Configure',
+                    'Cancel'
+                );
+
+                if (result === 'Configure') {
+                    await this.handleConfigureCommand();
+                }
+
+                return;
+            }
+
             // Initialize services if needed
             await this.initializeServices();
 
