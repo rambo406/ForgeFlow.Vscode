@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { PullRequest, AnalysisProgress, FileChange, DiffLine, FileChangeType } from '@core/models';
+import { PullRequest, AnalysisProgress, FileChange, FileChangeType } from '@core/models';
 import { 
   AppButtonComponent,
   AppCardComponent,

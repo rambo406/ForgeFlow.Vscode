@@ -69,12 +69,12 @@ import {
               </div>
             </div>
             
-            <app-input
+              <app-input
               label="Organization URL"
               placeholder="https://dev.azure.com/your-organization"
               formControlName="organizationUrl"
               [error]="getFieldError('organizationUrl')"
-              [helpText]="'Your Azure DevOps organization URL. Example: https://dev.azure.com/mycompany'"
+              helpText="Your Azure DevOps organization URL. Example: https://dev.azure.com/mycompany"
             />
             
             <div class="flex items-end space-x-2">
@@ -85,7 +85,7 @@ import {
                   placeholder="Enter your PAT"
                   formControlName="personalAccessToken"
                   [error]="getFieldError('personalAccessToken')"
-                  [helpText]="'PAT token with Code (read), Pull Request (read/write), and Project and Team (read) permissions'"
+                  helpText="PAT token with Code (read), Pull Request (read/write), and Project and Team (read) permissions"
                 />
               </div>
               <app-button
@@ -107,7 +107,7 @@ import {
               label="Default Project (Optional)"
               placeholder="Project name"
               formControlName="defaultProject"
-              [helpText]="'Leave empty to show all projects, or specify a default project name'"
+              helpText="Leave empty to show all projects, or specify a default project name"
             />
           </div>
 
@@ -156,7 +156,7 @@ import {
               label="Custom Instructions (Optional)"
               placeholder="Additional instructions for the AI reviewer"
               formControlName="customInstructions"
-              [helpText]="'Custom instructions to guide the AI review process (e.g., focus areas, coding standards)'"
+              helpText="Custom instructions to guide the AI review process (e.g., focus areas, coding standards)"
             />
             
             <!-- Advanced Model Settings -->
@@ -169,7 +169,7 @@ import {
                 max="2"
                 placeholder="0.7"
                 formControlName="temperature"
-                [helpText]="'Controls randomness in AI responses (0.0-2.0)'"
+                helpText="Controls randomness in AI responses (0.0-2.0)"
               />
               
               <app-input
@@ -177,7 +177,7 @@ import {
                 type="number"
                 placeholder="2048"
                 formControlName="maxTokens"
-                [helpText]="'Maximum tokens per API call'"
+                helpText="Maximum tokens per API call"
               />
             </div>
           </div>
@@ -195,7 +195,7 @@ import {
                 placeholder="10"
                 formControlName="batchSize"
                 [error]="getFieldError('batchSize')"
-                [helpText]="'Number of files to process simultaneously (1-100)'"
+                helpText="Number of files to process simultaneously (1-100)"
               />
               
               <app-input
@@ -205,18 +205,18 @@ import {
                 max="60"
                 placeholder="15"
                 formControlName="analysisTimeout"
-                [helpText]="'Maximum time for analysis before timeout'"
+                helpText="Maximum time for analysis before timeout"
               />
             </div>
             
-            <app-input
+              <app-input
               label="File Size Limit (MB)"
               type="number"
               min="1"
               max="50"
               placeholder="5"
               formControlName="fileSizeLimit"
-              [helpText]="'Maximum file size to analyze'"
+                helpText="Maximum file size to analyze"
             />
           </div>
 
@@ -228,37 +228,37 @@ import {
               <app-checkbox
                 label="Enable Telemetry"
                 formControlName="enableTelemetry"
-                [helpText]="'Send anonymous usage data to help improve the extension'"
+                helpText="Send anonymous usage data to help improve the extension"
               />
               
               <app-checkbox
                 label="Enable Advanced Analysis"
                 formControlName="enableAdvancedAnalysis"
-                [helpText]="'Use advanced AI models for deeper code analysis'"
+                helpText="Use advanced AI models for deeper code analysis"
               />
               
               <app-checkbox
                 label="Enable Auto Review"
                 formControlName="enableAutoReview"
-                [helpText]="'Automatically start analysis when PR is selected'"
+                helpText="Automatically start analysis when PR is selected"
               />
               
               <app-checkbox
                 label="Enable Code Suggestions"
                 formControlName="enableCodeSuggestions"
-                [helpText]="'Generate code improvement suggestions'"
+                helpText="Generate code improvement suggestions"
               />
               
               <app-checkbox
                 label="Enable Security Analysis"
                 formControlName="enableSecurityAnalysis"
-                [helpText]="'Scan for potential security issues'"
+                helpText="Scan for potential security issues"
               />
               
               <app-checkbox
                 label="Enable Performance Analysis"
                 formControlName="enablePerformanceAnalysis"
-                [helpText]="'Analyze code for performance issues'"
+                helpText="Analyze code for performance issues"
               />
             </div>
           </div>
@@ -285,19 +285,19 @@ import {
               <app-checkbox
                 label="Compact Mode"
                 formControlName="compactMode"
-                [helpText]="'Use compact layout to show more content'"
+                helpText="Use compact layout to show more content"
               />
               
               <app-checkbox
                 label="Show Line Numbers"
                 formControlName="showLineNumbers"
-                [helpText]="'Display line numbers in code views'"
+                helpText="Display line numbers in code views"
               />
               
               <app-checkbox
                 label="Syntax Highlighting"
                 formControlName="syntaxHighlighting"
-                [helpText]="'Enable syntax highlighting in code diffs'"
+                helpText="Enable syntax highlighting in code diffs"
               />
             </div>
           </div>
@@ -316,7 +316,7 @@ import {
               <app-checkbox
                 label="Sound Enabled"
                 formControlName="soundEnabled"
-                [helpText]="'Play sounds for notifications'"
+                helpText="Play sounds for notifications"
               />
             </div>
             
@@ -324,13 +324,13 @@ import {
               <app-checkbox
                 label="Desktop Notifications"
                 formControlName="desktopNotifications"
-                [helpText]="'Show desktop notifications for important events'"
+                helpText="Show desktop notifications for important events"
               />
               
               <app-checkbox
                 label="Email Notifications"
                 formControlName="emailNotifications"
-                [helpText]="'Send email notifications for analysis completion'"
+                helpText="Send email notifications for analysis completion"
               />
             </div>
           </div>

@@ -1,8 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { PullRequestDetailComponent } from './pull-request-detail.component';
-import { PullRequest, PullRequestStatus, FileChange, FileChangeType, DiffLine, AnalysisProgress, AnalysisStage } from '@core/models';
+import { PullRequest, PullRequestStatus, FileChange, FileChangeType, AnalysisProgress, AnalysisStage } from '@core/models';
 
 // Mock shared components
 @Component({

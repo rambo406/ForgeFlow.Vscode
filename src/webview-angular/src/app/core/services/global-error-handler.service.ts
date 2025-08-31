@@ -2,6 +2,15 @@ import { ErrorHandler, Injectable, inject } from '@angular/core';
 import { ErrorHandlerService } from './error-handler.service';
 import { NotificationService } from './notification.service';
 
+// VS Code webview API interface
+declare global {
+  interface Window {
+    vscode?: {
+      postMessage(message: any): void;
+    };
+  }
+}
+
 /**
  * Global Angular error handler that integrates with our custom error handling service
  * Provides comprehensive error recovery and user feedback
@@ -257,17 +266,17 @@ export class GlobalErrorHandler implements ErrorHandler {
       caches.keys().then(names => {
         names.forEach(name => caches.delete(name));
       }).finally(() => {
-        window.location.reload();
+        (window as any).location.reload();
       });
     } else {
-      window.location.reload();
+      (window as any).location.reload();
     }
   }
 
   private triggerChangeDetection(): void {
     // This would need to be implemented based on the application structure
     this.notificationService.showInfo('Refreshing View', 'Triggering view refresh...');
-    setTimeout(() => window.location.reload(), 1000);
+    setTimeout(() => (window as any).location.reload(), 1000);
   }
 
   private openConfigurationView(): void {

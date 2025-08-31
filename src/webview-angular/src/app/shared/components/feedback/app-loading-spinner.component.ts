@@ -40,53 +40,61 @@ import { CommonModule } from '@angular/common';
   `,
   styles: [`
     .loading-container {
-      @apply flex flex-col items-center justify-center gap-3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
     }
 
     .loading-container.inline {
-      @apply flex-row gap-2;
+      flex-direction: row;
+      gap: 0.5rem;
     }
 
     .loading-container.overlay {
-      @apply fixed inset-0 bg-background/80 backdrop-blur-sm z-50;
+      position: fixed;
+      inset: 0;
+      background: var(--vscode-editor-background, rgba(0,0,0,0.6));
+      z-index: 50;
+      backdrop-filter: blur(6px);
     }
 
     .loading-container.card {
-      @apply bg-card border border-border rounded-lg p-6 shadow-sm;
+      background: var(--vscode-panel-background, #fff);
+      border: 1px solid var(--vscode-panel-border, rgba(0,0,0,0.08));
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
 
     /* Spinner Animation */
     .spinner {
-      @apply relative;
+      position: relative;
     }
 
     .spinner-circle {
-      @apply border-2 border-muted-foreground/20 border-t-primary rounded-full animate-spin;
+      border: 2px solid rgba(128,128,128,0.2);
+      border-top-color: var(--vscode-terminal-ansiBlue, #3b82f6);
+      border-radius: 9999px;
+      animation: spin 1s linear infinite;
     }
 
-    .spinner.small .spinner-circle {
-      @apply w-4 h-4;
-    }
+    .spinner.small .spinner-circle { width: 1rem; height: 1rem; }
+    .spinner.medium .spinner-circle { width: 1.5rem; height: 1.5rem; }
+    .spinner.large .spinner-circle { width: 2rem; height: 2rem; }
+    .spinner.extra-large .spinner-circle { width: 3rem; height: 3rem; border-width: 4px; }
 
-    .spinner.medium .spinner-circle {
-      @apply w-6 h-6;
-    }
-
-    .spinner.large .spinner-circle {
-      @apply w-8 h-8;
-    }
-
-    .spinner.extra-large .spinner-circle {
-      @apply w-12 h-12 border-4;
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Dots Animation */
-    .dots-container {
-      @apply flex gap-1;
-    }
+    .dots-container { display: flex; gap: 0.25rem; }
 
     .dot {
-      @apply w-2 h-2 bg-primary rounded-full;
+      width: 0.5rem;
+      height: 0.5rem;
+      background: var(--vscode-button-background, #0ea5e9);
+      border-radius: 9999px;
       animation: dotPulse 1.4s ease-in-out infinite both;
     }
 
@@ -95,111 +103,54 @@ import { CommonModule } from '@angular/common';
     .dot:nth-child(3) { animation-delay: 0s; }
 
     @keyframes dotPulse {
-      0%, 80%, 100% {
-        transform: scale(0.8);
-        opacity: 0.5;
-      }
-      40% {
-        transform: scale(1);
-        opacity: 1;
-      }
+      0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+      40% { transform: scale(1); opacity: 1; }
     }
 
     /* Pulse Animation */
-    .pulse-container {
-      @apply relative;
-    }
+    .pulse-container { position: relative; }
 
     .pulse-circle {
-      @apply w-8 h-8 bg-primary rounded-full;
+      width: 2rem;
+      height: 2rem;
+      background: var(--vscode-button-background, #0ea5e9);
+      border-radius: 9999px;
       animation: pulse 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
     }
 
     @keyframes pulse {
-      0% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(var(--primary), 0.7);
-      }
-      70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 10px rgba(var(--primary), 0);
-      }
-      100% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(var(--primary), 0);
-      }
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(14,165,233,0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(14,165,233,0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(14,165,233,0); }
     }
 
     /* Progress Bar */
-    .progress-container {
-      @apply w-full max-w-xs bg-muted rounded-full h-2 overflow-hidden;
-    }
+    .progress-container { width: 100%; max-width: 20rem; background: var(--vscode-editorGroupHeader-tabsBackground, #f3f4f6); border-radius: 9999px; height: 0.5rem; overflow: hidden; }
 
-    .progress-bar {
-      @apply h-full bg-primary transition-all duration-300 ease-out;
-      background: linear-gradient(90deg, var(--primary) 0%, var(--primary) 100%);
-    }
+    .progress-bar { height: 100%; background: linear-gradient(90deg, var(--vscode-terminal-ansiBlue, #3b82f6) 0%, var(--vscode-terminal-ansiBlue, #3b82f6) 100%); transition: width 300ms ease-out; }
 
-    .progress-text {
-      @apply text-sm font-medium text-muted-foreground;
-    }
+    .progress-text { font-size: 0.875rem; font-weight: 500; color: var(--vscode-descriptionForeground, #6b7280); }
 
     /* Message Styles */
-    .loading-message {
-      @apply text-sm text-muted-foreground text-center;
-    }
-
-    .loading-message.small {
-      @apply text-xs;
-    }
-
-    .loading-message.medium {
-      @apply text-sm;
-    }
-
-    .loading-message.large {
-      @apply text-base;
-    }
-
-    .loading-message.extra-large {
-      @apply text-lg font-medium;
-    }
+    .loading-message { font-size: 0.875rem; color: var(--vscode-descriptionForeground, #6b7280); text-align: center; }
+    .loading-message.small { font-size: 0.75rem; }
+    .loading-message.medium { font-size: 0.875rem; }
+    .loading-message.large { font-size: 1rem; }
+    .loading-message.extra-large { font-size: 1.125rem; font-weight: 600; }
 
     /* Responsive adjustments */
     @media (max-width: 640px) {
-      .loading-container.overlay {
-        @apply p-4;
-      }
-      
-      .loading-container.card {
-        @apply p-4;
-      }
-      
-      .progress-container {
-        @apply max-w-full;
-      }
+      .loading-container.overlay { padding: 1rem; }
+      .loading-container.card { padding: 1rem; }
+      .progress-container { max-width: 100%; }
     }
 
-    /* Theme specific adjustments */
-    .loading-container.primary .spinner-circle {
-      @apply border-t-primary;
-    }
-
-    .loading-container.secondary .spinner-circle {
-      @apply border-t-secondary-foreground;
-    }
-
-    .loading-container.success .spinner-circle {
-      @apply border-t-green-500;
-    }
-
-    .loading-container.warning .spinner-circle {
-      @apply border-t-yellow-500;
-    }
-
-    .loading-container.error .spinner-circle {
-      @apply border-t-red-500;
-    }
+    /* Theme specific adjustments (fallbacks) */
+    .loading-container.primary .spinner-circle { border-top-color: var(--vscode-terminal-ansiBlue, #3b82f6); }
+    .loading-container.secondary .spinner-circle { border-top-color: var(--vscode-terminal-ansiMagenta, #a78bfa); }
+    .loading-container.success .spinner-circle { border-top-color: #10b981; }
+    .loading-container.warning .spinner-circle { border-top-color: #f59e0b; }
+    .loading-container.error .spinner-circle { border-top-color: #ef4444; }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })

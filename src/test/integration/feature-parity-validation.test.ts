@@ -16,7 +16,6 @@ suite('Feature Parity Validation - Legacy vs Angular', () => {
     let languageModelService: LanguageModelService;
     let commentManager: CommentManager;
     let dashboardController: PRDashboardController;
-    let legacyWebviewContent: string;
     let angularWebviewContent: string;
 
     suiteSetup(async () => {
@@ -109,18 +108,7 @@ suite('Feature Parity Validation - Legacy vs Angular', () => {
             azureDevOpsClient
         );
 
-        // Load legacy webview content
-        try {
-            const legacyPath = path.join(__dirname, '../../webview/dashboard.js');
-            legacyWebviewContent = fs.existsSync(legacyPath) 
-                ? fs.readFileSync(legacyPath, 'utf8') 
-                : '// Legacy webview not found for comparison';
-        } catch (error) {
-            console.log(`Legacy webview not accessible: ${error}`);
-            legacyWebviewContent = '// Legacy webview not accessible for comparison';
-        }
-
-        // Get Angular webview content
+        // Angular webview should be loaded from dist/webview
         const mockPanel = vscode.window.createWebviewPanel(
             'test-panel',
             'Test Panel',
@@ -153,7 +141,6 @@ suite('Feature Parity Validation - Legacy vs Angular', () => {
             
             // Should not contain legacy JavaScript patterns
             assert.ok(!angularWebviewContent.includes('acquireVsCodeApi()'), 'Angular webview should not contain legacy API calls');
-            assert.ok(!angularWebviewContent.includes('dashboard.js'), 'Angular webview should not reference legacy dashboard.js');
             
             console.log('Webview content comparison passed - Angular webview is being served');
         });

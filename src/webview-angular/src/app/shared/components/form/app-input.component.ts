@@ -1,13 +1,11 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, forwardRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { HlmInput } from '@spartan-ng/helm/input';
-import { HlmLabel } from '@spartan-ng/helm/label';
 
 @Component({
   selector: 'app-input',
   standalone: true,
-  imports: [CommonModule, HlmInput, HlmLabel],
+  imports: [CommonModule],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -16,24 +14,33 @@ import { HlmLabel } from '@spartan-ng/helm/label';
     }
   ],
   template: `
-    <div class="space-y-2">
+    <div class="space-y-vscode-sm">
       @if (label) {
-        <label hlmLabel [for]="inputId">{{ label }}</label>
+        <label 
+          class="text-vscode-sm font-medium text-vscode-foreground"
+          [for]="inputId"
+        >
+          {{ label }}
+        </label>
       }
       <input
-        hlmInput
+        class="input-vscode w-full"
+        [class.input-vscode-error]="!!error"
+        [class]="additionalClasses"
         [id]="inputId"
         [type]="type"
         [placeholder]="placeholder"
         [disabled]="disabled"
-        [class]="additionalClasses"
         [value]="value"
         (input)="onInput($event)"
         (blur)="onBlur()"
         (focus)="onFocus.emit($event)"
       />
       @if (error) {
-        <div class="text-sm text-destructive">{{ error }}</div>
+        <div class="text-vscode-xs text-vscode-error">{{ error }}</div>
+      }
+      @if (helpText) {
+        <div class="text-vscode-xs text-vscode-muted">{{ helpText }}</div>
       }
     </div>
   `,
@@ -45,6 +52,7 @@ export class AppInputComponent implements ControlValueAccessor {
   @Input() placeholder = '';
   @Input() disabled = false;
   @Input() error = '';
+  @Input() helpText = '';
   @Input() additionalClasses = '';
   @Output() onFocus = new EventEmitter<Event>();
 

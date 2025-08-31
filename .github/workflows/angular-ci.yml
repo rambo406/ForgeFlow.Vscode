@@ -1,0 +1,433 @@
+name: Angular Webview CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/webview-angular/**'
+      - '.github/workflows/angular-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/webview-angular/**'
+
+env:
+  NODE_VERSION: '18'
+  WEBVIEW_PATH: 'src/webview-angular'
+
+jobs:
+  # Install Dependencies and Setup
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WEBVIEW_PATH }}/package-lock.json
+
+      - name: Generate cache key
+        id: cache-key
+        run: echo "key=deps-${{ hashFiles(format('{0}/package-lock.json', env.WEBVIEW_PATH)) }}" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.WEBVIEW_PATH }}/node_modules
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            deps-
+
+      - name: Install dependencies
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: npm ci
+
+  # Lint and Code Quality
+  lint:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.WEBVIEW_PATH }}/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Run ESLint
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: npm run lint
+
+      - name: Check TypeScript compilation
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: npx tsc --noEmit
+
+  # Unit Tests
+  test:
+    runs-on: ubuntu-latest
+    needs: setup
+    strategy:
+      matrix:
+        test-suite:
+          - unit
+          - integration
+          - performance
+          - visual-regression
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.WEBVIEW_PATH }}/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Run unit tests
+        if: matrix.test-suite == 'unit'
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: |
+          npm test -- --coverage --watchAll=false --testPathPattern='\.spec\.ts$' --testPathIgnorePatterns='integration|performance|visual-regression'
+
+      - name: Run integration tests
+        if: matrix.test-suite == 'integration'
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: |
+          npm test -- --watchAll=false --testPathPattern='integration\.spec\.ts$'
+
+      - name: Run performance tests
+        if: matrix.test-suite == 'performance'
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: |
+          npm test -- --watchAll=false --testPathPattern='performance.*\.spec\.ts$'
+
+      - name: Run visual regression tests
+        if: matrix.test-suite == 'visual-regression'
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: |
+          npm test -- --watchAll=false --testPathPattern='visual-regression|comprehensive-regression\.spec\.ts$'
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.test-suite }}
+          path: |
+            ${{ env.WEBVIEW_PATH }}/coverage/
+            ${{ env.WEBVIEW_PATH }}/test-results/
+
+  # Build Tests
+  build:
+    runs-on: ubuntu-latest
+    needs: setup
+    strategy:
+      matrix:
+        build-config: ['development', 'production']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.WEBVIEW_PATH }}/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Build for development
+        if: matrix.build-config == 'development'
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: npm run build
+
+      - name: Build for production
+        if: matrix.build-config == 'production'
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: npm run build:prod
+
+      - name: Analyze bundle size
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: |
+          npx webpack-bundle-analyzer dist/main*.js --mode static --report bundle-report.html --no-open
+          du -sh dist/
+
+      - name: Check bundle size limits
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: |
+          BUNDLE_SIZE=$(du -b dist/main*.js | cut -f1)
+          MAX_SIZE=500000  # 500KB limit
+          if [ $BUNDLE_SIZE -gt $MAX_SIZE ]; then
+            echo "Bundle size ($BUNDLE_SIZE bytes) exceeds limit ($MAX_SIZE bytes)"
+            exit 1
+          fi
+          echo "Bundle size check passed: $BUNDLE_SIZE bytes"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.build-config }}
+          path: |
+            ${{ env.WEBVIEW_PATH }}/dist/
+            ${{ env.WEBVIEW_PATH }}/bundle-report.html
+
+  # End-to-End Tests
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [setup, build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.WEBVIEW_PATH }}/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-production
+          path: ${{ env.WEBVIEW_PATH }}/dist/
+
+      - name: Run comprehensive regression tests
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: |
+          npm test -- --watchAll=false --testPathPattern='comprehensive-regression\.spec\.ts$' --verbose
+
+      - name: Upload E2E test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: e2e-test-results
+          path: |
+            ${{ env.WEBVIEW_PATH }}/test-results/
+            ${{ env.WEBVIEW_PATH }}/screenshots/
+
+  # Performance Benchmarking
+  performance-benchmark:
+    runs-on: ubuntu-latest
+    needs: [setup, build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.WEBVIEW_PATH }}/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-production
+          path: ${{ env.WEBVIEW_PATH }}/dist/
+
+      - name: Run performance benchmarks
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: |
+          npm test -- --watchAll=false --testPathPattern='performance-validation\.spec\.ts$'
+
+      - name: Generate performance report
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: |
+          node -e "
+            const report = {
+              timestamp: new Date().toISOString(),
+              commit: process.env.GITHUB_SHA,
+              branch: process.env.GITHUB_REF_NAME,
+              performance: {
+                bundleSize: require('fs').statSync('dist/main.js').size,
+                timestamp: Date.now()
+              }
+            };
+            require('fs').writeFileSync('performance-report.json', JSON.stringify(report, null, 2));
+          "
+
+      - name: Upload performance report
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-report
+          path: ${{ env.WEBVIEW_PATH }}/performance-report.json
+
+  # Security and Quality Gates
+  security:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.WEBVIEW_PATH }}/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Run security audit
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: npm audit --audit-level=moderate
+
+      - name: Check for known vulnerabilities
+        working-directory: ${{ env.WEBVIEW_PATH }}
+        run: |
+          if npm audit --json | jq -e '.vulnerabilities | length > 0'; then
+            echo "Security vulnerabilities found!"
+            npm audit
+            exit 1
+          fi
+
+  # Quality Gates and Deployment Readiness
+  quality-gate:
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, e2e, performance-benchmark, security]
+    if: always()
+    steps:
+      - name: Check all jobs status
+        run: |
+          if [[ "${{ needs.lint.result }}" != "success" ]]; then
+            echo "Lint check failed"
+            exit 1
+          fi
+          if [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "Tests failed"
+            exit 1
+          fi
+          if [[ "${{ needs.build.result }}" != "success" ]]; then
+            echo "Build failed"
+            exit 1
+          fi
+          if [[ "${{ needs.e2e.result }}" != "success" ]]; then
+            echo "E2E tests failed"
+            exit 1
+          fi
+          if [[ "${{ needs.performance-benchmark.result }}" != "success" ]]; then
+            echo "Performance benchmarks failed"
+            exit 1
+          fi
+          if [[ "${{ needs.security.result }}" != "success" ]]; then
+            echo "Security check failed"
+            exit 1
+          fi
+          echo "All quality gates passed! ✅"
+
+      - name: Deployment readiness check
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Angular webview is ready for deployment! 🚀"
+          echo "All tests passed, bundle size within limits, security checks passed."
+
+  # Generate Combined Report
+  report:
+    runs-on: ubuntu-latest
+    needs: [quality-gate]
+    if: always()
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Generate combined test report
+        run: |
+          echo "# Azure DevOps PR Code Reviewer - Angular Webview CI Report" > ci-report.md
+          echo "" >> ci-report.md
+          echo "**Build:** ${{ github.run_number }}" >> ci-report.md
+          echo "**Commit:** ${{ github.sha }}" >> ci-report.md
+          echo "**Branch:** ${{ github.ref_name }}" >> ci-report.md
+          echo "**Timestamp:** $(date -u)" >> ci-report.md
+          echo "" >> ci-report.md
+          echo "## Test Results Summary" >> ci-report.md
+          echo "- Lint: ${{ needs.lint.result }}" >> ci-report.md
+          echo "- Unit Tests: ${{ needs.test.result }}" >> ci-report.md
+          echo "- Build: ${{ needs.build.result }}" >> ci-report.md
+          echo "- E2E Tests: ${{ needs.e2e.result }}" >> ci-report.md
+          echo "- Performance: ${{ needs.performance-benchmark.result }}" >> ci-report.md
+          echo "- Security: ${{ needs.security.result }}" >> ci-report.md
+          echo "" >> ci-report.md
+          echo "## Quality Gate: ${{ needs.quality-gate.result }}" >> ci-report.md
+
+      - name: Upload CI report
+        uses: actions/upload-artifact@v3
+        with:
+          name: ci-report
+          path: ci-report.md
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('ci-report.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+
+# Cleanup old artifacts to save space
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: [report]
+    if: always()
+    steps:
+      - name: Delete old artifacts
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
+            
+            // Keep only the most recent artifacts
+            const oldArtifacts = artifacts.data.artifacts
+              .filter(artifact => artifact.name !== 'ci-report')
+              .slice(10); // Keep last 10 artifacts
+            
+            for (const artifact of oldArtifacts) {
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id,
+              });
+            }

@@ -76,15 +76,6 @@ module.exports = (env, argv) => {
               ignore: ['**/.gitkeep']
             },
             noErrorOnMissing: false
-          },
-          // Copy static webview assets if they exist
-          {
-            from: path.resolve(__dirname, 'src/webview'),
-            to: path.resolve(__dirname, 'dist/webview-legacy'),
-            globOptions: {
-              ignore: ['**/.gitkeep']
-            },
-            noErrorOnMissing: true
           }
         ]
       })

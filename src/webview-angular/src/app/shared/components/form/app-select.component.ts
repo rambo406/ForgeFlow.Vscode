@@ -2,7 +2,6 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, forwar
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { HlmSelectImports } from '@spartan-ng/helm/select';
-import { HlmLabel } from '@spartan-ng/helm/label';
 import { BrnSelectImports } from '@spartan-ng/brain/select';
 
 export interface SelectOption {
@@ -16,7 +15,6 @@ export interface SelectOption {
   standalone: true,
   imports: [
     CommonModule, 
-    HlmLabel,
     BrnSelectImports,
     HlmSelectImports
   ],
@@ -28,9 +26,14 @@ export interface SelectOption {
     }
   ],
   template: `
-    <div class="space-y-2">
+    <div class="space-y-vscode-sm">
       @if (label) {
-        <label hlmLabel [for]="selectId">{{ label }}</label>
+        <label 
+          class="text-vscode-sm font-medium text-vscode-foreground"
+          [for]="selectId"
+        >
+          {{ label }}
+        </label>
       }
       <brn-select 
         [id]="selectId"
@@ -38,7 +41,11 @@ export interface SelectOption {
         (valueChange)="onValueChange($event)"
         [value]="value"
       >
-        <hlm-select-trigger [class]="additionalClasses">
+        <hlm-select-trigger 
+          class="input-vscode w-full"
+          [class.input-vscode-error]="!!error"
+          [class]="additionalClasses"
+        >
           <hlm-select-value />
         </hlm-select-trigger>
         <hlm-select-content>
@@ -53,7 +60,10 @@ export interface SelectOption {
         </hlm-select-content>
       </brn-select>
       @if (error) {
-        <div class="text-sm text-destructive">{{ error }}</div>
+        <div class="text-vscode-xs text-vscode-error">{{ error }}</div>
+      }
+      @if (helpText) {
+        <div class="text-vscode-xs text-vscode-muted">{{ helpText }}</div>
       }
     </div>
   `,
@@ -65,6 +75,7 @@ export class AppSelectComponent implements ControlValueAccessor {
   @Input() options: SelectOption[] = [];
   @Input() disabled = false;
   @Input() error = '';
+  @Input() helpText = '';
   @Input() additionalClasses = '';
   @Output() valueChange = new EventEmitter<string>();
 

@@ -16,10 +16,10 @@ import { CommentCardComponent } from './comment-card.component';
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <div class="comment-list h-full overflow-auto">
+    <div class="h-full overflow-auto scrollbar-vscode">
       @if (viewMode === 'list') {
-        <!-- List View -->
-        <div class="p-4 space-y-3">
+        <!-- List View - Enhanced Mobile-First Layout -->
+        <div class="comment-preview-grid p-vscode-lg">
           @for (comment of comments; track comment.id) {
             <app-comment-card
               [comment]="comment"
@@ -34,16 +34,16 @@ import { CommentCardComponent } from './comment-card.component';
           }
         </div>
       } @else {
-        <!-- Grouped View -->
+        <!-- Grouped View - Enhanced Mobile-First Responsive -->
         <div class="divide-y divide-border">
           @for (group of getGroupEntries(); track group.key) {
             <div class="group-section">
-              <!-- Group Header -->
-              <div class="sticky top-0 z-10 bg-muted/50 backdrop-blur-sm border-b border-border">
-                <div class="flex items-center justify-between p-4">
-                  <div class="flex items-center space-x-3">
+              <!-- Group Header - Mobile-Optimized Sticky Header -->
+              <div class="sticky top-0 z-10 bg-card/90 backdrop-blur-sm border-b border-border">
+                <div class="flex items-center justify-between p-vscode-lg">
+                  <div class="flex items-center gap-vscode-md">
                     <button
-                      class="flex items-center space-x-2 text-sm font-medium text-foreground hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-sm"
+                      class="btn-vscode-ghost flex items-center gap-vscode-sm text-vscode-sm font-medium focus-vscode"
                       (click)="toggleGroupCollapse(group.key)"
                     >
                       <lucide-icon 
@@ -54,15 +54,15 @@ import { CommentCardComponent } from './comment-card.component';
                       <span>{{ getGroupDisplayName(group.key) }}</span>
                     </button>
                     
-                    <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-accent text-accent-foreground rounded-full">
+                    <span class="badge-vscode bg-accent text-accent-foreground text-vscode-xs">
                       {{ group.comments.length }}
                     </span>
 
-                    <!-- Group-level actions -->
-                    <div class="flex items-center space-x-1">
+                    <!-- Group-level actions - Mobile-First -->
+                    <div class="flex items-center gap-vscode-xs">
                       @if (getGroupSelectedCount(group.comments) > 0) {
                         <button
-                          class="px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border rounded hover:bg-accent"
+                          class="btn-vscode-secondary btn-vscode-sm"
                           (click)="selectAllInGroup(group.comments, false)"
                           title="Deselect all in group"
                         >
@@ -70,7 +70,7 @@ import { CommentCardComponent } from './comment-card.component';
                         </button>
                       } @else {
                         <button
-                          class="px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border rounded hover:bg-accent"
+                          class="btn-vscode-secondary btn-vscode-sm"
                           (click)="selectAllInGroup(group.comments, true)"
                           title="Select all in group"
                         >
@@ -80,24 +80,24 @@ import { CommentCardComponent } from './comment-card.component';
                     </div>
                   </div>
 
-                  <!-- Group Statistics -->
-                  <div class="flex items-center space-x-4 text-xs text-muted-foreground">
+                  <!-- Group Statistics - Mobile-Responsive -->
+                  <div class="flex items-center gap-vscode-sm text-vscode-xs text-muted-foreground">
                     @if (getGroupStats(group.comments); as stats) {
                       @if (stats.pending > 0) {
-                        <span class="flex items-center space-x-1">
-                          <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                        <span class="flex items-center gap-vscode-xs">
+                          <div class="w-vscode-sm h-vscode-sm bg-vscode-warning rounded-full"></div>
                           <span>{{ stats.pending }} pending</span>
                         </span>
                       }
                       @if (stats.approved > 0) {
-                        <span class="flex items-center space-x-1">
-                          <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span class="flex items-center gap-vscode-xs">
+                          <div class="w-vscode-sm h-vscode-sm bg-vscode-success rounded-full"></div>
                           <span>{{ stats.approved }} approved</span>
                         </span>
                       }
                       @if (stats.dismissed > 0) {
-                        <span class="flex items-center space-x-1">
-                          <div class="w-2 h-2 bg-gray-500 rounded-full"></div>
+                        <span class="flex items-center gap-vscode-xs">
+                          <div class="w-vscode-sm h-vscode-sm bg-muted rounded-full"></div>
                           <span>{{ stats.dismissed }} dismissed</span>
                         </span>
                       }
@@ -106,9 +106,9 @@ import { CommentCardComponent } from './comment-card.component';
                 </div>
               </div>
 
-              <!-- Group Comments -->
+              <!-- Group Comments - Enhanced Mobile Layout -->
               @if (!isGroupCollapsed(group.key)) {
-                <div class="p-4 space-y-3 bg-background">
+                <div class="comment-preview-grid p-vscode-lg bg-background">
                   @for (comment of group.comments; track comment.id) {
                     <app-comment-card
                       [comment]="comment"
@@ -129,28 +129,30 @@ import { CommentCardComponent } from './comment-card.component';
         </div>
       }
 
-      <!-- Empty State -->
+      <!-- Empty State - Mobile-Optimized -->
       @if (comments.length === 0) {
-        <div class="flex items-center justify-center h-full p-8">
+        <div class="flex items-center justify-center h-full p-vscode-lg vscode-md:p-vscode-2xl">
           <div class="text-center">
             <lucide-icon 
               name="message-square" 
               size="48" 
-              class="mx-auto mb-4 text-muted-foreground opacity-50"
+              class="mx-auto mb-vscode-lg text-muted-foreground opacity-50"
             />
-            <h3 class="text-lg font-medium text-foreground mb-2">No Comments Found</h3>
-            <p class="text-muted-foreground max-w-md">
+            <h3 class="text-vscode-lg vscode-md:text-vscode-xl font-medium text-foreground mb-vscode-sm">
+              No Comments Found
+            </h3>
+            <p class="text-vscode-sm vscode-md:text-vscode-base text-muted-foreground max-w-md">
               No comments match your current filter criteria. Try adjusting your filters or clearing them to see more results.
             </p>
           </div>
         </div>
       }
 
-      <!-- Select All Floating Action -->
+      <!-- Select All Floating Action - Mobile-Optimized -->
       @if (comments.length > 0 && viewMode === 'list') {
-        <div class="fixed bottom-4 right-4 z-20">
+        <div class="fixed bottom-vscode-lg right-vscode-lg z-20">
           <button
-            class="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            class="btn-vscode flex items-center gap-vscode-sm shadow-vscode-md"
             (click)="onSelectAll.emit()"
             [title]="allSelected ? 'Deselect all comments' : 'Select all comments'"
           >
@@ -158,7 +160,9 @@ import { CommentCardComponent } from './comment-card.component';
               [name]="allSelected ? 'square' : 'check-square'" 
               size="16"
             />
-            <span class="text-sm">{{ allSelected ? 'Deselect' : 'Select' }} All</span>
+            <span class="text-vscode-sm vscode-sm:inline hidden">
+              {{ allSelected ? 'Deselect' : 'Select' }} All
+            </span>
           </button>
         </div>
       }

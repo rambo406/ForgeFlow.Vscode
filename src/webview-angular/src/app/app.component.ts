@@ -1,7 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DashboardComponent } from './features/dashboard/components/dashboard.component';
 import { AppToastContainerComponent } from './shared/components/feedback/app-toast-container.component';
+import { PerformanceMonitorService } from './core/services/performance-monitor.service';
+import { PerformanceOptimizationService } from './core/services/performance-optimization.service';
 
 @Component({
   selector: 'app-root',
@@ -22,6 +24,24 @@ import { AppToastContainerComponent } from './shared/components/feedback/app-toa
     }
   `]
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   title = 'ForgeFlow Azure DevOps PR Reviewer';
+
+  private performanceMonitor = inject(PerformanceMonitorService);
+  private performanceOptimization = inject(PerformanceOptimizationService);
+
+  ngOnInit(): void {
+    // Initialize performance monitoring and optimizations
+    this.performanceMonitor.startTiming('app-initialization');
+    this.performanceOptimization.initializeOptimizations();
+    
+    // Setup performance monitoring for the main app
+    this.performanceMonitor.monitorVirtualScrolling('main-scroll-container');
+    
+    // Log initial performance metrics
+    setTimeout(() => {
+      this.performanceMonitor.endTiming('app-initialization');
+      this.performanceMonitor.logPerformanceSummary();
+    }, 100);
+  }
 }

@@ -18,28 +18,28 @@ import { CommentSeverity, CommentStatus } from '../../../core/models/enums';
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <div 
-      class="comment-card border border-border rounded-lg transition-all duration-200 hover:shadow-md"
+      class="card-vscode transition-all duration-vscode hover:shadow-vscode-md"
       [class]="getCardClasses()"
     >
-      <!-- Card Header -->
-      <div class="flex items-start justify-between p-4 pb-3">
-        <div class="flex items-start space-x-3 flex-1 min-w-0">
-          <!-- Selection Checkbox -->
-          <div class="flex-shrink-0 pt-1">
+      <!-- Card Header - Mobile-First Responsive Design -->
+      <div class="flex items-start justify-between gap-vscode-md">
+        <div class="flex items-start gap-vscode-md flex-1 min-w-0">
+          <!-- Selection Checkbox - Touch-Friendly -->
+          <div class="flex-shrink-0 pt-vscode-xs">
             <input
               type="checkbox"
               [checked]="isSelected"
               (change)="handleCheckboxChange($event)"
               [disabled]="isLoading"
-              class="rounded border-border text-primary focus:ring-primary focus:ring-offset-0"
+              class="input-vscode w-vscode-lg h-vscode-lg focus-vscode"
             />
           </div>
 
-          <!-- Comment Content -->
+          <!-- Comment Content - Enhanced Responsive Layout -->
           <div class="flex-1 min-w-0">
-            <!-- File path (if shown) -->
+            <!-- File path - Mobile-Optimized Display -->
             @if (showFilePath) {
-              <div class="flex items-center space-x-2 mb-2 text-xs text-muted-foreground">
+              <div class="flex items-center gap-vscode-sm mb-vscode-sm text-vscode-xs text-muted-foreground">
                 <lucide-icon name="file" size="12" />
                 <span class="font-mono truncate">{{ comment.filePath }}</span>
                 @if (comment.lineNumber) {
@@ -49,136 +49,136 @@ import { CommentSeverity, CommentStatus } from '../../../core/models/enums';
               </div>
             }
 
-            <!-- Severity and Status Badges -->
-            <div class="flex items-center space-x-2 mb-3">
+            <!-- Severity and Status Badges - Mobile-First Responsive -->
+            <div class="flex items-center gap-vscode-sm mb-vscode-md flex-wrap">
               <span 
-                class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full"
+                class="badge-vscode text-vscode-xs font-medium"
                 [class]="getSeverityClasses(comment.severity)"
               >
-                <lucide-icon [name]="getSeverityIcon(comment.severity)" size="10" class="mr-1" />
+                <lucide-icon [name]="getSeverityIcon(comment.severity)" size="10" class="mr-vscode-xs" />
                 {{ getSeverityLabel(comment.severity) }}
               </span>
 
               <span 
-                class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full"
+                class="badge-vscode text-vscode-xs font-medium"
                 [class]="getStatusClasses(comment.status)"
               >
-                <lucide-icon [name]="getStatusIcon(comment.status)" size="10" class="mr-1" />
+                <lucide-icon [name]="getStatusIcon(comment.status)" size="10" class="mr-vscode-xs" />
                 {{ getStatusLabel(comment.status) }}
               </span>
 
               @if (comment.confidence !== undefined) {
                 <span 
-                  class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-muted text-muted-foreground"
+                  class="badge-vscode bg-muted text-muted-foreground text-vscode-xs"
                   [title]="'Confidence: ' + (comment.confidence * 100).toFixed(0) + '%'"
                 >
-                  <lucide-icon name="target" size="10" class="mr-1" />
+                  <lucide-icon name="target" size="10" class="mr-vscode-xs" />
                   {{ (comment.confidence * 100).toFixed(0) }}%
                 </span>
               }
 
               @if (comment.category) {
-                <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-accent text-accent-foreground">
+                <span class="badge-vscode bg-accent text-accent-foreground text-vscode-xs">
                   {{ comment.category }}
                 </span>
               }
             </div>
 
-            <!-- Comment Content (Editable) -->
-            <div class="mb-3">
+            <!-- Comment Content - Enhanced Mobile-First Editing -->
+            <div class="mb-vscode-md">
               @if (isEditing) {
-                <div class="space-y-2">
+                <div class="space-y-vscode-sm">
                   <textarea
-                    class="w-full p-3 text-sm border border-border rounded-md bg-background text-foreground resize-y min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    class="input-vscode w-full text-vscode-sm resize-y min-h-[100px]"
                     [ngModel]="editingContent"
                     (ngModelChange)="editingContent = $event"
                     placeholder="Enter comment content..."
                     [disabled]="isLoading"
                   ></textarea>
-                  <div class="flex items-center space-x-2">
+                  <div class="flex gap-vscode-sm flex-col vscode-sm:flex-row">
                     <button
-                      class="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="btn-vscode text-vscode-sm w-full vscode-sm:w-auto"
                       (click)="saveEdit()"
                       [disabled]="isLoading || !editingContent.trim()"
                     >
-                      <lucide-icon name="check" size="12" class="mr-1" />
+                      <lucide-icon name="check" size="12" class="mr-vscode-xs" />
                       Save
                     </button>
                     <button
-                      class="px-3 py-1 text-sm text-muted-foreground hover:text-foreground border border-border rounded-md hover:bg-accent"
+                      class="btn-vscode-secondary text-vscode-sm w-full vscode-sm:w-auto"
                       (click)="cancelEdit()"
                       [disabled]="isLoading"
                     >
-                      <lucide-icon name="x" size="12" class="mr-1" />
+                      <lucide-icon name="x" size="12" class="mr-vscode-xs" />
                       Cancel
                     </button>
                   </div>
                 </div>
               } @else {
                 <div 
-                  class="text-sm text-foreground leading-relaxed whitespace-pre-wrap"
+                  class="text-vscode-sm text-foreground leading-relaxed whitespace-pre-wrap"
                   [innerHTML]="getFormattedContent()"
                 ></div>
               }
             </div>
 
-            <!-- Code Context (if available) -->
+            <!-- Code Context - Mobile-Optimized Collapsible -->
             @if (comment.codeContext && !isEditing) {
-              <div class="mb-3">
+              <div class="mb-vscode-md">
                 <details class="group">
-                  <summary class="cursor-pointer text-xs text-muted-foreground hover:text-foreground flex items-center space-x-1">
+                  <summary class="cursor-pointer text-vscode-xs text-muted-foreground hover:text-foreground flex items-center gap-vscode-xs focus-vscode">
                     <lucide-icon name="code" size="12" />
                     <span>Code Context</span>
                     <lucide-icon name="chevron-down" size="12" class="group-open:rotate-180 transition-transform" />
                   </summary>
-                  <div class="mt-2 p-3 bg-muted rounded-md">
-                    <pre class="text-xs text-muted-foreground font-mono whitespace-pre-wrap overflow-x-auto">{{ comment.codeContext }}</pre>
+                  <div class="mt-vscode-sm">
+                    <pre class="panel-vscode text-vscode-xs font-mono whitespace-pre-wrap overflow-x-auto">{{ comment.codeContext }}</pre>
                   </div>
                 </details>
               </div>
             }
 
-            <!-- Suggested Fix (if available) -->
+            <!-- Suggested Fix - Enhanced Mobile Display -->
             @if (comment.suggestedFix && !isEditing) {
-              <div class="mb-3 p-3 bg-accent/30 border border-accent rounded-md">
-                <div class="flex items-center space-x-2 mb-2">
+              <div class="mb-vscode-md panel-vscode bg-accent/30 border border-accent">
+                <div class="flex items-center gap-vscode-sm mb-vscode-sm">
                   <lucide-icon name="lightbulb" size="14" class="text-accent-foreground" />
-                  <span class="text-sm font-medium text-accent-foreground">Suggested Fix</span>
+                  <span class="text-vscode-sm font-medium text-accent-foreground">Suggested Fix</span>
                 </div>
-                <pre class="text-sm text-foreground font-mono whitespace-pre-wrap overflow-x-auto">{{ comment.suggestedFix }}</pre>
+                <pre class="text-vscode-sm font-mono whitespace-pre-wrap overflow-x-auto mb-vscode-sm">{{ comment.suggestedFix }}</pre>
                 <button
-                  class="mt-2 px-3 py-1 text-xs bg-accent text-accent-foreground rounded-md hover:bg-accent/80 disabled:opacity-50"
+                  class="btn-vscode-secondary text-vscode-xs w-full vscode-sm:w-auto"
                   (click)="onApplySuggestion.emit()"
                   [disabled]="isLoading || comment.fixApplied"
                 >
-                  <lucide-icon name="wand-2" size="12" class="mr-1" />
+                  <lucide-icon name="wand-2" size="12" class="mr-vscode-xs" />
                   {{ comment.fixApplied ? 'Applied' : 'Apply Fix' }}
                 </button>
               </div>
             }
 
-            <!-- Tags (if available) -->
+            <!-- Tags - Mobile-First Responsive Tags -->
             @if (comment.tags && comment.tags.length > 0 && !isEditing) {
-              <div class="flex flex-wrap gap-1 mb-3">
+              <div class="flex flex-wrap gap-vscode-xs mb-vscode-md">
                 @for (tag of comment.tags; track tag) {
-                  <span class="inline-flex items-center px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded-md">
+                  <span class="badge-vscode bg-secondary text-secondary-foreground text-vscode-xs">
                     #{{ tag }}
                   </span>
                 }
               </div>
             }
 
-            <!-- Metadata -->
+            <!-- Metadata - Mobile-Optimized Display -->
             @if (!isEditing) {
-              <div class="flex items-center space-x-4 text-xs text-muted-foreground">
+              <div class="flex items-center gap-vscode-lg text-vscode-xs text-muted-foreground flex-wrap">
                 @if (comment.lastModified) {
-                  <span class="flex items-center space-x-1">
+                  <span class="flex items-center gap-vscode-xs">
                     <lucide-icon name="clock" size="10" />
                     <span>Modified {{ getTimeAgo(comment.lastModified) }}</span>
                   </span>
                 }
                 @if (comment.modifiedBy) {
-                  <span class="flex items-center space-x-1">
+                  <span class="flex items-center gap-vscode-xs">
                     <lucide-icon name="user" size="10" />
                     <span>by {{ comment.modifiedBy }}</span>
                   </span>
@@ -188,63 +188,67 @@ import { CommentSeverity, CommentStatus } from '../../../core/models/enums';
           </div>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Action Buttons - Mobile-First Layout -->
         @if (!isEditing) {
-          <div class="flex items-center space-x-1 flex-shrink-0">
+          <div class="flex items-center gap-vscode-xs flex-shrink-0 flex-col vscode-sm:flex-row">
             <button
-              class="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors disabled:opacity-50"
+              class="btn-vscode-ghost p-vscode-sm w-full vscode-sm:w-auto"
               (click)="startEdit()"
               [disabled]="isLoading"
               title="Edit comment"
             >
               <lucide-icon name="edit-2" size="14" />
+              <span class="vscode-sm:sr-only ml-vscode-xs">Edit</span>
             </button>
 
             @if (comment.status !== CommentStatus.APPROVED) {
               <button
-                class="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-colors disabled:opacity-50"
+                class="btn-vscode-ghost p-vscode-sm text-vscode-success w-full vscode-sm:w-auto"
                 (click)="onApprove.emit()"
                 [disabled]="isLoading"
                 title="Approve comment"
               >
                 <lucide-icon name="check" size="14" />
+                <span class="vscode-sm:sr-only ml-vscode-xs">Approve</span>
               </button>
             }
 
             @if (comment.status !== CommentStatus.DISMISSED) {
               <button
-                class="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50"
+                class="btn-vscode-ghost p-vscode-sm text-vscode-error w-full vscode-sm:w-auto"
                 (click)="onDismiss.emit()"
                 [disabled]="isLoading"
                 title="Dismiss comment"
               >
                 <lucide-icon name="x" size="14" />
+                <span class="vscode-sm:sr-only ml-vscode-xs">Dismiss</span>
               </button>
             }
 
-            <!-- More Actions Menu -->
+            <!-- More Actions Menu - Mobile-Optimized -->
             <div class="relative">
               <button
-                class="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+                class="btn-vscode-ghost p-vscode-sm w-full vscode-sm:w-auto"
                 (click)="toggleActionsMenu()"
                 [disabled]="isLoading"
                 title="More actions"
               >
                 <lucide-icon name="more-horizontal" size="14" />
+                <span class="vscode-sm:sr-only ml-vscode-xs">More</span>
               </button>
 
               @if (showActionsMenu) {
-                <div class="absolute right-0 top-full mt-1 w-48 bg-popover border border-border rounded-md shadow-lg z-10">
-                  <div class="py-1">
+                <div class="absolute right-0 top-full mt-vscode-xs w-48 panel-vscode border border-border shadow-vscode-md z-10">
+                  <div class="py-vscode-xs">
                     <button
-                      class="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground flex items-center space-x-2"
+                      class="w-full text-left px-vscode-md py-vscode-sm text-vscode-sm hover:bg-accent hover:text-accent-foreground flex items-center gap-vscode-sm"
                       (click)="copyToClipboard()"
                     >
                       <lucide-icon name="copy" size="12" />
                       <span>Copy Comment</span>
                     </button>
                     <button
-                      class="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground flex items-center space-x-2"
+                      class="w-full text-left px-vscode-md py-vscode-sm text-vscode-sm hover:bg-accent hover:text-accent-foreground flex items-center gap-vscode-sm"
                       (click)="copyFileLocation()"
                     >
                       <lucide-icon name="link" size="12" />

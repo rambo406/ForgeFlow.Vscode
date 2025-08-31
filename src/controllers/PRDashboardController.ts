@@ -120,9 +120,7 @@ export class PRDashboardController {
                 retainContextWhenHidden: true,
                 localResourceRoots: [
                     // Angular webview build output
-                    vscode.Uri.file(path.join(this.context.extensionPath, 'dist', 'webview')),
-                    // Legacy webview (for backward compatibility during migration)
-                    vscode.Uri.file(path.join(this.context.extensionPath, 'dist', 'webview-legacy'))
+                    vscode.Uri.file(path.join(this.context.extensionPath, 'dist', 'webview'))
                 ]
             }
         );

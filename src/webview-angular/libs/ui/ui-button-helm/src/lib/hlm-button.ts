@@ -6,18 +6,18 @@ import type { ClassValue } from 'clsx';
 import { injectBrnButtonConfig } from './hlm-button.token';
 
 export const buttonVariants = cva(
-	'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_ng-icon]:pointer-events-none shrink-0 [&_ng-icon]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-default',
+	'btn-vscode inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_ng-icon]:pointer-events-none shrink-0 [&_ng-icon]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-default',
 	{
 		variants: {
 			variant: {
-				default: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90',
+				default: 'bg-vscode-button-background text-vscode-button-foreground shadow-xs hover:bg-vscode-button-hoverBackground border border-vscode-button-border',
 				destructive:
-					'bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
+					'btn-vscode bg-vscode-error text-white shadow-xs hover:bg-vscode-error/90 focus-visible:ring-vscode-error/20 dark:focus-visible:ring-vscode-error/40',
 				outline:
-					'border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50',
-				secondary: 'bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80',
-				ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
-				link: 'text-primary underline-offset-4 hover:underline',
+					'btn-vscode-secondary border border-vscode-panel-border bg-vscode-panel-background shadow-xs hover:bg-vscode-list-hoverBackground hover:text-vscode-foreground',
+				secondary: 'btn-vscode-secondary bg-vscode-panel-background text-vscode-foreground shadow-xs hover:bg-vscode-list-hoverBackground border border-vscode-panel-border',
+				ghost: 'bg-transparent hover:bg-vscode-list-hoverBackground hover:text-vscode-foreground border-transparent',
+				link: 'text-vscode-link underline-offset-4 hover:underline bg-transparent border-transparent',
 			},
 			size: {
 				default: 'h-9 px-4 py-2 has-[>ng-icon]:px-3',

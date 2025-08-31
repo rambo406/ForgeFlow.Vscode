@@ -2,13 +2,12 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, forwar
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { HlmCheckboxImports } from '@spartan-ng/helm/checkbox';
-import { HlmLabel } from '@spartan-ng/helm/label';
 import { BrnCheckboxImports } from '@spartan-ng/brain/checkbox';
 
 @Component({
   selector: 'app-checkbox',
   standalone: true,
-  imports: [CommonModule, HlmLabel, BrnCheckboxImports, HlmCheckboxImports],
+  imports: [CommonModule, BrnCheckboxImports, HlmCheckboxImports],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -17,22 +16,32 @@ import { BrnCheckboxImports } from '@spartan-ng/brain/checkbox';
     }
   ],
   template: `
-    <div class="flex items-center space-x-2">
-      <brn-checkbox
-        hlmCheckbox
-        [id]="checkboxId"
-        [disabled]="disabled"
-        [checked]="checked"
-        (checkedChange)="onCheckedChange($event)"
-        [class]="additionalClasses"
-      />
-      @if (label) {
-        <label hlmLabel [for]="checkboxId" class="cursor-pointer">{{ label }}</label>
+    <div class="space-y-vscode-sm">
+      <div class="flex items-center space-x-vscode-sm">
+        <brn-checkbox
+          hlmCheckbox
+          [id]="checkboxId"
+          [disabled]="disabled"
+          [checked]="checked"
+          (checkedChange)="onCheckedChange($event)"
+          [class]="additionalClasses"
+        />
+        @if (label) {
+          <label 
+            class="text-vscode-sm font-medium text-vscode-foreground cursor-pointer"
+            [for]="checkboxId"
+          >
+            {{ label }}
+          </label>
+        }
+      </div>
+      @if (error) {
+        <div class="text-vscode-xs text-vscode-error">{{ error }}</div>
+      }
+      @if (helpText) {
+        <div class="text-vscode-xs text-vscode-muted">{{ helpText }}</div>
       }
     </div>
-    @if (error) {
-      <div class="text-sm text-destructive mt-1">{{ error }}</div>
-    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -40,6 +49,7 @@ export class AppCheckboxComponent implements ControlValueAccessor {
   @Input() label = '';
   @Input() disabled = false;
   @Input() error = '';
+  @Input() helpText = '';
   @Input() additionalClasses = '';
   @Output() checkedChange = new EventEmitter<boolean>();
 

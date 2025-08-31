@@ -10,5 +10,5 @@ import type { ClassValue } from 'clsx';
 })
 export class HlmCardDescription {
 	public readonly userClass = input<ClassValue>('', { alias: 'class' });
-	protected readonly _computedClass = computed(() => hlm('text-muted-foreground text-sm', this.userClass()));
+	protected readonly _computedClass = computed(() => hlm('text-vscode-descriptionForeground text-sm', this.userClass()));
 }

@@ -35,8 +35,8 @@ import { HlmIconModule } from '../../../../../libs/ui/ui-icon-helm/src';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="comment-preview-container h-full flex flex-col bg-background text-foreground">
-      <!-- Header Section -->
+    <div class="h-full flex flex-col bg-background text-foreground">
+      <!-- Header Section - Enhanced Mobile-First Design -->
       <div class="flex-shrink-0 border-b border-border">
         <app-comment-header
           [stats]="store.commentsSummary()"
@@ -48,15 +48,15 @@ import { HlmIconModule } from '../../../../../libs/ui/ui-icon-helm/src';
         />
       </div>
 
-      <!-- Filters Section - Responsive Layout -->
-      <div class="flex-shrink-0 border-b border-border bg-muted/30">
-        <div class="container-vscode py-2 vscode-md:py-3">
+      <!-- Filters Section - Enhanced Responsive Layout -->
+      <div class="flex-shrink-0 border-b border-border bg-card">
+        <div class="container-vscode py-vscode-sm vscode-md:py-vscode-md">
           <app-comment-filters
             [filters]="store.filters()"
             [groupBy]="store.groupBy()"
             [viewMode]="store.viewMode()"
             [uniqueFiles]="store.uniqueFilePaths()"
-            [uniqueCategories]="store.uniqueCategories()"
+            [uniqueCategories]="uniqueCategoriesSafe()"
             [isLoading]="store.isLoading()"
             (onFiltersChange)="handleFiltersChange($event)"
             (onGroupByChange)="handleGroupByChange($event)"
@@ -66,29 +66,27 @@ import { HlmIconModule } from '../../../../../libs/ui/ui-icon-helm/src';
         </div>
       </div>
 
-      <!-- Main Content Area - Responsive Grid Layout -->
+      <!-- Main Content Area - Enhanced Responsive Grid Layout -->
       <div class="flex-1 flex flex-col min-h-0">
-        <!-- Error Display -->
-        @if (store.error(); as error) {
-          <div class="flex-shrink-0 p-4">
+        <!-- Error Display - Mobile-First Alert Design -->
+        @if (store.error && store.error(); as error) {
+          <div class="flex-shrink-0 p-vscode-lg">
             <div class="container-vscode">
-              <div hlmAlert variant="destructive">
-                <lucide-icon name="alert-circle" hlmIcon size="sm" class="mr-2" />
-                <div class="flex-responsive items-start">
-                  <div class="flex-1 min-w-0">
-                    <h4 class="font-semibold text-sm vscode-md:text-base">Error</h4>
-                    <p class="text-xs vscode-md:text-sm mt-1 break-words">{{ error }}</p>
+              <div class="card-vscode bg-error text-error-foreground">
+                <div class="flex-responsive gap-vscode-md">
+                  <div class="flex items-start gap-vscode-sm">
+                    <span class="text-vscode-lg flex-shrink-0">⚠️</span>
+                    <div class="flex-1 min-w-0">
+                      <h4 class="font-semibold text-vscode-sm vscode-md:text-vscode-base">Error</h4>
+                      <p class="text-vscode-xs vscode-md:text-vscode-sm mt-vscode-xs break-words">{{ error }}</p>
+                    </div>
                   </div>
                   <button 
-                    hlmBtn
-                    variant="outline"
-                    size="sm"
-                    class="btn-responsive flex-shrink-0 mt-2 vscode-md:mt-0 vscode-md:ml-4"
+                    class="btn-vscode-secondary flex-shrink-0 w-full vscode-sm:w-auto"
                     (click)="handleClearError()"
                   >
-                    <lucide-icon name="x" hlmIcon size="xs" class="mr-1" />
-                    <span class="hide-vscode-sm">Dismiss</span>
-                    <span class="show-vscode-sm sr-only">Dismiss</span>
+                    <span class="inline-flex items-center">✕</span>
+                    <span class="ml-vscode-xs vscode-sm:inline hidden">Dismiss</span>
                   </button>
                 </div>
               </div>
@@ -96,20 +94,20 @@ import { HlmIconModule } from '../../../../../libs/ui/ui-icon-helm/src';
           </div>
         }
 
-        <!-- Loading State - Responsive Grid -->
+        <!-- Loading State - Enhanced Responsive Grid -->
         @if (store.isLoading()) {
-          <div class="flex-1 p-4">
+          <div class="flex-1 p-vscode-lg">
             <div class="container-vscode">
               <div class="comment-preview-grid">
                 @for (skeleton of skeletonArray; track $index) {
-                  <div class="border border-border rounded-lg p-4 space-y-3 panel-vscode">
-                    <div hlmSkeleton class="h-4 w-1/4"></div>
-                    <div hlmSkeleton class="h-3 w-full"></div>
-                    <div hlmSkeleton class="h-3 w-3/4"></div>
-                    <div class="flex space-x-2">
-                      <div hlmSkeleton class="h-6 w-16"></div>
-                      <div hlmSkeleton class="h-6 w-20"></div>
-                      <div hlmSkeleton class="h-6 w-14"></div>
+                  <div class="card-vscode space-y-vscode-md animate-vscode-pulse">
+                    <div hlmSkeleton class="h-vscode-lg w-1/4"></div>
+                    <div hlmSkeleton class="h-vscode-md w-full"></div>
+                    <div hlmSkeleton class="h-vscode-md w-3/4"></div>
+                    <div class="flex gap-vscode-sm">
+                      <div hlmSkeleton class="h-vscode-xl w-16"></div>
+                      <div hlmSkeleton class="h-vscode-xl w-20"></div>
+                      <div hlmSkeleton class="h-vscode-xl w-14"></div>
                     </div>
                   </div>
                 }
@@ -118,64 +116,54 @@ import { HlmIconModule } from '../../../../../libs/ui/ui-icon-helm/src';
           </div>
         }
 
-        <!-- Comments List - Responsive Layout -->
+        <!-- Comments List - Enhanced Responsive Layout -->
         @if (!store.isLoading()) {
           <div class="flex-1 min-h-0">
             @if (store.comments().length === 0) {
-              <!-- Empty State - Responsive -->
-              <div class="flex-1 flex items-center justify-center p-4 vscode-md:p-8">
+              <!-- Empty State - Mobile-Optimized -->
+              <div class="flex-1 flex items-center justify-center p-vscode-lg vscode-md:p-vscode-2xl">
                 <div class="text-center max-w-md">
-                  <lucide-icon 
-                    name="message-square" 
-                    hlmIcon 
-                    size="xl" 
-                    class="mx-auto mb-4 text-muted-foreground opacity-50"
-                  />
-                  <h3 class="text-base vscode-md:text-lg font-semibold mb-2">No Comments Available</h3>
-                  <p class="text-xs vscode-md:text-sm text-muted-foreground mb-4">
+                  <span class="text-6xl">💬</span>
+                  <h3 class="text-vscode-lg vscode-md:text-vscode-xl font-semibold mt-vscode-lg mb-vscode-md">
+                    No Comments Available
+                  </h3>
+                  <p class="text-vscode-sm vscode-md:text-vscode-base text-muted-foreground mb-vscode-lg">
                     No review comments have been generated for this pull request yet. 
                     Start an analysis to get AI-powered code review suggestions.
                   </p>
                   <button 
-                    hlmBtn
-                    variant="outline"
-                    class="btn-responsive text-sm"
+                    class="btn-vscode w-full vscode-sm:w-auto"
                     (click)="handleRefresh()"
                   >
-                    <lucide-icon name="refresh-cw" hlmIcon size="sm" class="mr-2" />
-                    Refresh
+                    <span class="inline-flex items-center">🔄</span>
+                    <span class="ml-vscode-sm">Refresh</span>
                   </button>
                 </div>
               </div>
             } @else if (store.filteredComments().length === 0) {
-              <!-- No Results State - Responsive -->
-              <div class="flex-1 flex items-center justify-center p-4 vscode-md:p-8">
+              <!-- No Results State - Mobile-Optimized -->
+              <div class="flex-1 flex items-center justify-center p-vscode-lg vscode-md:p-vscode-2xl">
                 <div class="text-center max-w-md">
-                  <lucide-icon 
-                    name="filter-x" 
-                    hlmIcon 
-                    size="xl" 
-                    class="mx-auto mb-4 text-muted-foreground opacity-50"
-                  />
-                  <h3 class="text-base vscode-md:text-lg font-semibold mb-2">No Comments Match Filters</h3>
-                  <p class="text-xs vscode-md:text-sm text-muted-foreground mb-4">
+                  <span class="text-6xl">🚫</span>
+                  <h3 class="text-vscode-lg vscode-md:text-vscode-xl font-semibold mt-vscode-lg mb-vscode-md">
+                    No Comments Match Filters
+                  </h3>
+                  <p class="text-vscode-sm vscode-md:text-vscode-base text-muted-foreground mb-vscode-lg">
                     Try adjusting your filter criteria or clearing all filters to see more results.
                   </p>
                   <button 
-                    hlmBtn
-                    variant="outline"
-                    class="btn-responsive text-sm"
+                    class="btn-vscode-secondary w-full vscode-sm:w-auto"
                     (click)="handleClearFilters()"
                   >
-                    <lucide-icon name="filter-x" hlmIcon size="sm" class="mr-2" />
-                    Clear Filters
+                    <span class="inline-flex items-center">❌</span>
+                    <span class="ml-vscode-sm">Clear Filters</span>
                   </button>
                 </div>
               </div>
             } @else {
-              <!-- Comments List Component - Full Height with Responsive Containers -->
-              <div class="h-full overflow-auto">
-                <div class="container-vscode py-4">
+              <!-- Comments List Component - Enhanced Responsive Design -->
+              <div class="h-full overflow-auto scrollbar-vscode">
+                <div class="container-vscode py-vscode-lg">
                   <app-comment-list
                     [comments]="store.filteredComments()"
                     [groupedComments]="store.groupedComments()"
@@ -196,10 +184,10 @@ import { HlmIconModule } from '../../../../../libs/ui/ui-icon-helm/src';
         }
       </div>
 
-      <!-- Actions Footer - Responsive -->
+      <!-- Actions Footer - Enhanced Mobile-First Design -->
       @if (store.selectedCommentsCount() > 0) {
-        <div class="flex-shrink-0 border-t border-border bg-muted/30">
-          <div class="container-vscode py-3">
+        <div class="flex-shrink-0 border-t border-border bg-card">
+          <div class="container-vscode py-vscode-md">
             <app-comment-actions
               [selectedCount]="store.selectedCommentsCount()"
               [allSelected]="store.allFilteredCommentsSelected()"
@@ -216,40 +204,12 @@ import { HlmIconModule } from '../../../../../libs/ui/ui-icon-helm/src';
     </div>
   `,
   styles: [`
-    .comment-preview-container {
-      height: 100vh;
-      overflow: hidden;
+    /* Enhanced VS Code Theme Integration */
+    .animate-vscode-slide-in {
+      animation: slideIn 0.3s ease-out;
     }
 
-    .comment-preview-container > div {
-      overflow: hidden;
-    }
-
-    /* Custom scrollbar styling for VS Code theme */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: var(--vscode-scrollbarSlider-background);
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--vscode-scrollbarSlider-hoverBackground);
-      border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--vscode-scrollbarSlider-activeBackground);
-    }
-
-    /* Animation for error alerts */
-    .error-alert {
-      animation: slideDown 0.2s ease-out;
-    }
-
-    @keyframes slideDown {
+    @keyframes slideIn {
       from {
         opacity: 0;
         transform: translateY(-10px);
@@ -274,9 +234,10 @@ export class CommentPreviewComponent implements OnInit, OnDestroy {
     this.messageService.onMessage()
       .pipe(takeUntil(this.destroy$))
       .subscribe(message => {
-        if (message.type === MessageType.COMMENTS_LOADED) {
+        // Narrow message type checks to avoid TypeScript mismatch when using union enums
+        if (message && (message.type as MessageType) === MessageType.COMMENTS_LOADED) {
           this.store.updateComments(message.payload.comments);
-        } else if (message.type === MessageType.COMMENT_UPDATED) {
+        } else if (message && (message.type as MessageType) === MessageType.COMMENT_UPDATED) {
           // Handle individual comment updates
           const updatedComment = message.payload.comment;
           const currentComments = this.store.comments();
@@ -291,6 +252,16 @@ export class CommentPreviewComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /**
+   * Ensure unique categories list is strictly string[] for template/data bindings
+   */
+  protected uniqueCategoriesSafe(): string[] {
+    const raw = this.store.uniqueCategories && this.store.uniqueCategories();
+    if (!raw) return [];
+    // Filter out undefined and coerce types
+    return raw.filter((v): v is string => typeof v === 'string' && v.length > 0);
   }
 
   /**

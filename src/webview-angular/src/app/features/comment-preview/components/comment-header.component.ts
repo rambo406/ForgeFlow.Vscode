@@ -14,131 +14,120 @@ import { CommentSummaryStats } from '../../../core/models/interfaces';
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <div class="comment-header p-4 bg-background border-b border-border">
-      <div class="flex items-center justify-between">
-        <!-- Left Side: Title and Stats -->
-        <div class="flex items-center space-x-4">
+    <div class="p-vscode-lg bg-background border-b border-border">
+      <!-- Mobile-First Responsive Header Layout -->
+      <div class="flex-responsive gap-vscode-lg">
+        <!-- Left Side: Title and Stats - Mobile-First -->
+        <div class="flex items-center gap-vscode-lg">
           <div>
-            <h2 class="text-lg font-semibold text-foreground">
+            <h2 class="text-vscode-lg vscode-md:text-vscode-xl font-semibold text-foreground">
               Review Comments
             </h2>
-            <div class="flex items-center space-x-2 mt-1">
-              <span class="text-sm text-muted-foreground">
+            <div class="flex items-center gap-vscode-sm mt-vscode-xs">
+              <span class="text-vscode-sm text-muted-foreground">
                 {{ stats.total }} total
               </span>
               @if (selectedCount > 0) {
-                <div class="h-4 w-px bg-border"></div>
-                <span class="text-sm text-primary font-medium">
+                <div class="h-vscode-lg w-px bg-border"></div>
+                <span class="text-vscode-sm text-primary font-medium">
                   {{ selectedCount }} selected
                 </span>
               }
             </div>
           </div>
 
-          <!-- Summary Badges -->
-          <div class="flex items-center space-x-2">
+          <!-- Summary Badges - Mobile-First Responsive -->
+          <div class="flex items-center gap-vscode-sm flex-wrap">
             @if (stats.pending > 0) {
               <div 
-                hlmBadge 
-                variant="outline"
-                class="bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-700"
-                hlmTooltip="Pending review"
+                class="badge-vscode-warning"
+                title="Pending review"
               >
-                <lucide-icon name="clock" hlmIcon size="xs" class="mr-1" />
+                <lucide-icon name="clock" size="xs" class="mr-vscode-xs" />
                 {{ stats.pending }} pending
               </div>
             }
 
             @if (stats.approved > 0) {
               <div 
-                hlmBadge 
-                variant="outline"
-                class="bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-700"
-                hlmTooltip="Approved comments"
+                class="badge-vscode-success"
+                title="Approved comments"
               >
-                <lucide-icon name="check" hlmIcon size="xs" class="mr-1" />
+                <lucide-icon name="check" size="xs" class="mr-vscode-xs" />
                 {{ stats.approved }} approved
               </div>
             }
 
             @if (stats.dismissed > 0) {
               <div 
-                hlmBadge 
-                variant="outline"
-                class="bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-700"
-                hlmTooltip="Dismissed comments"
+                class="badge-vscode bg-muted text-muted-foreground"
+                title="Dismissed comments"
               >
-                <lucide-icon name="x" hlmIcon size="xs" class="mr-1" />
+                <lucide-icon name="x" size="xs" class="mr-vscode-xs" />
                 {{ stats.dismissed }} dismissed
               </div>
             }
 
             @if (stats.modified > 0) {
               <div 
-                hlmBadge 
-                variant="outline"
-                class="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-700"
-                hlmTooltip="Modified comments"
+                class="badge-vscode-info"
+                title="Modified comments"
               >
-                <lucide-icon name="edit" hlmIcon size="xs" class="mr-1" />
+                <lucide-icon name="edit" size="xs" class="mr-vscode-xs" />
                 {{ stats.modified }} modified
               </div>
             }
           </div>
         </div>
 
-        <!-- Right Side: Action Buttons -->
-        <div class="flex items-center space-x-2">
+        <!-- Right Side: Action Buttons - Mobile-First -->
+        <div class="flex items-center gap-vscode-sm flex-wrap">
           @if (selectedCount > 0) {
             <button
-              hlmBtn
-              variant="ghost"
-              size="sm"
+              class="btn-vscode-ghost btn-vscode-sm w-full vscode-sm:w-auto"
               (click)="onClearSelection.emit()"
-              hlmTooltip="Clear selection"
+              title="Clear selection"
             >
-              <lucide-icon name="x" hlmIcon size="sm" class="mr-1" />
-              Clear Selection
+              <lucide-icon name="x" size="sm" class="mr-vscode-xs" />
+              <span class="vscode-sm:inline hidden">Clear Selection</span>
             </button>
           }
 
-          <!-- Export Dropdown -->
+          <!-- Export Dropdown - Mobile-Optimized -->
           <div class="relative">
             <button
-              hlmBtn
-              variant="ghost"
-              size="sm"
+              class="btn-vscode-secondary btn-vscode-sm w-full vscode-sm:w-auto"
               (click)="toggleExportMenu()"
               [disabled]="isLoading || stats.total === 0"
-              hlmTooltip="Export comments"
+              title="Export comments"
             >
-              <lucide-icon name="download" hlmIcon size="sm" class="mr-1" />
-              Export
-              <lucide-icon name="chevron-down" hlmIcon size="xs" class="ml-1" />
+              <lucide-icon name="download" size="sm" class="mr-vscode-xs" />
+              <span class="vscode-sm:inline hidden">Export</span>
+              <lucide-icon name="chevron-down" size="xs" class="ml-vscode-xs" />
             </button>
             
             @if (showExportMenu) {
-              <div class="absolute right-0 top-full mt-1 w-48 bg-popover border border-border rounded-md shadow-lg z-10">
-                <div class="py-1">
+              <div class="absolute right-0 top-full mt-vscode-xs w-48 panel-vscode border border-border shadow-vscode-md z-10 export-menu">
+                <div class="py-vscode-xs">
                   <button
-                    class="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                    class="w-full text-left px-vscode-md py-vscode-sm text-vscode-sm hover:bg-accent hover:text-accent-foreground flex items-center gap-vscode-sm"
                     (click)="handleExport('json')"
                   >
-                    <lucide-icon name="braces" hlmIcon size="xs" class="mr-2" />
+                    <lucide-icon name="braces" size="xs" />
                     Export as JSON
                   </button>
                   <button
-                    class="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                    class="w-full text-left px-vscode-md py-vscode-sm text-vscode-sm hover:bg-accent hover:text-accent-foreground flex items-center gap-vscode-sm"
                     (click)="handleExport('csv')"
                   >
-                    <lucide-icon name="table" hlmIcon size="xs" class="mr-2" />
+                    <lucide-icon name="table" size="xs" />
                     Export as CSV
                   </button>
                   <button
-                    class="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                    class="w-full text-left px-vscode-md py-vscode-sm text-vscode-sm hover:bg-accent hover:text-accent-foreground flex items-center gap-vscode-sm"
                     (click)="handleExport('markdown')"
                   >
-                    <lucide-icon name="file-text" hlmIcon size="xs" class="mr-2" />
+                    <lucide-icon name="file-text" size="xs" />
                     Export as Markdown
                   </button>
                 </div>
@@ -146,37 +135,38 @@ import { CommentSummaryStats } from '../../../core/models/interfaces';
             }
           </div>
 
-          <!-- Refresh Button -->
+          <!-- Refresh Button - Mobile-Optimized -->
           <button
-            hlmBtn
-            variant="ghost"
-            size="sm"
+            class="btn-vscode btn-vscode-sm w-full vscode-sm:w-auto"
             (click)="onRefresh.emit()"
             [disabled]="isLoading"
-            hlmTooltip="Refresh comments"
+            title="Refresh comments"
           >
             <lucide-icon 
               name="refresh-cw" 
-              hlmIcon 
               size="sm" 
-              [class.animate-spin]="isLoading"
+              [class.animate-vscode-pulse]="isLoading"
+              class="mr-vscode-xs"
             />
+            <span class="vscode-sm:inline hidden">
+              {{ isLoading ? 'Refreshing...' : 'Refresh' }}
+            </span>
           </button>
         </div>
       </div>
 
-      <!-- Detailed Statistics -->
+      <!-- Detailed Statistics - Enhanced Mobile-First -->
       @if (stats.total > 0) {
-        <div class="mt-4 pt-4 border-t border-border">
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div class="mt-vscode-lg pt-vscode-lg border-t border-border">
+          <div class="grid grid-cols-1 vscode-sm:grid-cols-2 vscode-lg:grid-cols-4 gap-vscode-lg text-vscode-sm">
             <!-- Severity Breakdown -->
             <div>
-              <div class="text-muted-foreground mb-2 font-medium">By Severity</div>
-              <div class="space-y-1">
+              <div class="text-muted-foreground mb-vscode-sm font-medium">By Severity</div>
+              <div class="space-y-vscode-xs">
                 @if (stats.bySeverity.error > 0) {
                   <div class="flex items-center justify-between">
                     <span class="flex items-center">
-                      <div class="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
+                      <div class="w-vscode-sm h-vscode-sm bg-vscode-error rounded-full mr-vscode-sm"></div>
                       Error
                     </span>
                     <span class="font-medium">{{ stats.bySeverity.error }}</span>
@@ -185,7 +175,7 @@ import { CommentSummaryStats } from '../../../core/models/interfaces';
                 @if (stats.bySeverity.warning > 0) {
                   <div class="flex items-center justify-between">
                     <span class="flex items-center">
-                      <div class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
+                      <div class="w-vscode-sm h-vscode-sm bg-vscode-warning rounded-full mr-vscode-sm"></div>
                       Warning
                     </span>
                     <span class="font-medium">{{ stats.bySeverity.warning }}</span>
@@ -194,7 +184,7 @@ import { CommentSummaryStats } from '../../../core/models/interfaces';
                 @if (stats.bySeverity.info > 0) {
                   <div class="flex items-center justify-between">
                     <span class="flex items-center">
-                      <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                      <div class="w-vscode-sm h-vscode-sm bg-vscode-info rounded-full mr-vscode-sm"></div>
                       Info
                     </span>
                     <span class="font-medium">{{ stats.bySeverity.info }}</span>
@@ -203,7 +193,7 @@ import { CommentSummaryStats } from '../../../core/models/interfaces';
                 @if (stats.bySeverity.suggestion > 0) {
                   <div class="flex items-center justify-between">
                     <span class="flex items-center">
-                      <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                      <div class="w-vscode-sm h-vscode-sm bg-vscode-success rounded-full mr-vscode-sm"></div>
                       Suggestion
                     </span>
                     <span class="font-medium">{{ stats.bySeverity.suggestion }}</span>
@@ -214,20 +204,20 @@ import { CommentSummaryStats } from '../../../core/models/interfaces';
 
             <!-- File Count -->
             <div>
-              <div class="text-muted-foreground mb-2 font-medium">Files with Comments</div>
-              <div class="text-lg font-semibold">
+              <div class="text-muted-foreground mb-vscode-sm font-medium">Files with Comments</div>
+              <div class="text-vscode-lg font-semibold">
                 {{ getFileCount() }}
               </div>
             </div>
 
             <!-- Quality Metrics -->
             <div>
-              <div class="text-muted-foreground mb-2 font-medium">Quality</div>
-              <div class="space-y-1">
-                <div class="text-sm">
+              <div class="text-muted-foreground mb-vscode-sm font-medium">Quality</div>
+              <div class="space-y-vscode-xs">
+                <div class="text-vscode-sm">
                   Avg. Confidence: {{ (stats.averageConfidence * 100).toFixed(0) }}%
                 </div>
-                <div class="text-sm">
+                <div class="text-vscode-sm">
                   High Confidence: {{ stats.highConfidenceCount }}
                 </div>
               </div>
@@ -235,15 +225,15 @@ import { CommentSummaryStats } from '../../../core/models/interfaces';
 
             <!-- Progress -->
             <div>
-              <div class="text-muted-foreground mb-2 font-medium">Progress</div>
-              <div class="space-y-1">
+              <div class="text-muted-foreground mb-vscode-sm font-medium">Progress</div>
+              <div class="space-y-vscode-xs">
                 @if (stats.total > 0) {
-                  <div class="text-sm">
+                  <div class="text-vscode-sm">
                     Reviewed: {{ getReviewedPercentage() }}%
                   </div>
-                  <div class="w-full bg-muted rounded-full h-2">
+                  <div class="w-full bg-muted rounded-full h-vscode-sm">
                     <div 
-                      class="bg-primary h-2 rounded-full transition-all duration-300"
+                      class="bg-primary h-vscode-sm rounded-full transition-all duration-vscode"
                       [style.width.%]="getReviewedPercentage()"
                     ></div>
                   </div>

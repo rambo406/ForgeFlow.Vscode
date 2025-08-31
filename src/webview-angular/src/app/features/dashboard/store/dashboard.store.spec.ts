@@ -1,7 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { DashboardStore, DashboardView } from './dashboard.store';
 import { MessageService } from '../../../core/services/message.service';
-import { PullRequestStatus } from '../../../core/models/enums';
 
 describe('DashboardStore', () => {
   let store: InstanceType<typeof DashboardStore>;

@@ -1,7 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { DebugElement } from '@angular/core';
-import { By } from '@angular/platform-browser';
 import { AzureDevOpsConfigComponent, AzureDevOpsConfig, ConnectionTestResult } from './azure-devops-config.component';
 import { MessageService } from '../../../core/services/message.service';
 import { AppCardComponent, AppInputComponent, AppButtonComponent, AppAlertComponent } from '@shared/components';

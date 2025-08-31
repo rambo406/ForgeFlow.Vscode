@@ -17,13 +17,13 @@ import { CommentSeverity, CommentStatus } from '../../../core/models/enums';
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <div class="comment-filters p-4 bg-muted/30 border-b border-border">
-      <div class="flex flex-wrap items-center gap-4">
+    <div class="comment-filters p-vscode-lg bg-vscode-panel-background border-b border-vscode-panel-border">
+      <div class="flex flex-wrap items-center gap-vscode-lg">
         <!-- Severity Filter -->
-        <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium text-muted-foreground">Severity:</label>
+        <div class="flex items-center space-x-vscode-sm">
+          <label class="text-vscode-sm font-medium text-vscode-foreground">Severity:</label>
           <select 
-            class="px-3 py-1 text-sm border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            class="input-vscode text-vscode-sm min-w-[120px]"
             [ngModel]="filters.severity"
             (ngModelChange)="updateFilter('severity', $event)"
             [disabled]="isLoading"
@@ -37,10 +37,10 @@ import { CommentSeverity, CommentStatus } from '../../../core/models/enums';
         </div>
 
         <!-- Status Filter -->
-        <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium text-muted-foreground">Status:</label>
+        <div class="flex items-center space-x-vscode-sm">
+          <label class="text-vscode-sm font-medium text-vscode-foreground">Status:</label>
           <select 
-            class="px-3 py-1 text-sm border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            class="input-vscode text-vscode-sm min-w-[120px]"
             [ngModel]="filters.status"
             (ngModelChange)="updateFilter('status', $event)"
             [disabled]="isLoading"
@@ -54,10 +54,10 @@ import { CommentSeverity, CommentStatus } from '../../../core/models/enums';
         </div>
 
         <!-- File Filter -->
-        <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium text-muted-foreground">File:</label>
+        <div class="flex items-center space-x-vscode-sm">
+          <label class="text-vscode-sm font-medium text-vscode-foreground">File:</label>
           <select 
-            class="px-3 py-1 text-sm border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent max-w-xs"
+            class="input-vscode text-vscode-sm max-w-xs"
             [ngModel]="filters.file"
             (ngModelChange)="updateFilter('file', $event)"
             [disabled]="isLoading"
@@ -71,10 +71,10 @@ import { CommentSeverity, CommentStatus } from '../../../core/models/enums';
 
         <!-- Category Filter -->
         @if (uniqueCategories.length > 0) {
-          <div class="flex items-center space-x-2">
-            <label class="text-sm font-medium text-muted-foreground">Category:</label>
+          <div class="flex items-center space-x-vscode-sm">
+            <label class="text-vscode-sm font-medium text-vscode-foreground">Category:</label>
             <select 
-              class="px-3 py-1 text-sm border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              class="input-vscode text-vscode-sm min-w-[120px]"
               [ngModel]="filters.category"
               (ngModelChange)="updateFilter('category', $event)"
               [disabled]="isLoading"
@@ -88,45 +88,45 @@ import { CommentSeverity, CommentStatus } from '../../../core/models/enums';
         }
 
         <!-- Visibility Toggles -->
-        <div class="flex items-center space-x-4 ml-auto">
-          <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-vscode-lg ml-auto">
+          <div class="flex items-center space-x-vscode-sm">
             <input 
               type="checkbox" 
               id="show-pending"
-              class="rounded border-border text-primary focus:ring-primary focus:ring-offset-0"
+              class="w-4 h-4 rounded border-vscode-input-border text-vscode-button-background focus:ring-vscode-button-background focus:ring-offset-0"
               [ngModel]="filters.showPending"
               (ngModelChange)="updateFilter('showPending', $event)"
               [disabled]="isLoading"
             />
-            <label for="show-pending" class="text-sm text-muted-foreground cursor-pointer">
+            <label for="show-pending" class="text-vscode-sm text-vscode-foreground cursor-pointer">
               Show Pending
             </label>
           </div>
 
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center space-x-vscode-sm">
             <input 
               type="checkbox" 
               id="show-approved"
-              class="rounded border-border text-primary focus:ring-primary focus:ring-offset-0"
+              class="w-4 h-4 rounded border-vscode-input-border text-vscode-button-background focus:ring-vscode-button-background focus:ring-offset-0"
               [ngModel]="filters.showApproved"
               (ngModelChange)="updateFilter('showApproved', $event)"
               [disabled]="isLoading"
             />
-            <label for="show-approved" class="text-sm text-muted-foreground cursor-pointer">
+            <label for="show-approved" class="text-vscode-sm text-vscode-foreground cursor-pointer">
               Show Approved
             </label>
           </div>
 
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center space-x-vscode-sm">
             <input 
               type="checkbox" 
               id="show-dismissed"
-              class="rounded border-border text-primary focus:ring-primary focus:ring-offset-0"
+              class="w-4 h-4 rounded border-vscode-input-border text-vscode-button-background focus:ring-vscode-button-background focus:ring-offset-0"
               [ngModel]="filters.showDismissed"
               (ngModelChange)="updateFilter('showDismissed', $event)"
               [disabled]="isLoading"
             />
-            <label for="show-dismissed" class="text-sm text-muted-foreground cursor-pointer">
+            <label for="show-dismissed" class="text-vscode-sm text-vscode-foreground cursor-pointer">
               Show Dismissed
             </label>
           </div>
@@ -134,13 +134,13 @@ import { CommentSeverity, CommentStatus } from '../../../core/models/enums';
       </div>
 
       <!-- Second Row: Group By and View Mode -->
-      <div class="flex items-center justify-between mt-3 pt-3 border-t border-border">
-        <div class="flex items-center space-x-6">
+      <div class="flex items-center justify-between mt-vscode-md pt-vscode-md border-t border-vscode-panel-border">
+        <div class="flex items-center space-x-vscode-xl">
           <!-- Group By -->
-          <div class="flex items-center space-x-2">
-            <label class="text-sm font-medium text-muted-foreground">Group by:</label>
+          <div class="flex items-center space-x-vscode-sm">
+            <label class="text-vscode-sm font-medium text-vscode-foreground">Group by:</label>
             <select 
-              class="px-3 py-1 text-sm border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              class="input-vscode text-vscode-sm min-w-[100px]"
               [ngModel]="groupBy"
               (ngModelChange)="onGroupByChange.emit($event)"
               [disabled]="isLoading"
@@ -152,12 +152,12 @@ import { CommentSeverity, CommentStatus } from '../../../core/models/enums';
           </div>
 
           <!-- View Mode -->
-          <div class="flex items-center space-x-2">
-            <label class="text-sm font-medium text-muted-foreground">View:</label>
-            <div class="flex rounded-md border border-border overflow-hidden">
+          <div class="flex items-center space-x-vscode-sm">
+            <label class="text-vscode-sm font-medium text-vscode-foreground">View:</label>
+            <div class="flex rounded-vscode border border-vscode-panel-border overflow-hidden">
               <button
-                class="px-3 py-1 text-sm transition-colors"
-                [class]="viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground hover:bg-accent'"
+                class="px-vscode-md py-vscode-sm text-vscode-sm transition-colors"
+                [class]="viewMode === 'list' ? 'bg-vscode-button-background text-vscode-button-foreground' : 'bg-vscode-input-background text-vscode-foreground hover:bg-vscode-list-hover'"
                 (click)="onViewModeChange.emit('list')"
                 [disabled]="isLoading"
               >
@@ -165,8 +165,8 @@ import { CommentSeverity, CommentStatus } from '../../../core/models/enums';
                 List
               </button>
               <button
-                class="px-3 py-1 text-sm transition-colors border-l border-border"
-                [class]="viewMode === 'grouped' ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground hover:bg-accent'"
+                class="px-vscode-md py-vscode-sm text-vscode-sm transition-colors border-l border-vscode-panel-border"
+                [class]="viewMode === 'grouped' ? 'bg-vscode-button-background text-vscode-button-foreground' : 'bg-vscode-input-background text-vscode-foreground hover:bg-vscode-list-hover'"
                 (click)="onViewModeChange.emit('grouped')"
                 [disabled]="isLoading"
               >

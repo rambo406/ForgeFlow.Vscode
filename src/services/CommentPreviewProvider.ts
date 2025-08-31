@@ -107,7 +107,7 @@ export class CommentPreviewProvider {
                 retainContextWhenHidden: true,
                 localResourceRoots: [
                     vscode.Uri.joinPath(this.context.extensionUri, 'media'),
-                    vscode.Uri.joinPath(this.context.extensionUri, 'src', 'webview')
+                    vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'webview')
                 ]
             }
         );
@@ -152,192 +152,123 @@ export class CommentPreviewProvider {
      * Generate HTML content for the webview
      */
     private generateHtmlContent(webview: vscode.Webview): string {
-        // Get URIs for CSS and JS files
-        const styleUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this.context.extensionUri, 'src', 'webview', 'comment-preview.css')
+        // Path to the Angular build output (copied by webpack to dist/webview)
+        const webviewPath = path.join(this.context.extensionPath, 'dist', 'webview');
+        
+        // Get URIs for Angular build files
+        const mainJsUri = webview.asWebviewUri(
+            vscode.Uri.file(path.join(webviewPath, 'main.js'))
         );
-        const scriptUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this.context.extensionUri, 'src', 'webview', 'comment-preview.js')
+        const polyfillsJsUri = webview.asWebviewUri(
+            vscode.Uri.file(path.join(webviewPath, 'polyfills.js'))
         );
-
-        // Group comments by file for better organization
-        const commentsByFile = this.groupCommentsByFile(this.comments);
-        const summaryStats = this.calculateSummaryStats(this.comments);
+        const stylesUri = webview.asWebviewUri(
+            vscode.Uri.file(path.join(webviewPath, 'styles.css'))
+        );
+        
+        // Generate CSP nonce for security
+        const nonce = this.generateNonce();
 
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; font-src ${webview.cspSource}; img-src ${webview.cspSource} data:;">
     <title>Review Comments</title>
-    <link href="${styleUri}" rel="stylesheet">
+    <base href="${webview.asWebviewUri(vscode.Uri.file(webviewPath))}/">
+    <link rel="stylesheet" href="${stylesUri}">
+    <style nonce="${nonce}">
+        /* VS Code theme integration */
+        :root {
+            --vscode-foreground: var(--vscode-foreground);
+            --vscode-editor-background: var(--vscode-editor-background);
+            --vscode-button-background: var(--vscode-button-background);
+            --vscode-button-foreground: var(--vscode-button-foreground);
+            --vscode-font-family: var(--vscode-font-family);
+            --vscode-font-size: var(--vscode-font-size);
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-foreground);
+            overflow: hidden;
+        }
+        
+        /* Loading state while Angular initializes */
+        .angular-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .angular-loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--vscode-panel-border);
+            border-top: 3px solid var(--vscode-button-background);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .angular-loading-text {
+            color: var(--vscode-foreground);
+            opacity: 0.8;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1>Pull Request Review Comments</h1>
-            <div class="summary">
-                <span class="stat">Total: ${summaryStats.total}</span>
-                <span class="stat error">Errors: ${summaryStats.errors}</span>
-                <span class="stat warning">Warnings: ${summaryStats.warnings}</span>
-                <span class="stat info">Suggestions: ${summaryStats.info}</span>
-                <span class="stat approved">Approved: ${summaryStats.approved}</span>
-            </div>
-        </header>
-
-        <div class="controls">
-            <div class="filters">
-                <label for="severityFilter">Filter by severity:</label>
-                <select id="severityFilter">
-                    <option value="all">All</option>
-                    <option value="error">Errors</option>
-                    <option value="warning">Warnings</option>
-                    <option value="info">Suggestions</option>
-                </select>
-
-                <label for="fileFilter">Filter by file:</label>
-                <select id="fileFilter">
-                    <option value="all">All Files</option>
-                    ${Object.keys(commentsByFile).map(file => 
-                        `<option value="${this.escapeHtml(file)}">${this.getFileName(file)}</option>`
-                    ).join('')}
-                </select>
-
-                <label class="checkbox-label">
-                    <input type="checkbox" id="showApproved" checked>
-                    Show approved comments
-                </label>
-            </div>
-
-            <div class="actions">
-                <button id="selectAllBtn" class="btn btn-secondary">Select All</button>
-                <button id="selectNoneBtn" class="btn btn-secondary">Select None</button>
-                <button id="postCommentsBtn" class="btn btn-primary">Post Selected Comments</button>
-                <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
-            </div>
+    <app-comment-preview>
+        <!-- Loading fallback while Angular bootstraps -->
+        <div class="angular-loading">
+            <div class="angular-loading-spinner"></div>
+            <div class="angular-loading-text">Loading Comment Preview...</div>
         </div>
-
-        <div class="content">
-            ${this.generateFileCommentSections(commentsByFile)}
-        </div>
-    </div>
-
-    <script>
-        // Pass initial data to JavaScript
+    </app-comment-preview>
+    
+    <!-- Angular runtime scripts -->
+    <script nonce="${nonce}" src="${polyfillsJsUri}"></script>
+    <script nonce="${nonce}" src="${mainJsUri}"></script>
+    
+    <!-- Initialize webview API for Angular -->
+    <script nonce="${nonce}">
+        // Make VS Code API available to Angular
+        window.vscode = acquireVsCodeApi();
+        
+        // Pass initial comments data to Angular
         window.initialComments = ${JSON.stringify(this.comments)};
+        
+        // Restore webview state if available
+        const previousState = window.vscode.getState();
+        if (previousState) {
+            window.vsCodeState = previousState;
+        }
+        
+        // Set up error handling for Angular initialization
+        window.addEventListener('error', function(e) {
+            console.error('Angular application error:', e.error);
+            window.vscode.postMessage({
+                type: 'showError',
+                data: { 
+                    message: 'Angular application failed to initialize: ' + e.error?.message 
+                }
+            });
+        });
     </script>
-    <script src="${scriptUri}"></script>
 </body>
 </html>`;
-    }
-
-    /**
-     * Group comments by file path
-     */
-    private groupCommentsByFile(comments: ReviewComment[]): { [fileName: string]: ReviewComment[] } {
-        const grouped: { [fileName: string]: ReviewComment[] } = {};
-        
-        for (const comment of comments) {
-            if (!grouped[comment.fileName]) {
-                grouped[comment.fileName] = [];
-            }
-            grouped[comment.fileName].push(comment);
-        }
-
-        // Sort comments within each file by line number
-        for (const fileName in grouped) {
-            grouped[fileName].sort((a, b) => a.lineNumber - b.lineNumber);
-        }
-
-        return grouped;
-    }
-
-    /**
-     * Calculate summary statistics
-     */
-    private calculateSummaryStats(comments: ReviewComment[]) {
-        return {
-            total: comments.length,
-            errors: comments.filter(c => c.severity === 'error').length,
-            warnings: comments.filter(c => c.severity === 'warning').length,
-            info: comments.filter(c => c.severity === 'info').length,
-            approved: comments.filter(c => c.isApproved).length
-        };
-    }
-
-    /**
-     * Generate HTML sections for file comments
-     */
-    private generateFileCommentSections(commentsByFile: { [fileName: string]: ReviewComment[] }): string {
-        return Object.entries(commentsByFile)
-            .map(([fileName, comments]) => this.generateFileSection(fileName, comments))
-            .join('');
-    }
-
-    /**
-     * Generate HTML for a single file section
-     */
-    private generateFileSection(fileName: string, comments: ReviewComment[]): string {
-        const displayName = this.getFileName(fileName);
-        const fileStats = this.calculateSummaryStats(comments);
-
-        return `
-        <div class="file-section" data-file="${this.escapeHtml(fileName)}">
-            <div class="file-header">
-                <h2 class="file-name">${this.escapeHtml(displayName)}</h2>
-                <div class="file-stats">
-                    <span class="file-path">${this.escapeHtml(fileName)}</span>
-                    <span class="stat-badge">${fileStats.total} comments</span>
-                </div>
-            </div>
-            <div class="comments-list">
-                ${comments.map(comment => this.generateCommentCard(comment)).join('')}
-            </div>
-        </div>`;
-    }
-
-    /**
-     * Generate HTML for a single comment card
-     */
-    private generateCommentCard(comment: ReviewComment): string {
-        const escapedContent = this.escapeHtml(comment.content);
-        const escapedSuggestion = comment.suggestion ? this.escapeHtml(comment.suggestion) : '';
-
-        return `
-        <div class="comment-card" data-comment-id="${comment.id}" data-severity="${comment.severity}" ${comment.isApproved ? 'data-approved="true"' : ''}>
-            <div class="comment-header">
-                <div class="comment-meta">
-                    <span class="severity-badge ${comment.severity}">${comment.severity.toUpperCase()}</span>
-                    <span class="line-number">Line ${comment.lineNumber}</span>
-                </div>
-                <div class="comment-actions">
-                    <label class="approval-checkbox">
-                        <input type="checkbox" ${comment.isApproved ? 'checked' : ''} data-action="toggle-approval">
-                        <span class="checkmark"></span>
-                        Approve
-                    </label>
-                    <button class="btn-icon" data-action="edit" title="Edit comment">
-                        <svg width="16" height="16" viewBox="0 0 16 16">
-                            <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-.37.21L2.72 13.5a.75.75 0 0 1-.92-.92l.66-3.44a.75.75 0 0 1 .21-.37l7.25-7.25a.75.75 0 0 1 1.06 0l2.8 2.8z"/>
-                        </svg>
-                    </button>
-                    <button class="btn-icon btn-danger" data-action="delete" title="Delete comment">
-                        <svg width="16" height="16" viewBox="0 0 16 16">
-                            <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 1.152l.557 10.05A1.5 1.5 0 0 0 4.551 15h6.898a1.5 1.5 0 0 0 1.498-1.298l.557-10.05a.58.58 0 0 0-.01-1.152H11Z"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-            <div class="comment-content">
-                <div class="comment-text" data-field="content">${escapedContent}</div>
-                ${comment.suggestion ? `
-                <div class="suggestion-section">
-                    <div class="suggestion-label">Suggested improvement:</div>
-                    <div class="suggestion-text" data-field="suggestion">${escapedSuggestion}</div>
-                </div>` : ''}
-            </div>
-        </div>`;
     }
 
     /**
@@ -461,6 +392,18 @@ export class CommentPreviewProvider {
     }
 
     /**
+     * Generate a secure nonce for CSP
+     */
+    private generateNonce(): string {
+        let text = '';
+        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        for (let i = 0; i < 32; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        }
+        return text;
+    }
+
+    /**
      * Clean up resources
      */
     private cleanup(): void {
@@ -469,25 +412,6 @@ export class CommentPreviewProvider {
         this.resolvePromise = undefined;
         this.disposables.forEach(d => d.dispose());
         this.disposables = [];
-    }
-
-    /**
-     * Utility function to escape HTML
-     */
-    private escapeHtml(text: string): string {
-        return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
-    /**
-     * Get the file name from a full path
-     */
-    private getFileName(filePath: string): string {
-        return path.basename(filePath);
     }
 
     /**

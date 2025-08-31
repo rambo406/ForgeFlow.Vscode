@@ -27,74 +27,81 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="h-full flex flex-col">
-      <!-- Search and Filters -->
-      <div class="border-b border-border bg-card p-4">
-        <div class="flex flex-wrap gap-4 items-center">
-          <div class="flex-1 min-w-64">
+      <!-- Search and Filters - Enhanced Mobile-First Responsive -->
+      <div class="border-b border-vscode-panel-border bg-vscode-panel-background p-vscode-lg">
+        <div class="flex flex-col space-y-vscode-lg vscode-lg:flex-row vscode-lg:space-y-0 vscode-lg:items-center vscode-lg:gap-vscode-lg">
+          <!-- Search Input - Full Width on Mobile -->
+          <div class="w-full vscode-sm:min-w-[300px] vscode-lg:flex-1">
             <input
               type="text"
               placeholder="Search pull requests..."
               [value]="searchTerm || ''"
               (input)="onSearchChange($any($event.target).value)"
-              class="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+              class="input-vscode w-full text-vscode-sm"
             />
           </div>
           
-          <select
-            [value]="filters.author || ''"
-            (change)="onFilterChange('author', $any($event.target).value)"
-            class="px-3 py-2 border border-border rounded-md bg-background text-foreground"
-          >
-            @for (option of authorOptions; track option.value) {
-              <option [value]="option.value">{{ option.label }}</option>
-            }
-          </select>
-          
-          <select
-            [value]="filters.repository || ''"
-            (change)="onFilterChange('repository', $any($event.target).value)"
-            class="px-3 py-2 border border-border rounded-md bg-background text-foreground"
-          >
-            @for (option of repositoryOptions; track option.value) {
-              <option [value]="option.value">{{ option.label }}</option>
-            }
-          </select>
-          
-          <select
-            [value]="filters.status || ''"
-            (change)="onFilterChange('status', $any($event.target).value)"
-            class="px-3 py-2 border border-border rounded-md bg-background text-foreground"
-          >
-            @for (option of statusOptions; track option.value) {
-              <option [value]="option.value">{{ option.label }}</option>
-            }
-          </select>
-          
-          <div class="flex gap-2 items-center">
-            <input
-              type="date"
-              [value]="filters.dateRange?.from || ''"
-              (change)="onDateRangeChange('from', $any($event.target).value)"
-              placeholder="From date"
-              class="px-3 py-2 border border-border rounded-md bg-background text-foreground text-sm"
-            />
-            <span class="text-muted-foreground text-sm">to</span>
-            <input
-              type="date"
-              [value]="filters.dateRange?.to || ''"
-              (change)="onDateRangeChange('to', $any($event.target).value)"
-              placeholder="To date"
-              class="px-3 py-2 border border-border rounded-md bg-background text-foreground text-sm"
-            />
+          <!-- Filter Controls - Stacked on Mobile, Inline on Desktop -->
+          <div class="flex flex-col space-y-vscode-sm vscode-sm:flex-row vscode-sm:space-y-0 vscode-sm:space-x-vscode-md vscode-sm:flex-wrap">
+            <select
+              [value]="filters.author || ''"
+              (change)="onFilterChange('author', $any($event.target).value)"
+              class="input-vscode text-vscode-sm w-full vscode-sm:w-auto vscode-sm:min-w-[140px]"
+            >
+              @for (option of authorOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+            
+            <select
+              [value]="filters.repository || ''"
+              (change)="onFilterChange('repository', $any($event.target).value)"
+              class="input-vscode text-vscode-sm w-full vscode-sm:w-auto vscode-sm:min-w-[140px]"
+            >
+              @for (option of repositoryOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+            
+            <select
+              [value]="filters.status || ''"
+              (change)="onFilterChange('status', $any($event.target).value)"
+              class="input-vscode text-vscode-sm w-full vscode-sm:w-auto vscode-sm:min-w-[120px]"
+            >
+              @for (option of statusOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+            
+            <!-- Date Range - Mobile-Optimized -->
+            <div class="flex flex-col space-y-vscode-sm vscode-sm:flex-row vscode-sm:space-y-0 vscode-sm:items-center vscode-sm:space-x-vscode-sm">
+              <input
+                type="date"
+                [value]="filters.dateRange?.from || ''"
+                (change)="onDateRangeChange('from', $any($event.target).value)"
+                placeholder="From date"
+                class="input-vscode text-vscode-sm w-full vscode-sm:w-auto"
+              />
+              <span class="text-vscode-muted text-vscode-sm hidden vscode-sm:inline">to</span>
+              <input
+                type="date"
+                [value]="filters.dateRange?.to || ''"
+                (change)="onDateRangeChange('to', $any($event.target).value)"
+                placeholder="To date"
+                class="input-vscode text-vscode-sm w-full vscode-sm:w-auto"
+              />
+            </div>
+            
+            <!-- Clear Filters Button - Touch-Friendly -->
+            <app-button
+              variant="outline"
+              size="sm"
+              additionalClasses="w-full vscode-sm:w-auto"
+              (onClick)="onClearFilters()"
+            >
+              Clear Filters
+            </app-button>
           </div>
-          
-          <app-button
-            variant="outline"
-            size="sm"
-            (onClick)="onClearFilters()"
-          >
-            Clear Filters
-          </app-button>
         </div>
       </div>
 
@@ -214,30 +221,32 @@ import {
       </div>
     </div>
     
-    <!-- Template for Virtual Scroll Items -->
+    <!-- Template for Virtual Scroll Items - Enhanced Mobile-First -->
     <ng-template #prItemTemplate let-pr let-index="index">
-      <div class="pr-virtual-item p-4 border-b border-border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+      <div class="pr-virtual-item p-vscode-lg border-b border-vscode-panel-border bg-vscode-panel-background hover:bg-vscode-list-hover transition-colors cursor-pointer"
            (click)="onSelectPR(pr.id)">
-        <div class="flex items-start justify-between gap-4">
-          <!-- Main PR Info -->
+        <div class="flex items-start justify-between gap-vscode-lg">
+          <!-- Main PR Info - Mobile-Optimized Layout -->
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-2">
-              <h3 class="font-medium text-sm line-clamp-2 flex-1">{{ pr.title }}</h3>
-              <app-badge [variant]="getStatusVariant(pr.status)">
-                {{ getStatusLabel(pr.status) }}
-              </app-badge>
-              @if (pr.isDraft) {
-                <app-badge variant="secondary">Draft</app-badge>
-              }
+            <div class="flex items-start gap-vscode-sm mb-vscode-sm flex-col vscode-sm:flex-row vscode-sm:items-center">
+              <h3 class="font-medium text-vscode-sm line-clamp-2 flex-1">{{ pr.title }}</h3>
+              <div class="flex gap-vscode-xs">
+                <app-badge [variant]="getStatusVariant(pr.status)">
+                  {{ getStatusLabel(pr.status) }}
+                </app-badge>
+                @if (pr.isDraft) {
+                  <app-badge variant="secondary">Draft</app-badge>
+                }
+              </div>
             </div>
             
-            <div class="text-xs text-muted-foreground mb-2">
+            <div class="text-vscode-xs text-vscode-muted mb-vscode-sm">
               #{{ pr.id }} • {{ pr.repository }}
             </div>
             
-            <div class="flex items-center gap-4 text-sm">
-              <div class="flex items-center gap-2">
-                <span>{{ pr.author }}</span>
+            <!-- Author and Date - Responsive Layout -->
+            <div class="flex flex-col space-y-vscode-xs vscode-sm:flex-row vscode-sm:space-y-0 vscode-sm:items-center vscode-sm:gap-vscode-lg text-vscode-sm">
+              <div class="flex items-center gap-vscode-xs">
                 @if (pr.authorImageUrl) {
                   <img 
                     [src]="pr.authorImageUrl" 
@@ -245,32 +254,36 @@ import {
                     class="w-5 h-5 rounded-full"
                   />
                 }
+                <span>{{ pr.author }}</span>
               </div>
               
-              <div class="text-muted-foreground">
+              <div class="text-vscode-muted">
                 {{ formatDate(pr.createdDate) }}
                 @if (pr.ageInDays) {
-                  ({{ pr.ageInDays }} days ago)
+                  <span class="text-vscode-xs">({{ pr.ageInDays }} days ago)</span>
                 }
               </div>
             </div>
             
-            <div class="text-xs text-muted-foreground mt-1">
-              {{ pr.sourceRefName }} → {{ pr.targetRefName }}
+            <div class="text-vscode-xs text-vscode-muted mt-vscode-xs">
+              <span class="font-mono">{{ pr.sourceRefName }}</span> → <span class="font-mono">{{ pr.targetRefName }}</span>
             </div>
           </div>
           
-          <!-- Actions -->
-          <div class="flex gap-2 flex-shrink-0">
+          <!-- Actions - Mobile-First Button Layout -->
+          <div class="flex flex-col gap-vscode-xs vscode-sm:flex-row vscode-sm:gap-vscode-sm flex-shrink-0">
             <app-button
               size="sm"
               variant="outline"
+              additionalClasses="w-full vscode-sm:w-auto text-vscode-xs"
               (onClick)="onSelectPR(pr.id); $event.stopPropagation()"
             >
-              View
+              <span class="vscode-sm:hidden">View</span>
+              <span class="hidden vscode-sm:inline">View Details</span>
             </app-button>
             <app-button
               size="sm"
+              additionalClasses="w-full vscode-sm:w-auto text-vscode-xs"
               (onClick)="onAnalyzePR(pr.id); $event.stopPropagation()"
             >
               Analyze

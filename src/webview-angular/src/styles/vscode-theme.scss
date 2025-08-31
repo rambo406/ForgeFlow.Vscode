@@ -75,13 +75,20 @@
   --vscode-input-border: #cecece;
 }
 
-/* High contrast theme overrides */
+/* High contrast theme enhancements */
 [data-vscode-theme-kind="vscode-high-contrast"] {
   --vscode-foreground: #ffffff;
   --vscode-editor-background: #000000;
   --vscode-panel-background: #000000;
   --vscode-panel-border: #6fc3df;
   --vscode-focusBorder: #f38518;
+  
+  /* Enhanced high-contrast semantic colors */
+  --color-border: #ffffff;
+  --color-border-muted: #6fc3df;
+  --shadow-sm: 0 0 0 1px #ffffff;
+  --shadow-md: 0 0 0 2px #ffffff;
+  --shadow-lg: 0 0 0 3px #ffffff;
 }
 
 /* VS Code webview specific styles */
@@ -100,9 +107,11 @@ body.vscode-high-contrast {
   background-color: var(--vscode-editor-background);
 }
 
-/* Theme-aware semantic color mapping */
+/* Enhanced VS Code theme integration with semantic tokens */
+
+/* Theme-aware semantic color mappings */
 :root {
-  /* Primary colors */
+  /* Enhanced semantic color system */
   --color-primary: var(--vscode-button-background);
   --color-primary-foreground: var(--vscode-button-foreground);
   --color-primary-hover: var(--vscode-button-hoverBackground);
@@ -115,12 +124,15 @@ body.vscode-high-contrast {
   /* Background colors */
   --color-background: var(--vscode-editor-background);
   --color-surface: var(--vscode-panel-background);
+  --color-surface-elevated: color-mix(in srgb, var(--vscode-panel-background) 95%, white 5%);
   --color-foreground: var(--vscode-foreground);
   --color-muted: var(--vscode-descriptionForeground);
+  --color-muted-foreground: color-mix(in srgb, var(--vscode-foreground) 60%, transparent);
   
   /* Border colors */
   --color-border: var(--vscode-panel-border);
   --color-border-focus: var(--vscode-focusBorder);
+  --color-border-muted: color-mix(in srgb, var(--vscode-panel-border) 50%, transparent);
   
   /* Input colors */
   --color-input-background: var(--vscode-input-background);
@@ -128,18 +140,51 @@ body.vscode-high-contrast {
   --color-input-border: var(--vscode-input-border);
   --color-input-placeholder: var(--vscode-input-placeholderForeground);
   
-  /* State colors */
+  /* State colors with enhanced variants */
   --color-error: var(--vscode-errorForeground);
+  --color-error-background: color-mix(in srgb, var(--vscode-errorForeground) 10%, transparent);
+  --color-error-border: color-mix(in srgb, var(--vscode-errorForeground) 30%, transparent);
+  
   --color-warning: var(--vscode-warningForeground);
+  --color-warning-background: color-mix(in srgb, var(--vscode-warningForeground) 10%, transparent);
+  --color-warning-border: color-mix(in srgb, var(--vscode-warningForeground) 30%, transparent);
+  
   --color-info: var(--vscode-infoForeground);
+  --color-info-background: color-mix(in srgb, var(--vscode-infoForeground) 10%, transparent);
+  --color-info-border: color-mix(in srgb, var(--vscode-infoForeground) 30%, transparent);
+  
   --color-success: #89d185;
+  --color-success-background: color-mix(in srgb, #89d185 10%, transparent);
+  --color-success-border: color-mix(in srgb, #89d185 30%, transparent);
   
   /* Interactive colors */
   --color-hover: var(--vscode-list-hoverBackground);
   --color-active: var(--vscode-list-activeSelectionBackground);
+  --color-selection: var(--vscode-list-inactiveSelectionBackground);
   
-  /* Shadow colors */
+  /* Shadow and elevation */
   --color-shadow: rgba(0, 0, 0, 0.3);
+  --color-shadow-light: rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 2px var(--color-shadow-light);
+  --shadow-md: 0 2px 8px var(--color-shadow);
+  --shadow-lg: 0 4px 16px var(--color-shadow);
+  
+  /* Spacing semantic tokens */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Border radius semantic tokens */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  
+  /* Animation semantic tokens */
+  --transition-fast: 0.15s ease;
+  --transition-medium: 0.2s ease;
+  --transition-slow: 0.3s ease;
 }
 
 /* Animation for theme transitions */
