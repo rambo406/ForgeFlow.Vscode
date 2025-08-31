@@ -215,7 +215,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.setupMessageListeners();
     
     // Initialize dashboard by loading configuration
-    await this.store.loadConfiguration();
+    await this.store.loadConfigurationAsync();
     
     // If configuration is valid, load pull requests
     if (this.store.hasValidConfiguration()) {
@@ -314,7 +314,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   async onTestConnection(): Promise<void> {
-    await this.store.testConnection();
+    await this.store.testConnectionAsync();
   }
 
   async onSelectPullRequest(prId: number): Promise<void> {

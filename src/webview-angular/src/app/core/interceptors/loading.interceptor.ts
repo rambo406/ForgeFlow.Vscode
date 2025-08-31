@@ -76,7 +76,7 @@ export class LoadingInterceptor implements HttpInterceptor {
     // Azure DevOps specific operations
     if (url.includes('/pullrequests')) {
       switch (method) {
-        case 'GET': return 'Loading pull requests';
+        case 'GET': return 'Loading pull requests22';
         case 'POST': return 'Creating pull request';
         case 'PUT': 
         case 'PATCH': return 'Updating pull request';

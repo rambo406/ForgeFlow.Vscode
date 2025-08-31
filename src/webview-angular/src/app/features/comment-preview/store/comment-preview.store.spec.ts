@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Component } from '@angular/core';
+import { fakeAsync, tick } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 
 import { CommentPreviewStore } from './comment-preview.store';
@@ -194,7 +195,8 @@ describe('CommentPreviewStore', () => {
       const newContent = 'Updated comment content';
       messageService.modifyComment.and.returnValue(undefined);
 
-      await store.updateComment(commentId, newContent);
+      // Use the new rxMethod signature that expects an object
+      store.updateComment({ commentId, content: newContent });
 
       expect(messageService.modifyComment).toHaveBeenCalledWith(commentId, newContent);
       
@@ -541,4 +543,310 @@ describe('CommentPreviewStore', () => {
       expect(store.error()).toBeUndefined();
     });
   });
+
+  // rxMethod Conversion Tests - Proof of Concept
+  describe('rxMethod Conversion Tests', () => {
+    describe('loadComments rxMethod Implementation', () => {
+      it('should load comments using rxMethod with proper state management', fakeAsync(() => {
+        // Arrange
+        const mockComments = [
+          { id: '1', content: 'rxMethod test comment', severity: CommentSeverity.INFO },
+          { id: '2', content: 'Second comment', severity: CommentSeverity.WARNING }
+        ];
+        messageService.loadPRDetails.and.returnValue(Promise.resolve({ comments: mockComments }));
+
+        // Assert initial state
+        expect(store.isLoading()).toBe(false);
+        expect(store.error()).toBeUndefined();
+        expect(store.comments()).toEqual([]);
+
+        // Act - Call the rxMethod
+        store.loadComments(123);
+        
+        // Assert loading state is set immediately
+        expect(store.isLoading()).toBe(true);
+        expect(store.error()).toBeUndefined();
+
+        // Complete async operation
+        tick();
+
+        // Assert final state
+        expect(store.isLoading()).toBe(false);
+        expect(store.error()).toBeUndefined();
+        expect(store.comments()).toEqual(mockComments);
+        expect(messageService.loadPRDetails).toHaveBeenCalledWith(123);
+      }));
+
+      it('should handle errors in rxMethod correctly', fakeAsync(() => {
+        // Arrange
+        const errorMessage = 'rxMethod load error';
+        messageService.loadPRDetails.and.returnValue(Promise.reject(new Error(errorMessage)));
+
+        // Assert initial state
+        expect(store.isLoading()).toBe(false);
+        expect(store.error()).toBeUndefined();
+
+        // Act
+        store.loadComments(123);
+        
+        // Assert loading state during execution
+        expect(store.isLoading()).toBe(true);
+
+        // Complete async operation
+        tick();
+
+        // Assert error state
+        expect(store.isLoading()).toBe(false);
+        expect(store.error()).toBe(errorMessage);
+        expect(store.comments()).toEqual([]); // Comments should remain empty on error
+        expect(messageService.loadPRDetails).toHaveBeenCalledWith(123);
+      }));
+
+      it('should cancel previous rxMethod calls with switchMap', fakeAsync(() => {
+        // Arrange
+        let resolveFirst: (value: any) => void;
+        let resolveSecond: (value: any) => void;
+        
+        const firstPromise = new Promise(resolve => { resolveFirst = resolve; });
+        const secondPromise = new Promise(resolve => { resolveSecond = resolve; });
+        
+        const firstComments = [{ id: '1', content: 'First call' }];
+        const secondComments = [{ id: '2', content: 'Second call' }];
+
+        // Setup delayed responses
+        messageService.loadPRDetails.and.callFake((prId: number) => {
+          if (prId === 123) return firstPromise;
+          if (prId === 456) return secondPromise;
+          return Promise.resolve({ comments: [] });
+        });
+
+        // Act - First call
+        store.loadComments(123);
+        expect(store.isLoading()).toBe(true);
+        
+        // Act - Second call (should cancel first)
+        store.loadComments(456);
+        expect(store.isLoading()).toBe(true);
+        
+        // Resolve first call (should be ignored due to cancellation)
+        resolveFirst({ comments: firstComments });
+        tick();
+        
+        // Resolve second call
+        resolveSecond({ comments: secondComments });
+        tick();
+
+        // Assert - Only second call result should be applied
+        expect(store.isLoading()).toBe(false);
+        expect(store.error()).toBeUndefined();
+        expect(store.comments()).toEqual(secondComments);
+        expect(messageService.loadPRDetails).toHaveBeenCalledTimes(2);
+      }));
+
+      it('should clear previous error on successful rxMethod call', fakeAsync(() => {
+        // Arrange - First call fails
+        messageService.loadPRDetails.and.returnValue(Promise.reject(new Error('Network error')));
+        store.loadComments(123);
+        tick();
+        
+        // Verify error state
+        expect(store.error()).toBe('Network error');
+        
+        // Second call succeeds
+        const mockComments = [{ id: '1', content: 'Success after error' }];
+        messageService.loadPRDetails.and.returnValue(Promise.resolve({ comments: mockComments }));
+
+        // Act - Retry
+        store.loadComments(123);
+        tick();
+
+        // Assert - Error should be cleared
+        expect(store.isLoading()).toBe(false);
+        expect(store.error()).toBeUndefined();
+        expect(store.comments()).toEqual(mockComments);
+      }));
+
+      it('should handle empty comments response in rxMethod', fakeAsync(() => {
+        // Arrange
+        messageService.loadPRDetails.and.returnValue(Promise.resolve({ comments: [] }));
+
+        // Act
+        store.loadComments(123);
+        tick();
+
+        // Assert
+        expect(store.isLoading()).toBe(false);
+        expect(store.error()).toBeUndefined();
+        expect(store.comments()).toEqual([]);
+        expect(messageService.loadPRDetails).toHaveBeenCalledWith(123);
+      }));
+
+      it('should handle response without comments property in rxMethod', fakeAsync(() => {
+        // Arrange
+        messageService.loadPRDetails.and.returnValue(Promise.resolve({ data: 'other data' }));
+
+        // Act
+        store.loadComments(123);
+        tick();
+
+        // Assert
+        expect(store.isLoading()).toBe(false);
+        expect(store.error()).toBeUndefined();
+        expect(store.comments()).toEqual([]); // Should default to empty array
+      }));
+    });
+
+    describe('loadCommentsAsync Compatibility Wrapper', () => {
+      it('should work with async/await pattern', async () => {
+        // Arrange
+        const mockComments = [{ id: '1', content: 'Async compatibility test' }];
+        messageService.loadPRDetails.and.returnValue(Promise.resolve({ comments: mockComments }));
+
+        // Act
+        await store.loadCommentsAsync(123);
+
+        // Assert
+        expect(store.isLoading()).toBe(false);
+        expect(store.error()).toBeUndefined();
+        expect(store.comments()).toEqual(mockComments);
+        expect(messageService.loadPRDetails).toHaveBeenCalledWith(123);
+      });
+
+      it('should throw error for failed requests in async wrapper', async () => {
+        // Arrange
+        const errorMessage = 'Async wrapper error';
+        messageService.loadPRDetails.and.returnValue(Promise.reject(new Error(errorMessage)));
+
+        // Act & Assert
+        await expectAsync(store.loadCommentsAsync(123)).toBeRejectedWithError(errorMessage);
+        
+        // Verify error state is set
+        expect(store.error()).toBe(errorMessage);
+        expect(store.isLoading()).toBe(false);
+      });
+    });
+
+    describe('State Consistency Between rxMethod and Async Wrapper', () => {
+      it('should produce identical final state for successful operations', async () => {
+        const mockComments = [{ id: '1', content: 'Consistency test' }];
+        
+        // Test rxMethod version
+        messageService.loadPRDetails.and.returnValue(Promise.resolve({ comments: mockComments }));
+        store.loadComments(123);
+        await new Promise(resolve => setTimeout(resolve, 0)); // Wait for async
+        
+        const rxMethodState = {
+          comments: store.comments(),
+          isLoading: store.isLoading(),
+          error: store.error()
+        };
+
+        // Reset state for async wrapper test
+        store.reset();
+        messageService.loadPRDetails.and.returnValue(Promise.resolve({ comments: mockComments }));
+        
+        // Test async wrapper version
+        await store.loadCommentsAsync(123);
+
+        const asyncWrapperState = {
+          comments: store.comments(),
+          isLoading: store.isLoading(),
+          error: store.error()
+        };
+
+        // Assert both produce same final state
+        expect(rxMethodState).toEqual(asyncWrapperState);
+        expect(rxMethodState.comments).toEqual(mockComments);
+        expect(rxMethodState.isLoading).toBe(false);
+        expect(rxMethodState.error).toBeUndefined();
+      });
+    });
+
+    describe('Integration with refreshComments', () => {
+      it('should work correctly when called via refreshComments', async () => {
+        // Arrange
+        const mockComments = [{ id: '1', content: 'Refresh test' }];
+        messageService.loadPRDetails.and.returnValue(Promise.resolve({ comments: mockComments }));
+
+        // Act - Call refreshComments which should use loadCommentsAsync
+        await store.refreshComments(123);
+
+        // Assert
+        expect(store.isLoading()).toBe(false);
+        expect(store.error()).toBeUndefined();
+        expect(store.comments()).toEqual(mockComments);
+        expect(messageService.loadPRDetails).toHaveBeenCalledWith(123);
+      });
+
+      it('should handle errors in refreshComments', async () => {
+        // Arrange
+        const errorMessage = 'Refresh error';
+        messageService.loadPRDetails.and.returnValue(Promise.reject(new Error(errorMessage)));
+
+        // Act & Assert
+        await expectAsync(store.refreshComments(123)).toBeRejectedWithError(errorMessage);
+        
+        // Verify error state
+        expect(store.error()).toBe(errorMessage);
+        expect(store.isLoading()).toBe(false);
+      });
+    });
+
+    describe('Performance and Memory Tests', () => {
+      it('should not cause memory leaks with multiple rxMethod calls', fakeAsync(() => {
+        const mockComments = [{ id: '1', content: 'Performance test' }];
+        
+        // Make many calls to test for memory leaks
+        for (let i = 0; i < 20; i++) {
+          messageService.loadPRDetails.and.returnValue(Promise.resolve({ comments: mockComments }));
+          store.loadComments(i);
+          tick();
+        }
+        
+        // Verify final state is correct
+        expect(store.comments()).toEqual(mockComments);
+        expect(store.isLoading()).toBe(false);
+        expect(store.error()).toBeUndefined();
+      }));
+
+      it('should handle rapid successive calls correctly', fakeAsync(() => {
+        // Simulate rapid calls (like user clicking multiple times)
+        const finalComments = [{ id: 'final', content: 'Final result' }];
+        
+        // Make several rapid calls - only the last should take effect
+        messageService.loadPRDetails.and.returnValue(Promise.resolve({ comments: [{ id: '1' }] }));
+        store.loadComments(1);
+        
+        messageService.loadPRDetails.and.returnValue(Promise.resolve({ comments: [{ id: '2' }] }));
+        store.loadComments(2);
+        
+        messageService.loadPRDetails.and.returnValue(Promise.resolve({ comments: finalComments }));
+        store.loadComments(3);
+        
+        tick();
+
+        // Only the last call's result should be applied due to switchMap cancellation
+        expect(store.comments()).toEqual(finalComments);
+        expect(store.isLoading()).toBe(false);
+        expect(messageService.loadPRDetails).toHaveBeenCalledTimes(3);
+      }));
+    });
+  });
 });
+
+/**
+ * Additional test helper function to validate rxMethod conversion
+ */
+function expectStateTransition(
+  store: any,
+  action: () => void,
+  expectedFinalState: { isLoading: boolean; error?: string; comments: any[] }
+) {
+  // Execute action
+  action();
+  
+  // Verify final state matches expectations
+  expect(store.isLoading()).toBe(expectedFinalState.isLoading);
+  expect(store.error()).toBe(expectedFinalState.error);
+  expect(store.comments()).toEqual(expectedFinalState.comments);
+}

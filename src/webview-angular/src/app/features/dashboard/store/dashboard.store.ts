@@ -1,5 +1,7 @@
 import { computed, inject } from '@angular/core';
 import { signalStore, withState, withComputed, withMethods, patchState } from '@ngrx/signals';
+import { rxMethod } from '@ngrx/signals/rxjs-interop';
+import { pipe, switchMap, tap, catchError, finalize, from, lastValueFrom, EMPTY } from 'rxjs';
 import { MessageService } from '../../../core/services/message.service';
 import { 
   DashboardState, 
@@ -125,7 +127,7 @@ export const DashboardStore = signalStore(
       const sortBy = store.sortBy?.() || 'createdDate';
       const sortDirection = store.sortDirection?.() || 'desc';
       
-      if (!sortBy) return filtered;
+      if (!sortBy) {return filtered;}
       
       // Matches legacy sorting functionality from dashboard.js
       return [...filtered].sort((a, b) => {
@@ -145,8 +147,8 @@ export const DashboardStore = signalStore(
         }
         
         let comparison = 0;
-        if (aValue < bValue) comparison = -1;
-        if (aValue > bValue) comparison = 1;
+        if (aValue < bValue) {comparison = -1;}
+        if (aValue > bValue) {comparison = 1;}
         
         return sortDirection === 'desc' ? -comparison : comparison;
       });
@@ -244,14 +246,14 @@ export const DashboardStore = signalStore(
        * Matches legacy loading state messages
        */
       loadingMessage: computed(() => {
-        if (!store.isLoading()) return '';
+        if (!store.isLoading()) {return '';}
         
         const activeView = store.activeView();
         switch (activeView) {
           case DashboardView.CONFIGURATION:
             return 'Loading configuration...';
           case DashboardView.PULL_REQUEST_LIST:
-            return 'Loading pull requests...';
+            return 'Loading pull requests22...';
           case DashboardView.PULL_REQUEST_DETAIL:
             return 'Loading pull request details...';
           default:
@@ -265,33 +267,38 @@ export const DashboardStore = signalStore(
      * Load pull requests from the extension host
      * Replaces legacy loadPullRequests function
      */
-    async loadPullRequests(filters?: Partial<DashboardFilters>) {
-      patchState(store, { isLoading: true, error: undefined });
-      
-      try {
-        console.log('Loading pull requests...');
-        const response = await messageService.loadPullRequests();
-        patchState(store, { 
-          pullRequests: response.pullRequests || [],
-          isLoading: false,
-          error: undefined
-        });
-        
-        console.log('Pull requests loaded:', response.pullRequests?.length || 0);
-        
-        // Apply filters if provided
-        if (filters) {
-          patchState(store, { 
-            filters: { ...store.filters(), ...filters }
-          });
+    // Observable-based implementation for loadPullRequests (compat approach)
+    loadPullRequestsRx(filters?: Partial<DashboardFilters>) {
+      // return an Observable that performs the load and updates state
+      return from((async () => {
+        patchState(store, { isLoading: true, error: undefined });
+        try {
+          console.log('Loading pull requests...');
+          const response = await messageService.loadPullRequests();
+          patchState(store, { pullRequests: response.pullRequests || [] });
+          console.log('Pull requests loaded:', response.pullRequests?.length || 0);
+          if (filters) {
+            patchState(store, { filters: { ...store.filters(), ...filters } });
+          }
+          return response;
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to load pull requests';
+          console.error('Pull requests load error:', err);
+          patchState(store, { error: errorMessage });
+          throw err;
+        } finally {
+          patchState(store, { isLoading: false });
         }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to load pull requests';
-        console.error('Pull requests load error:', error);
-        patchState(store, { 
-          isLoading: false, 
-          error: errorMessage 
-        });
+      })());
+    },
+
+    // Compatibility wrapper for callers that expect a Promise
+    async loadPullRequests(filters?: Partial<DashboardFilters>) {
+      try {
+        const res = await lastValueFrom(this.loadPullRequestsRx(filters));
+        return res;
+      } catch (err) {
+        throw err;
       }
     },
 
@@ -299,7 +306,74 @@ export const DashboardStore = signalStore(
      * Select a pull request and load its details
      * Replaces legacy selectPullRequest function
      */
-    async selectPullRequest(prId: number) {
+    /**
+     * Select a pull request by ID and load its details
+     * 
+     * Performance optimizations:
+     * - Early validation to avoid unnecessary API calls
+     * - Optimistic UI updates for better perceived performance  
+     * - switchMap cancels previous requests automatically
+     * - Consistent error handling with proper state cleanup
+     * 
+     * Original: async selectPullRequest(prId: number)
+     * Replaces legacy selectPullRequest function
+     */
+    selectPullRequest: rxMethod<number>(pipe(
+      tap((prId: number) => {
+        // Early validation prevents unnecessary API calls
+        const pullRequest = store.pullRequests().find(pr => pr.id === prId);
+        if (!pullRequest) {
+          patchState(store, { error: 'Pull request not found' });
+          return;
+        }
+
+        console.log('Selecting pull request:', prId);
+        // Optimistic UI update for immediate feedback
+        patchState(store, { 
+          selectedPR: pullRequest,
+          activeView: DashboardView.PULL_REQUEST_DETAIL,
+          isLoading: true,
+          error: undefined
+        });
+      }),
+      // switchMap automatically cancels previous requests
+      switchMap((prId: number) => 
+        from(messageService.selectPullRequest(prId)).pipe(
+          tap({
+            next: (response: any) => {
+              patchState(store, { 
+                selectedPR: response.pullRequest,
+                isLoading: false
+              });
+              console.log('Pull request details loaded successfully');
+            },
+            error: (error: any) => {
+              const errorMessage = error instanceof Error ? error.message : 'Failed to load pull request details';
+              console.error('Pull request details load error:', error);
+              patchState(store, { 
+                isLoading: false, 
+                error: errorMessage 
+              });
+            }
+          }),
+          catchError((error: any) => {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to load pull request details';
+            console.error('Pull request details load error:', error);
+            patchState(store, { 
+              isLoading: false, 
+              error: errorMessage 
+            });
+            return EMPTY; // Complete stream gracefully
+          })
+        )
+      )
+    )),
+
+    /**
+     * Compatibility wrapper for selectPullRequest
+     * TODO: Remove this wrapper once all callers are updated to use the rxMethod directly
+     */
+    async selectPullRequestAsync(prId: number): Promise<void> {
       const pullRequest = store.pullRequests().find(pr => pr.id === prId);
       if (!pullRequest) {
         patchState(store, { error: 'Pull request not found' });
@@ -333,9 +407,67 @@ export const DashboardStore = signalStore(
 
     /**
      * Update configuration
+    /**
+     * Update configuration with optimistic updates and validation
+     * 
+     * Performance optimizations:
+     * - Optimistic UI update for immediate feedback
+     * - Efficient object merging with spread operator
+     * - Proper state management with cleanup
+     * - Validation could be added here for better UX
+     * 
+     * Original: async updateConfiguration(config: Partial<ConfigurationData>)
      * Replaces legacy saveConfiguration function
      */
-    async updateConfiguration(config: Partial<ConfigurationData>) {
+    updateConfiguration: rxMethod<Partial<ConfigurationData>>(pipe(
+      tap((config: Partial<ConfigurationData>) => {
+        // Optimistic update with merged configuration
+        const updatedConfig = { ...store.configuration(), ...config };
+        console.log('Updating configuration...', Object.keys(config));
+        patchState(store, { 
+          configuration: updatedConfig,
+          isLoading: true,
+          error: undefined
+        });
+      }),
+      switchMap((config: Partial<ConfigurationData>) => {
+        // Recompute updated config for API call (ensures consistency)
+        const updatedConfig = { ...store.configuration(), ...config };
+        return from(messageService.saveConfiguration(updatedConfig)).pipe(
+          tap({
+            next: () => {
+              patchState(store, { isLoading: false });
+              console.log('Configuration saved successfully');
+            },
+            error: (error: any) => {
+              // Revert optimistic update on failure
+              const errorMessage = error instanceof Error ? error.message : 'Failed to save configuration';
+              console.error('Configuration save error:', error);
+              patchState(store, { 
+                isLoading: false, 
+                error: errorMessage
+                // Note: Consider reverting config here if save fails
+              });
+            }
+          }),
+          catchError((error: any) => {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to save configuration';
+            console.error('Configuration save error:', error);
+            patchState(store, { 
+              isLoading: false, 
+              error: errorMessage
+            });
+            return EMPTY; // Complete stream gracefully
+          })
+        );
+      })
+    )),
+
+    /**
+     * Compatibility wrapper for updateConfiguration
+     * TODO: Remove this wrapper once all callers are updated to use the rxMethod directly
+     */
+    async updateConfigurationAsync(config: Partial<ConfigurationData>): Promise<void> {
       const updatedConfig = { ...store.configuration(), ...config };
       
       console.log('Updating configuration...');
@@ -360,10 +492,53 @@ export const DashboardStore = signalStore(
     },
 
     /**
+     * loadConfiguration converted to rxMethod
+     * Original: async loadConfiguration()
      * Load configuration from extension host
      * Replaces legacy loadConfiguration function
      */
-    async loadConfiguration() {
+    loadConfiguration: rxMethod<void>(pipe(
+      tap(() => {
+        console.log('Loading configuration...');
+        patchState(store, { isLoading: true, error: undefined });
+      }),
+      switchMap(() => 
+        from(messageService.loadConfiguration()).pipe(
+          tap({
+            next: (response: any) => {
+              patchState(store, { 
+                configuration: response.config || store.configuration(),
+                isLoading: false
+              });
+              console.log('Configuration loaded');
+            },
+            error: (error: any) => {
+              const errorMessage = error instanceof Error ? error.message : 'Failed to load configuration';
+              console.error('Configuration load error:', error);
+              patchState(store, { 
+                isLoading: false, 
+                error: errorMessage 
+              });
+            }
+          }),
+          catchError((error: any) => {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to load configuration';
+            console.error('Configuration load error:', error);
+            patchState(store, { 
+              isLoading: false, 
+              error: errorMessage 
+            });
+            return EMPTY;
+          })
+        )
+      )
+    )),
+
+    /**
+     * Compatibility wrapper for loadConfiguration
+     * TODO: Remove this wrapper once all callers are updated to use the rxMethod directly
+     */
+    async loadConfigurationAsync(): Promise<void> {
       patchState(store, { isLoading: true, error: undefined });
 
       try {
@@ -385,10 +560,59 @@ export const DashboardStore = signalStore(
     },
 
     /**
+     * testConnection converted to rxMethod
+     * Original: async testConnection()
      * Test connection with current configuration
      * Replaces legacy testConnection function
      */
-    async testConnection() {
+    testConnection: rxMethod<void>(pipe(
+      switchMap(() => {
+        const config = store.configuration();
+        console.log('Testing connection...');
+        patchState(store, { isLoading: true, error: undefined });
+        
+        return from(messageService.testConnection(config)).pipe(
+          tap({
+            next: (response: any) => {
+              patchState(store, { isLoading: false });
+              
+              if (response.success) {
+                console.log('Connection test successful');
+                messageService.showSuccess('Connection test successful');
+              } else {
+                console.warn('Connection test failed:', response.message);
+                messageService.showError('Connection test failed', response.message);
+              }
+            },
+            error: (error: any) => {
+              const errorMessage = error instanceof Error ? error.message : 'Connection test failed';
+              console.error('Connection test error:', error);
+              patchState(store, { 
+                isLoading: false, 
+                error: errorMessage 
+              });
+              messageService.showError('Connection test failed', errorMessage);
+            }
+          }),
+          catchError((error: any) => {
+            const errorMessage = error instanceof Error ? error.message : 'Connection test failed';
+            console.error('Connection test error:', error);
+            patchState(store, { 
+              isLoading: false, 
+              error: errorMessage 
+            });
+            messageService.showError('Connection test failed', errorMessage);
+            return EMPTY;
+          })
+        );
+      })
+    )),
+
+    /**
+     * Compatibility wrapper for testConnection
+     * TODO: Remove this wrapper once all callers are updated to use the rxMethod directly
+     */
+    async testConnectionAsync(): Promise<any> {
       const config = store.configuration();
       patchState(store, { isLoading: true, error: undefined });
 
@@ -464,7 +688,7 @@ export const DashboardStore = signalStore(
      */
     cancelAIAnalysis() {
       const currentAnalysis = store.currentAnalysis?.();
-      if (!currentAnalysis) return;
+      if (!currentAnalysis) {return;}
 
       console.log('Cancelling AI analysis for PR:', currentAnalysis.prId);
       messageService.cancelAIAnalysis(currentAnalysis.prId);
@@ -557,25 +781,61 @@ export const DashboardStore = signalStore(
      * Refresh current view data
      * Replaces legacy refresh functionality
      */
-    async refresh() {
-      const activeView = store.activeView();
-      console.log('Refreshing view:', activeView);
-      
-      switch (activeView) {
-        case DashboardView.CONFIGURATION:
-          await this.loadConfiguration();
-          break;
-        case DashboardView.PULL_REQUEST_LIST:
-          await this.loadPullRequests();
-          break;
-        case DashboardView.PULL_REQUEST_DETAIL:
-          const selectedPR = store.selectedPR?.();
-          if (selectedPR) {
-            await this.selectPullRequest(selectedPR.id);
-          }
-          break;
-      }
-    },
+    /**
+     * refresh converted to rxMethod
+     * Original: async refresh()
+     * Refresh current view data
+     * Replaces legacy refresh functionality
+     */
+    refresh: rxMethod<void>(pipe(
+      switchMap(() => {
+        const activeView = store.activeView();
+        console.log('Refreshing view:', activeView);
+        
+        switch (activeView) {
+          case DashboardView.CONFIGURATION:
+            // Trigger loadConfiguration rxMethod
+            return from(messageService.loadConfiguration()).pipe(
+              tap(response => {
+                patchState(store, { 
+                  configuration: response,
+                  error: undefined 
+                });
+              })
+            );
+          case DashboardView.PULL_REQUEST_LIST:
+            return from(messageService.loadPullRequests()).pipe(
+              tap(response => {
+                patchState(store, { 
+                  pullRequests: response.pullRequests || [],
+                  error: undefined 
+                });
+              })
+            );
+          case DashboardView.PULL_REQUEST_DETAIL:
+            const selectedPR = store.selectedPR?.();
+            if (selectedPR) {
+              return from(messageService.selectPullRequest(selectedPR.id)).pipe(
+                tap(response => {
+                  patchState(store, { 
+                    selectedPR: response,
+                    error: undefined 
+                  });
+                })
+              );
+            }
+            return EMPTY;
+          default:
+            return EMPTY;
+        }
+      }),
+      catchError((error: any) => {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to refresh view';
+        console.error('Refresh error:', error);
+        patchState(store, { error: errorMessage });
+        return EMPTY;
+      })
+    )),
     
     /**
      * Set loading state with optional message

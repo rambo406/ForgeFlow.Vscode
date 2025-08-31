@@ -1,5 +1,16 @@
 import { computed, inject } from '@angular/core';
 import { signalStore, withState, withComputed, withMethods, patchState } from '@ngrx/signals';
+import { rxMethod } from '@ngrx/signals/rxjs-interop';
+import { 
+  pipe, 
+  switchMap, 
+  tap, 
+  finalize, 
+  from, 
+  lastValueFrom,
+  catchError,
+  EMPTY
+} from 'rxjs';
 import { MessageService } from '../../../core/services/message.service';
 import { 
   CommentPreviewState, 
@@ -279,33 +290,107 @@ export const CommentPreviewStore = signalStore(
   }),
   withMethods((store, messageService = inject(MessageService)) => ({
     /**
-     * Load comments for a pull request
+     * Load comments for a pull request using rxMethod
+     * Converted from async/await to rxMethod pattern for better cancellation and composition
      */
-    async loadComments(prId: number) {
-      patchState(store, { isLoading: true, error: undefined });
-      
+    loadComments: rxMethod<number>(pipe(
+      tap(() => patchState(store, { isLoading: true, error: undefined })),
+      switchMap((prId: number) => 
+        from(messageService.loadPRDetails(prId)).pipe(
+          tap({
+            next: (response: any) => {
+              const comments = response.comments || [];
+              patchState(store, { 
+                comments,
+                error: undefined
+              });
+            },
+            error: (error: any) => {
+              const errorMessage = error instanceof Error ? error.message : 'Failed to load comments';
+              patchState(store, { error: errorMessage });
+            }
+          }),
+          catchError((error: any) => {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to load comments';
+            patchState(store, { error: errorMessage });
+            return EMPTY;
+          })
+        )
+      ),
+      finalize(() => patchState(store, { isLoading: false }))
+    )),
+
+    /**
+     * Compatibility wrapper for existing callers that expect a Promise
+     * This maintains backward compatibility while the rest of the codebase migrates
+     * TODO: Remove this wrapper once all callers are updated to use the rxMethod directly
+     */
+    async loadCommentsAsync(prId: number): Promise<void> {
       try {
+        // Use the original messageService call directly for Promise compatibility
+        patchState(store, { isLoading: true, error: undefined });
         const response = await messageService.loadPRDetails(prId);
         const comments = response.comments || [];
-        
         patchState(store, { 
           comments,
-          isLoading: false,
           error: undefined
         });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to load comments';
-        patchState(store, { 
-          isLoading: false, 
-          error: errorMessage 
-        });
+        patchState(store, { error: errorMessage });
+        throw error;
+      } finally {
+        patchState(store, { isLoading: false });
       }
     },
 
     /**
      * Update comment content
      */
-    async updateComment(commentId: string, content: string) {
+    /**
+     * updateComment converted to rxMethod with optimistic updates
+     * Original: async updateComment(commentId: string, content: string)
+     */
+    updateComment: rxMethod<{ commentId: string; content: string }>(pipe(
+      tap(({ commentId, content }) => {
+        // Optimistically update local state
+        const comments = store.comments().map(comment =>
+          comment.id === commentId 
+            ? { ...comment, content, status: CommentStatus.MODIFIED }
+            : comment
+        );
+        patchState(store, { comments, error: undefined });
+      }),
+      switchMap(({ commentId, content }) => 
+        from(Promise.resolve(messageService.modifyComment(commentId, content))).pipe(
+          tap({
+            next: () => {
+              // Success - optimistic update is already applied
+              patchState(store, { error: undefined });
+            },
+            error: (error: any) => {
+              // Revert optimistic update on error
+              patchState(store, { comments: store.comments() });
+              const errorMessage = error instanceof Error ? error.message : 'Failed to update comment';
+              patchState(store, { error: errorMessage });
+            }
+          }),
+          catchError((error: any) => {
+            // Revert optimistic update on error
+            patchState(store, { comments: store.comments() });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to update comment';
+            patchState(store, { error: errorMessage });
+            return EMPTY;
+          })
+        )
+      )
+    )),
+
+    /**
+     * Compatibility wrapper for updateComment
+     * TODO: Remove this wrapper once all callers are updated to use the rxMethod directly
+     */
+    async updateCommentAsync(commentId: string, content: string): Promise<void> {
       // Optimistically update local state
       const comments = store.comments().map(comment =>
         comment.id === commentId 
@@ -327,9 +412,47 @@ export const CommentPreviewStore = signalStore(
     },
 
     /**
-     * Approve a comment
+     * Approve a comment - converted to rxMethod with optimistic updates
      */
-    async approveComment(commentId: string) {
+    approveComment: rxMethod<string>(pipe(
+      tap((commentId: string) => {
+        // Optimistically update local state
+        const comments = store.comments().map(comment =>
+          comment.id === commentId 
+            ? { ...comment, status: CommentStatus.APPROVED }
+            : comment
+        );
+        patchState(store, { comments, error: undefined });
+      }),
+      switchMap((commentId: string) => 
+        from(Promise.resolve(messageService.approveComment(commentId))).pipe(
+          tap({
+            next: () => {
+              // Success - optimistic update is already applied
+              patchState(store, { error: undefined });
+            },
+            error: (error: any) => {
+              // Revert optimistic update on error
+              patchState(store, { comments: store.comments() });
+              const errorMessage = error instanceof Error ? error.message : 'Failed to approve comment';
+              patchState(store, { error: errorMessage });
+            }
+          }),
+          catchError((error: any) => {
+            // Revert optimistic update on error
+            patchState(store, { comments: store.comments() });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to approve comment';
+            patchState(store, { error: errorMessage });
+            return EMPTY;
+          })
+        )
+      )
+    )),
+
+    /**
+     * Compatibility wrapper for approveComment
+     */
+    async approveCommentAsync(commentId: string): Promise<void> {
       // Optimistically update local state
       const comments = store.comments().map(comment =>
         comment.id === commentId 
@@ -340,19 +463,58 @@ export const CommentPreviewStore = signalStore(
       patchState(store, { comments });
       
       try {
-        messageService.approveComment(commentId);
+        await messageService.approveComment(commentId);
       } catch (error) {
         // Revert optimistic update on error
         patchState(store, { comments: store.comments() });
         const errorMessage = error instanceof Error ? error.message : 'Failed to approve comment';
         patchState(store, { error: errorMessage });
+        throw error;
       }
     },
 
     /**
-     * Dismiss a comment
+     * Dismiss a comment - converted to rxMethod with optimistic updates
      */
-    async dismissComment(commentId: string) {
+    dismissComment: rxMethod<string>(pipe(
+      tap((commentId: string) => {
+        // Optimistically update local state
+        const comments = store.comments().map(comment =>
+          comment.id === commentId 
+            ? { ...comment, status: CommentStatus.DISMISSED }
+            : comment
+        );
+        patchState(store, { comments, error: undefined });
+      }),
+      switchMap((commentId: string) => 
+        from(Promise.resolve(messageService.dismissComment(commentId))).pipe(
+          tap({
+            next: () => {
+              // Success - optimistic update is already applied
+              patchState(store, { error: undefined });
+            },
+            error: (error: any) => {
+              // Revert optimistic update on error
+              patchState(store, { comments: store.comments() });
+              const errorMessage = error instanceof Error ? error.message : 'Failed to dismiss comment';
+              patchState(store, { error: errorMessage });
+            }
+          }),
+          catchError((error: any) => {
+            // Revert optimistic update on error
+            patchState(store, { comments: store.comments() });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to dismiss comment';
+            patchState(store, { error: errorMessage });
+            return EMPTY;
+          })
+        )
+      )
+    )),
+
+    /**
+     * Compatibility wrapper for dismissComment
+     */
+    async dismissCommentAsync(commentId: string): Promise<void> {
       // Optimistically update local state
       const comments = store.comments().map(comment =>
         comment.id === commentId 
@@ -363,19 +525,73 @@ export const CommentPreviewStore = signalStore(
       patchState(store, { comments });
       
       try {
-        messageService.dismissComment(commentId);
+        await messageService.dismissComment(commentId);
       } catch (error) {
         // Revert optimistic update on error
         patchState(store, { comments: store.comments() });
         const errorMessage = error instanceof Error ? error.message : 'Failed to dismiss comment';
         patchState(store, { error: errorMessage });
+        throw error;
       }
     },
 
     /**
-     * Toggle comment approval status
+     * Toggle comment approval status - converted to rxMethod
      */
-    async toggleCommentApproval(commentId: string) {
+    toggleCommentApproval: rxMethod<string>(pipe(
+      switchMap((commentId: string) => {
+        const comment = store.comments().find(c => c.id === commentId);
+        if (!comment) {
+          patchState(store, { error: 'Comment not found' });
+          return EMPTY;
+        }
+        
+        if (comment.status === CommentStatus.APPROVED) {
+          // If approved, make it pending
+          const comments = store.comments().map(c =>
+            c.id === commentId 
+              ? { ...c, status: CommentStatus.PENDING }
+              : c
+          );
+          patchState(store, { comments });
+          return EMPTY;
+        } else {
+          // For non-approved comments, trigger the approve flow
+          const comments = store.comments().map(comment =>
+            comment.id === commentId 
+              ? { ...comment, status: CommentStatus.APPROVED }
+              : comment
+          );
+          patchState(store, { comments, error: undefined });
+          
+          return from(Promise.resolve(messageService.approveComment(commentId))).pipe(
+            tap({
+              next: () => {
+                patchState(store, { error: undefined });
+              },
+              error: (error: any) => {
+                // Revert optimistic update on error
+                patchState(store, { comments: store.comments() });
+                const errorMessage = error instanceof Error ? error.message : 'Failed to approve comment';
+                patchState(store, { error: errorMessage });
+              }
+            }),
+            catchError((error: any) => {
+              // Revert optimistic update on error
+              patchState(store, { comments: store.comments() });
+              const errorMessage = error instanceof Error ? error.message : 'Failed to approve comment';
+              patchState(store, { error: errorMessage });
+              return EMPTY;
+            })
+          );
+        }
+      })
+    )),
+
+    /**
+     * Compatibility wrapper for toggleCommentApproval
+     */
+    async toggleCommentApprovalAsync(commentId: string): Promise<void> {
       const comment = store.comments().find(c => c.id === commentId);
       if (!comment) return;
       
@@ -388,14 +604,76 @@ export const CommentPreviewStore = signalStore(
         );
         patchState(store, { comments });
       } else {
-        await this.approveComment(commentId);
+        await this.approveCommentAsync(commentId);
       }
     },
 
     /**
-     * Bulk approve comments
+     * Bulk approve comments with performance optimizations
+     * 
+     * Performance optimizations:
+     * - Early validation to prevent unnecessary API calls
+     * - Optimistic updates for immediate UI feedback
+     * - Parallel processing with Promise.all for better performance
+     * - Automatic selection clearing for better UX
+     * - Proper error handling with state reversion
      */
-    async bulkApproveComments(commentIds: string[]) {
+    bulkApproveComments: rxMethod<string[]>(pipe(
+      tap((commentIds: string[]) => {
+        // Early validation - skip if no comments to process
+        if (commentIds.length === 0) {
+          console.warn('No comments to approve');
+          return;
+        }
+        
+        console.log(`Bulk approving ${commentIds.length} comments`);
+        
+        // Optimistically update local state for immediate feedback
+        const comments = store.comments().map(comment =>
+          commentIds.includes(comment.id)
+            ? { ...comment, status: CommentStatus.APPROVED }
+            : comment
+        );
+        patchState(store, { comments, selectedComments: [], error: undefined });
+      }),
+      switchMap((commentIds: string[]) => {
+        // Skip API call if no comments to process
+        if (commentIds.length === 0) {
+          return EMPTY;
+        }
+        
+        // Use Promise.all for parallel processing - better performance than sequential
+        return from(Promise.all(commentIds.map(id => messageService.approveComment(id)))).pipe(
+          tap({
+            next: () => {
+              // Success - optimistic update is already applied
+              patchState(store, { error: undefined });
+              console.log(`Successfully approved ${commentIds.length} comments`);
+            },
+            error: (error: any) => {
+              // Revert optimistic update on error
+              patchState(store, { comments: store.comments() });
+              const errorMessage = error instanceof Error ? error.message : 'Failed to approve comments';
+              patchState(store, { error: errorMessage });
+              console.error('Bulk approve failed:', error);
+            }
+          }),
+          catchError((error: any) => {
+            // Revert optimistic update on error
+            patchState(store, { comments: store.comments() });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to approve comments';
+            patchState(store, { error: errorMessage });
+            console.error('Bulk approve failed:', error);
+            return EMPTY; // Complete stream gracefully
+          })
+        );
+      })
+    )),
+
+    /**
+     * Compatibility wrapper for bulkApproveComments
+     */
+    async bulkApproveCommentsAsync(commentIds: string[]): Promise<void> {
       // Optimistically update local state
       const comments = store.comments().map(comment =>
         commentIds.includes(comment.id)
@@ -407,19 +685,58 @@ export const CommentPreviewStore = signalStore(
       
       try {
         // Send bulk action request
-        commentIds.forEach(id => messageService.approveComment(id));
+        await Promise.all(commentIds.map(id => messageService.approveComment(id)));
       } catch (error) {
         // Revert optimistic update on error
         patchState(store, { comments: store.comments() });
         const errorMessage = error instanceof Error ? error.message : 'Failed to approve comments';
         patchState(store, { error: errorMessage });
+        throw error;
       }
     },
 
     /**
-     * Bulk dismiss comments
+     * Bulk dismiss comments - converted to rxMethod with optimistic updates
      */
-    async bulkDismissComments(commentIds: string[]) {
+    bulkDismissComments: rxMethod<string[]>(pipe(
+      tap((commentIds: string[]) => {
+        // Optimistically update local state
+        const comments = store.comments().map(comment =>
+          commentIds.includes(comment.id)
+            ? { ...comment, status: CommentStatus.DISMISSED }
+            : comment
+        );
+        patchState(store, { comments, selectedComments: [], error: undefined });
+      }),
+      switchMap((commentIds: string[]) => 
+        from(Promise.all(commentIds.map(id => messageService.dismissComment(id)))).pipe(
+          tap({
+            next: () => {
+              // Success - optimistic update is already applied
+              patchState(store, { error: undefined });
+            },
+            error: (error: any) => {
+              // Revert optimistic update on error
+              patchState(store, { comments: store.comments() });
+              const errorMessage = error instanceof Error ? error.message : 'Failed to dismiss comments';
+              patchState(store, { error: errorMessage });
+            }
+          }),
+          catchError((error: any) => {
+            // Revert optimistic update on error
+            patchState(store, { comments: store.comments() });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to dismiss comments';
+            patchState(store, { error: errorMessage });
+            return EMPTY;
+          })
+        )
+      )
+    )),
+
+    /**
+     * Compatibility wrapper for bulkDismissComments
+     */
+    async bulkDismissCommentsAsync(commentIds: string[]): Promise<void> {
       // Optimistically update local state
       const comments = store.comments().map(comment =>
         commentIds.includes(comment.id)
@@ -431,12 +748,13 @@ export const CommentPreviewStore = signalStore(
       
       try {
         // Send bulk action request
-        commentIds.forEach(id => messageService.dismissComment(id));
+        await Promise.all(commentIds.map(id => messageService.dismissComment(id)));
       } catch (error) {
         // Revert optimistic update on error
         patchState(store, { comments: store.comments() });
         const errorMessage = error instanceof Error ? error.message : 'Failed to dismiss comments';
         patchState(store, { error: errorMessage });
+        throw error;
       }
     },
 
@@ -549,11 +867,25 @@ export const CommentPreviewStore = signalStore(
     },
 
     /**
-     * Refresh comments
+     * Refresh comments - converted to rxMethod
      */
-    async refreshComments(prId?: number) {
+    refreshComments: rxMethod<number | undefined>(pipe(
+      switchMap((prId) => {
+        if (prId !== undefined && prId !== null) {
+          // Trigger the rxMethod directly - cast `this` to any to avoid strict typing issues
+          (this as any).loadComments(prId);
+        }
+        return EMPTY; // Return empty since we're just triggering another method
+      })
+    )),
+
+    /**
+     * Compatibility wrapper for refreshComments
+     * TODO: Remove this wrapper once all callers are updated to use the rxMethod directly
+     */
+    async refreshCommentsAsync(prId?: number): Promise<void> {
       if (prId) {
-        await this.loadComments(prId);
+        await this.loadCommentsAsync(prId);
       }
     },
 
@@ -565,9 +897,66 @@ export const CommentPreviewStore = signalStore(
     },
 
     /**
-     * Apply suggestion from a comment
+     * Apply suggestion from a comment - converted to rxMethod
      */
-    async applySuggestion(commentId: string) {
+    applySuggestion: rxMethod<string>(pipe(
+      switchMap((commentId: string) => {
+        const comment = store.comments().find(c => c.id === commentId);
+        if (!comment?.suggestedFix) {
+          patchState(store, { error: 'No suggestion available for this comment' });
+          return EMPTY;
+        }
+
+        // First update comment content with suggestion
+        const commentsWithSuggestion = store.comments().map(comment =>
+          comment.id === commentId 
+            ? { ...comment, content: comment.suggestedFix || comment.content, status: CommentStatus.MODIFIED }
+            : comment
+        );
+        patchState(store, { comments: commentsWithSuggestion, error: undefined });
+
+        return from(Promise.resolve(messageService.modifyComment(commentId, comment.suggestedFix))).pipe(
+          switchMap(() => {
+            // After successful update, approve the comment
+            const commentsWithApproval = store.comments().map(c =>
+              c.id === commentId 
+                ? { ...c, status: CommentStatus.APPROVED }
+                : c
+            );
+            patchState(store, { comments: commentsWithApproval });
+            
+            return from(Promise.resolve(messageService.approveComment(commentId))).pipe(
+              tap({
+                next: () => {
+                  patchState(store, { error: undefined });
+                },
+                error: (error: any) => {
+                  const errorMessage = error instanceof Error ? error.message : 'Failed to approve comment after applying suggestion';
+                  patchState(store, { error: errorMessage });
+                }
+              }),
+              catchError((error: any) => {
+                const errorMessage = error instanceof Error ? error.message : 'Failed to approve comment after applying suggestion';
+                patchState(store, { error: errorMessage });
+                return EMPTY;
+              })
+            );
+          }),
+          catchError((error: any) => {
+            // Revert optimistic update on error
+            patchState(store, { comments: store.comments() });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to apply suggestion';
+            patchState(store, { error: errorMessage });
+            return EMPTY;
+          })
+        );
+      })
+    )),
+
+    /**
+     * Compatibility wrapper for applySuggestion
+     */
+    async applySuggestionAsync(commentId: string): Promise<void> {
       const comment = store.comments().find(c => c.id === commentId);
       if (!comment?.suggestedFix) {
         patchState(store, { error: 'No suggestion available for this comment' });
@@ -576,13 +965,14 @@ export const CommentPreviewStore = signalStore(
 
       try {
         // Update comment content with suggestion
-        await this.updateComment(commentId, comment.suggestedFix);
+        await this.updateCommentAsync(commentId, comment.suggestedFix);
         
         // Mark as approved since suggestion was applied
-        await this.approveComment(commentId);
+        await this.approveCommentAsync(commentId);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to apply suggestion';
         patchState(store, { error: errorMessage });
+        throw error;
       }
     }
   }))

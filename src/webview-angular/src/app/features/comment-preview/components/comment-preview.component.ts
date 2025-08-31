@@ -332,7 +332,7 @@ export class CommentPreviewComponent implements OnInit, OnDestroy {
    * Handle comment update
    */
   protected handleCommentUpdate(data: { commentId: string; content: string }) {
-    this.store.updateComment(data.commentId, data.content);
+    this.store.updateComment({ commentId: data.commentId, content: data.content });
   }
 
   /**
