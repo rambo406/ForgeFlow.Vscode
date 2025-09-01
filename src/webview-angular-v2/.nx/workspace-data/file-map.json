@@ -1,0 +1,94 @@
+{
+  "version": "6.0",
+  "nxVersion": "21.4.1",
+  "pathMappings": {},
+  "nxJsonPlugins": [],
+  "fileMap": {
+    "projectFileMap": {
+      "webview-angular-v2": [
+        {
+          "file": "README.md",
+          "hash": "7828434090039367988"
+        },
+        {
+          "file": "angular.json",
+          "hash": "12305253663022821152"
+        },
+        {
+          "file": "package-lock.json",
+          "hash": "12501877401008938129"
+        },
+        {
+          "file": "package.json",
+          "hash": "3389829896949443969",
+          "deps": [
+            "npm:@angular-devkit/build-angular",
+            "npm:@angular/cli",
+            "npm:@angular/compiler-cli",
+            "npm:@spartan-ng/cli",
+            "npm:@types/node",
+            "npm:autoprefixer",
+            "npm:postcss",
+            "npm:tailwindcss",
+            "npm:typescript",
+            "npm:@angular/animations",
+            "npm:@angular/common",
+            "npm:@angular/compiler",
+            "npm:@angular/core",
+            "npm:@angular/forms",
+            "npm:@angular/platform-browser",
+            "npm:@angular/router",
+            "npm:@spartan-ng/ui-core",
+            "npm:rxjs",
+            "npm:tslib"
+          ]
+        },
+        {
+          "file": "postcss.config.js",
+          "hash": "17430255171421331363"
+        },
+        {
+          "file": "src/app/app.component.ts",
+          "hash": "7733085700877968577"
+        },
+        {
+          "file": "src/app/app.config.ts",
+          "hash": "3875982838286113986"
+        },
+        {
+          "file": "src/app/core/services/vscode-api.service.ts",
+          "hash": "2554655036455345425"
+        },
+        {
+          "file": "src/app/features/dashboard/dashboard.component.ts",
+          "hash": "848180529815129347"
+        },
+        {
+          "file": "src/index.html",
+          "hash": "15240980692764054090"
+        },
+        {
+          "file": "src/main.ts",
+          "hash": "14599585226426637146"
+        },
+        {
+          "file": "src/styles.scss",
+          "hash": "14880528053779367737"
+        },
+        {
+          "file": "tailwind.config.js",
+          "hash": "7274436517598699441"
+        },
+        {
+          "file": "tsconfig.app.json",
+          "hash": "14775462398706418544"
+        },
+        {
+          "file": "tsconfig.json",
+          "hash": "835190503183499024"
+        }
+      ]
+    },
+    "nonProjectFiles": []
+  }
+}
