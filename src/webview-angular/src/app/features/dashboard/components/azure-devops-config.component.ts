@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl } from '@angular/forms';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { MessageService } from '../../../core/services/message.service';
+import type { TestConnectionResponse } from '../../../core/models/webview-message.interface';
 import { 
   AppCardComponent, 
   AppInputComponent, 
@@ -465,19 +466,24 @@ export class AzureDevOpsConfigComponent implements OnInit, OnDestroy {
         connectionTimeout: config.connectionTimeout,
         retryAttempts: config.retryAttempts,
         apiVersion: config.apiVersion
-      });
+      }) as TestConnectionResponse | ConnectionTestResult;
 
-      this.connectionStatus.set(result);
+      const normalized: ConnectionTestResult = {
+        success: (result as any).success,
+        message: (result as any).message,
+        details: (result as any).details || {}
+      };
+      this.connectionStatus.set(normalized);
       
-      if (result.success) {
+      if ((result as any).success) {
         this.setValidationStatus('success', 'Azure DevOps connection successful');
         
         // Update available projects if returned
-        if (result.details?.projects) {
-          this.availableProjects.set(result.details.projects);
+        if ((result as any).details?.projects) {
+          this.availableProjects.set((result as any).details.projects);
         }
       } else {
-        this.setValidationStatus('error', result.message || 'Connection failed');
+        this.setValidationStatus('error', (result as any).message || 'Connection failed');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Connection test failed';

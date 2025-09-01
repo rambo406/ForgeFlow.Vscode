@@ -198,13 +198,15 @@
     "watch": "node scripts/watch.js",
     "dev": "npm run watch",
     "pretest": "npm run build && npm run lint",
+    "ng": "cd src/webview-angular && npx -y @angular/cli@20",
+    "ng:build": "npm run ng -- build",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
     "package": "npm run build:prod && vsce package",
     "build:webview": "cd src/webview-angular && npm run build:prod",
     "build:webview:dev": "cd src/webview-angular && npm run build",
     "install:webview": "cd src/webview-angular && npm install",
-    "clean": "rimraf dist out",
+    "clean": "rimraf dist out src/webview-angular/src/webview-angular",
     "clean:all": "npm run clean && cd src/webview-angular && rimraf dist node_modules"
   },
   "devDependencies": {

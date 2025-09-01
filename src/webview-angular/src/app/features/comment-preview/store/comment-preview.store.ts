@@ -329,8 +329,8 @@ export const CommentPreviewStore = signalStore(
       try {
         // Use the original messageService call directly for Promise compatibility
         patchState(store, { isLoading: true, error: undefined });
-        const response = await messageService.loadPRDetails(prId);
-        const comments = response.comments || [];
+        const response = await messageService.loadPRDetails(prId) as { comments?: ReviewComment[] };
+        const comments = (response && response.comments) || [];
         patchState(store, { 
           comments,
           error: undefined

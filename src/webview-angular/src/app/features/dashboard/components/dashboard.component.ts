@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, ChangeDetectionStrategy, computed, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
 import { DashboardStore, DashboardView } from '@features/dashboard';
@@ -8,6 +8,13 @@ import { PullRequestListComponent } from '@features/dashboard';
 import { PullRequestDetailComponent } from '@features/dashboard';
 import { AppAlertComponent, AppButtonComponent } from '@shared/components';
 import { MessageService, MessageType } from '../../../core/services/message.service';
+import type { 
+  UpdateViewRequest,
+  AIAnalysisProgressPayload,
+  AIAnalysisCompletePayload,
+  NotificationPayload
+} from '../../../core/models/webview-message.interface';
+import type { AnalysisProgress, AnalysisResult } from '../../../core/models/interfaces';
 import type { ConfigurationData, DashboardFilters } from '@core/models';
 
 @Component({
@@ -66,42 +73,57 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * Setup message listeners to maintain compatibility with legacy message protocol
    */
   private setupMessageListeners(): void {
-    this.messageService.onMessage()
+    // View updates
+    this.messageService.onMessageOfType<UpdateViewRequest>(MessageType.UPDATE_VIEW)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(message => {
-        console.log('Received message:', message.type, message.payload);
-        
-        switch (message.type) {
-          case MessageType.UPDATE_VIEW:
-            if (message.payload?.view) {
-              this.onViewChange(message.payload.view as DashboardView);
-            }
-            break;
-            
-          case MessageType.AI_ANALYSIS_PROGRESS:
-            if (message.payload) {
-              this.store.updateAnalysisProgress(message.payload);
-            }
-            break;
-            
-          case MessageType.AI_ANALYSIS_COMPLETE:
-            if (message.payload) {
-              this.store.completeAnalysis(message.payload);
-            }
-            break;
-            
-          case MessageType.SHOW_ERROR:
-            this.handleErrorMessage(message.payload?.message || 'An error occurred');
-            break;
-            
-          case MessageType.SHOW_SUCCESS:
-            this.handleSuccessMessage(message.payload?.message || 'Operation completed');
-            break;
-            
-          default:
-            console.log('Unhandled message type:', message.type);
+      .subscribe(msg => {
+        const view = (msg.payload && (msg.payload as UpdateViewRequest).view) as DashboardView | undefined;
+        if (view) {
+          this.onViewChange(view);
         }
       });
+
+    // Analysis progress (supports both {progress: {...}} and direct payload)
+    this.messageService.onMessageOfType<AIAnalysisProgressPayload | { progress: AIAnalysisProgressPayload }>(MessageType.AI_ANALYSIS_PROGRESS)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(msg => {
+        const raw = (msg.payload as any);
+        const p: AIAnalysisProgressPayload = (raw && raw.progress) ? raw.progress : raw;
+        if (p) {
+          const mapped: AnalysisProgress = {
+            prId: typeof (p as any).prId === 'number' ? (p as any).prId : (this.store.selectedPR?.()?.id ?? 0),
+            stage: (p as any).stage,
+            currentFileName: (p as any).currentFileName,
+            completed: (p as any).completed ?? 0,
+            total: (p as any).total ?? 0,
+            percentage: (p as any).percentage ?? 0,
+            message: (p as any).message,
+            startTime: this.store.currentAnalysis?.()?.startTime || new Date().toISOString(),
+            estimatedCompletion: this.store.currentAnalysis?.()?.estimatedCompletion
+          } as AnalysisProgress;
+          this.store.updateAnalysisProgress(mapped);
+        }
+      });
+
+    // Analysis complete
+    this.messageService.onMessageOfType<AIAnalysisCompletePayload>(MessageType.AI_ANALYSIS_COMPLETE)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(msg => {
+        const payload = msg.payload as AIAnalysisCompletePayload;
+        const result = (payload && (payload as any).result) as AnalysisResult | undefined;
+        if (result) {
+          this.store.completeAnalysis(result as AnalysisResult);
+        }
+      });
+
+    // Notifications
+    this.messageService.onMessageOfType<NotificationPayload>(MessageType.SHOW_ERROR)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(msg => this.handleErrorMessage((msg.payload as NotificationPayload)?.message || 'An error occurred'));
+
+    this.messageService.onMessageOfType<NotificationPayload>(MessageType.SHOW_SUCCESS)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(msg => this.handleSuccessMessage((msg.payload as NotificationPayload)?.message || 'Operation completed'));
   }
   
   /**

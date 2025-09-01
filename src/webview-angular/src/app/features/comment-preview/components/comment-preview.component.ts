@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
 
 import { CommentPreviewStore } from '../store/comment-preview.store';
-import { MessageService } from '../../../core/services/message.service';
-import { MessageType } from '../../../core/models/enums';
+import { MessageService, MessageType } from '../../../core/services/message.service';
 import { CommentHeaderComponent } from './comment-header.component';
 import { CommentFiltersComponent } from './comment-filters.component';
 import { CommentListComponent } from './comment-list.component';
@@ -231,15 +230,15 @@ export class CommentPreviewComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     // Listen for incoming comment data from extension host
-    this.messageService.onMessage()
+    this.messageService.onMessage<any>()
       .pipe(takeUntil(this.destroy$))
       .subscribe(message => {
-        // Narrow message type checks to avoid TypeScript mismatch when using union enums
-        if (message && (message.type as MessageType) === MessageType.COMMENTS_LOADED) {
-          this.store.updateComments(message.payload.comments);
-        } else if (message && (message.type as MessageType) === MessageType.COMMENT_UPDATED) {
-          // Handle individual comment updates
-          const updatedComment = message.payload.comment;
+        const type = (message as any)?.type;
+        const payload = (message as any)?.payload;
+        if (type === 'commentsLoaded') {
+          this.store.updateComments((payload as any).comments);
+        } else if (type === 'commentUpdated') {
+          const updatedComment = (payload as any).comment;
           const currentComments = this.store.comments();
           const updatedComments = currentComments.map(comment =>
             comment.id === updatedComment.id ? updatedComment : comment

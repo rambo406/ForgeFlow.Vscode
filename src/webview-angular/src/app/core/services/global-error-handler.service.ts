@@ -113,7 +113,7 @@ export class GlobalErrorHandler implements ErrorHandler {
             description: 'Update your authentication settings'
           }
         ];
-      } else if (status >= 500) {
+      } else if (typeof status === 'number' && status >= 500) {
         userMessage = 'Server error occurred. The service may be temporarily unavailable.';
         recoveryActions = [
           {

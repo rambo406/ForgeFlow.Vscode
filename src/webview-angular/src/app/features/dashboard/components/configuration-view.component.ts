@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ConfigurationData } from '@core/models';
 import { MessageService } from '../../../core/services/message.service';
+import type { LoadAvailableModelsResponse, TestConnectionResponse, ValidateSettingResponse } from '../../../core/models/webview-message.interface';
 import { 
   AppCardComponent, 
   AppInputComponent, 
@@ -612,7 +613,7 @@ export class ConfigurationViewComponent implements OnInit, OnDestroy {
    */
   private async loadAvailableModels(): Promise<void> {
     try {
-      const models = await this.messageService.loadAvailableModels();
+      const models = await this.messageService.loadAvailableModels() as LoadAvailableModelsResponse;
       if (models.models && models.models.length > 0) {
         this.modelOptions = models.models.map((model: any) => ({
           value: model.id,
@@ -642,7 +643,7 @@ export class ConfigurationViewComponent implements OnInit, OnDestroy {
       const result = await this.messageService.testConnection({
         organizationUrl: orgUrl,
         personalAccessToken: patToken
-      });
+      }) as TestConnectionResponse;
       
       this.testResults.organization = {
         success: result.success,
@@ -679,7 +680,7 @@ export class ConfigurationViewComponent implements OnInit, OnDestroy {
     
     try {
       // Test if the model is available
-      const result = await this.messageService.validateSetting('selectedModel', selectedModel);
+      const result = await this.messageService.validateSetting('selectedModel', selectedModel) as ValidateSettingResponse;
       
       this.testResults.model = {
         success: result.valid,

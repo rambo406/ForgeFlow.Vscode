@@ -7,6 +7,8 @@ tasksync/**
 node_modules
 out
 dist
+.angular
+src/webview-angular/src/webview-angular/
 **/*.vsix
 .vscode-test/
 *.log

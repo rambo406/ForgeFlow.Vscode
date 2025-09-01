@@ -38,7 +38,6 @@
               "src/styles/globals.scss"
             ],
             "scripts": [],
-            "preserveSymlinks": true,
             "baseHref": "./",
             "deployUrl": "./"
           },
@@ -115,7 +114,6 @@
             "buildTarget": "azdo-pr-reviewer-webview:build"
           }
         },
-        
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
@@ -130,6 +128,10 @@
   },
   "cli": {
     "analytics": false,
+    "cache": {
+      "enabled": true,
+      "environment": "all"
+    },
     "schematicCollections": [
       "@angular-eslint/schematics"
     ]

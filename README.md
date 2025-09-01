@@ -194,6 +194,24 @@ npm run compile
 npm run package
 ```
 
+### Angular Webview Build
+
+You can invoke Angular CLI from the repo root:
+
+```bash
+# Build webview (wrapper forwards to src/webview-angular)
+ng build           # or: npm run ng -- build
+
+# Production build
+ng build --configuration production
+```
+
+If the wrapper is not picked up in your shell, use:
+
+```bash
+cd src/webview-angular && ng build
+```
+
 ### Project Structure
 ```
 src/

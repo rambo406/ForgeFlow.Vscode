@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl } from '@angular/forms';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { MessageService } from '../../../core/services/message.service';
+import type { ValidateSettingResponse, LoadAvailableModelsResponse } from '../../../core/models/webview-message.interface';
 import { 
   AppCardComponent, 
   AppInputComponent, 
@@ -578,7 +579,7 @@ export class LanguageModelConfigComponent implements OnInit, OnDestroy {
     this.loadingModels.set(true);
     
     try {
-      const response = await this.messageService.loadAvailableModels();
+      const response = await this.messageService.loadAvailableModels() as LoadAvailableModelsResponse;
       
       if (response.models && response.models.length > 0) {
         const models: ModelOption[] = response.models.map((model: any) => ({
@@ -701,7 +702,7 @@ export class LanguageModelConfigComponent implements OnInit, OnDestroy {
       const config = this.getFormValue();
       
       // Use the validateSetting method to test the model
-      const result = await this.messageService.validateSetting('selectedModel', config.selectedModel);
+      const result = await this.messageService.validateSetting('selectedModel', config.selectedModel) as ValidateSettingResponse;
       
       // Simulate a more detailed test result
       const testResult: ModelTestResult = {
