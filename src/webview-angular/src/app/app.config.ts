@@ -11,6 +11,10 @@ const routes: Routes = [
     pathMatch: 'full' as const
   },
   {
+    path: 'overview',
+    loadComponent: () => import('./features/overview/components/overview.component').then(m => m.OverviewComponent)
+  },
+  {
     path: 'dashboard',
     loadComponent: () => import('./features/dashboard/components/dashboard.component').then(m => m.DashboardComponent)
   },
@@ -23,7 +27,6 @@ const routes: Routes = [
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes, withPreloading(PreloadAllModules)),
-    importProvidersFrom(BrowserAnimationsModule),
     {
       provide: ErrorHandler,
       useClass: GlobalErrorHandler

@@ -9,6 +9,27 @@ const isProduction = mode === 'production';
 
 console.log(`🚀 Building ForgeFlow VS Code Extension (${mode} mode)`);
 
+// Enforce a Node version compatible with Angular 20 webview build
+// Angular CLI requires Node >=20.19 <21 or >=22.12 <23
+(function enforceNodeVersion() {
+  try {
+    const [major, minor] = process.versions.node.split('.').map(n => parseInt(n, 10));
+    const ok = (
+      (major === 20 && minor >= 19) ||
+      (major === 22 && minor >= 12) ||
+      (major > 22 && major < 23) // future patch releases in 22.x handled above
+    );
+    if (!ok) {
+      console.error(`\n❌ Incompatible Node.js for Angular 20 webview build: ${process.versions.node}`);
+      console.error('   Required: Node >=20.19 <21 or >=22.12 <23');
+      console.error('   Tip: use nvm to install/use Node 20.19.0 or 22.12.0+');
+      // Do not exit here; allow users to proceed if they are only packaging without webview
+    }
+  } catch (e) {
+    // ignore
+  }
+})();
+
 // Helper function to run commands
 function runCommand(command, cwd = process.cwd(), description) {
   console.log(`\n📦 ${description}`);
@@ -106,7 +127,17 @@ async function main() {
   }
   
   // 3. Build Angular webview
-  const angularBuildCmd = isProduction ? 'npm run build:prod' : 'npm run build';
+  // If local Node is incompatible with Angular CLI 20, run the build using a shimmed Node runtime via npx node@22.12.0
+  let angularBuildCmd = isProduction ? 'npm run build:prod' : 'npm run build';
+  try {
+    const [major, minor] = process.versions.node.split('.').map(n => parseInt(n, 10));
+    const nodeOk = ((major === 20 && minor >= 19) || (major === 22 && minor >= 12));
+    if (!nodeOk) {
+      const ngBin = path.resolve(webviewDir, 'node_modules', '@angular', 'cli', 'bin', 'ng.js');
+      const configFlag = isProduction ? '--configuration production' : '--configuration development';
+      angularBuildCmd = `npx -y node@22.12.0 -- ${ngBin} build ${configFlag}`;
+    }
+  } catch {}
   const angularOk = runCommandSafe(angularBuildCmd, webviewDir, `Building Angular webview (${mode})`);
   if (!angularOk) {
     console.error('\n⚠️ Angular webview build failed, creating a minimal fallback webview dist so extension build can continue.');

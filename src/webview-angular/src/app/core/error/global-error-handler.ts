@@ -18,7 +18,19 @@ export class GlobalErrorHandler implements ErrorHandler {
   handleError(error: unknown): void {
     // Run error handling outside Angular zone to prevent infinite loops
     this.ngZone.runOutsideAngular(() => {
-      console.error('Global error caught:', error);
+      try {
+        const asError = error instanceof Error ? error : new Error(String(error));
+        console.error('Global error caught (detailed):', {
+          name: asError.name,
+          message: asError.message,
+          stack: asError.stack,
+          ngErrorCode: (asError as any)?.ngErrorCode,
+          code: (asError as any)?.code,
+          original: error
+        });
+      } catch (e) {
+        console.error('Global error caught:', error);
+      }
 
       let errorMessage = 'An unexpected error occurred';
       let errorContext = 'Angular Global Error Handler';

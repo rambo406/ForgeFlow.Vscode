@@ -1,6 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DashboardComponent } from './features/dashboard/components/dashboard.component';
+import { RouterOutlet } from '@angular/router';
+import { NavigationService } from './core/services/navigation.service';
 import { AppToastContainerComponent } from './shared/components/feedback/app-toast-container.component';
 import { PerformanceMonitorService } from './core/services/performance-monitor.service';
 import { PerformanceOptimizationService } from './core/services/performance-optimization.service';
@@ -8,10 +9,10 @@ import { PerformanceOptimizationService } from './core/services/performance-opti
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, DashboardComponent, AppToastContainerComponent],
+  imports: [CommonModule, RouterOutlet, AppToastContainerComponent],
   template: `
     <div class="h-screen w-full">
-      <app-dashboard />
+      <router-outlet />
       <!-- Toast container for global notifications -->
       <app-toast-container />
     </div>
@@ -29,6 +30,8 @@ export class AppComponent implements OnInit {
 
   private performanceMonitor = inject(PerformanceMonitorService);
   private performanceOptimization = inject(PerformanceOptimizationService);
+  // Ensure NavigationService is instantiated to attach message listeners
+  private _nav = inject(NavigationService);
 
   ngOnInit(): void {
     // Initialize performance monitoring and optimizations

@@ -41,14 +41,31 @@ export class GlobalErrorHandler implements ErrorHandler {
     // Determine context and recovery actions based on error properties
     const errorInfo = this.categorizeError(error, actualError);
 
-    // Handle with our custom service
+    // Handle with our custom service (centralizes user notifications)
+    // Note: The ErrorHandlerService already converts errors into user-facing notifications
+    // and recovery actions. Avoid showing a second notification here to prevent duplicates.
     this.errorHandlerService.handleError(actualError, errorInfo.context, errorInfo.severity);
 
-    // Show user-friendly error notification with recovery options
-    this.showUserErrorNotification(errorInfo);
-
-    // Also log to console for development
-    console.error('Global Error Handler:', error);
+    // Also log detailed info to console for diagnostics
+    try {
+      const detailed = {
+        context: errorInfo.context,
+        severity: errorInfo.severity,
+        actual: {
+          name: actualError.name,
+          message: actualError.message,
+          stack: actualError.stack,
+          ngErrorCode: (actualError as any)?.ngErrorCode,
+          code: (actualError as any)?.code
+        },
+        original: error
+      };
+      // Log as a single object to preserve stack formatting
+      console.error('Global Error Handler (detailed):', detailed);
+    } catch (e) {
+      // Fallback minimal log
+      console.error('Global Error Handler:', actualError?.message, actualError?.stack);
+    }
   }
 
   /**

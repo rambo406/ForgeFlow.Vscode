@@ -25,6 +25,10 @@ export class ErrorHandlerService {
   private _errors = signal<ErrorLog[]>([]);
   private _isOffline = signal(false);
   private errorMessageService = inject(ErrorMessageService);
+  // Guard to prevent re-entrant error handling
+  private _isHandlingError = false;
+  // Simple de-duplication within a short window to avoid error storms
+  private _lastErrorSig: { sig: string; ts: number } | null = null;
   
   readonly errors = this._errors.asReadonly();
   readonly isOffline = this._isOffline.asReadonly();
@@ -38,22 +42,18 @@ export class ErrorHandlerService {
    * Set up global error handling
    */
   private setupGlobalErrorHandling(): void {
-    // Handle unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
-      this.handleError(
-        new Error(event.reason),
-        'Unhandled Promise Rejection',
-        'high'
-      );
+    // Handle unhandled promise rejections (use native reason if available)
+    window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+      const reason = (event && (event as any).reason) as unknown;
+      const err = reason instanceof Error ? reason : new Error(String(reason ?? 'Unknown error'));
+      this.handleError(err, 'Unhandled Promise Rejection', 'high');
     });
 
-    // Handle general errors
-    window.addEventListener('error', (event) => {
-      this.handleError(
-        new Error(event.message),
-        'Global Error',
-        'high'
-      );
+    // Handle uncaught errors (prefer event.error if present)
+    window.addEventListener('error', (event: ErrorEvent) => {
+      const err = (event && (event as any).error) as unknown;
+      const finalErr = err instanceof Error ? err : new Error(String(event?.message ?? 'Unknown error'));
+      this.handleError(finalErr, 'Global Error', 'high');
     });
   }
 
@@ -86,6 +86,20 @@ export class ErrorHandlerService {
     severity: 'low' | 'medium' | 'high' | 'critical' = 'medium',
     recoveryActions?: Array<{ label: string; action: () => void }>
   ): string {
+    // Prevent re-entrant error handling cycles
+    if (this._isHandlingError) {
+      return '';
+    }
+
+    // De-duplicate identical errors occurring in quick succession (500ms)
+    const sig = `${context}|${error.name}|${error.message}`;
+    const now = Date.now();
+    if (this._lastErrorSig && this._lastErrorSig.sig === sig && (now - this._lastErrorSig.ts) < 500) {
+      return '';
+    }
+    this._lastErrorSig = { sig, ts: now };
+
+    this._isHandlingError = true;
     const errorLog: ErrorLog = {
       id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       error,
@@ -101,15 +115,19 @@ export class ErrorHandlerService {
     this._errors.set([...current, errorLog]);
 
     // Determine user notification based on severity
-    switch (severity) {
-      case 'critical':
-        return this.handleCriticalError(errorLog, recoveryActions);
-      case 'high':
-        return this.handleHighError(errorLog, recoveryActions);
-      case 'medium':
-        return this.handleMediumError(errorLog, recoveryActions);
-      case 'low':
-        return this.handleLowError(errorLog);
+    try {
+      switch (severity) {
+        case 'critical':
+          return this.handleCriticalError(errorLog, recoveryActions);
+        case 'high':
+          return this.handleHighError(errorLog, recoveryActions);
+        case 'medium':
+          return this.handleMediumError(errorLog, recoveryActions);
+        case 'low':
+          return this.handleLowError(errorLog);
+      }
+    } finally {
+      this._isHandlingError = false;
     }
   }
 
@@ -120,7 +138,16 @@ export class ErrorHandlerService {
     errorLog: ErrorLog,
     recoveryActions?: Array<{ label: string; action: () => void }>
   ): string {
-    console.error('CRITICAL ERROR:', errorLog.error, errorLog.context);
+    try {
+      console.error('CRITICAL ERROR (detailed):', {
+        context: errorLog.context,
+        name: errorLog.error.name,
+        message: errorLog.error.message,
+        stack: errorLog.error.stack
+      });
+    } catch {
+      console.error('CRITICAL ERROR:', errorLog.error, errorLog.context);
+    }
 
     // Create user-friendly error message
     const userFriendlyError = this.errorMessageService.createUserFriendlyError(
@@ -155,7 +182,16 @@ export class ErrorHandlerService {
     errorLog: ErrorLog,
     recoveryActions?: Array<{ label: string; action: () => void }>
   ): string {
-    console.error('HIGH ERROR:', errorLog.error, errorLog.context);
+    try {
+      console.error('HIGH ERROR (detailed):', {
+        context: errorLog.context,
+        name: errorLog.error.name,
+        message: errorLog.error.message,
+        stack: errorLog.error.stack
+      });
+    } catch {
+      console.error('HIGH ERROR:', errorLog.error, errorLog.context);
+    }
 
     // Create user-friendly error message
     const userFriendlyError = this.errorMessageService.createUserFriendlyError(
@@ -163,17 +199,16 @@ export class ErrorHandlerService {
       errorLog.context
     );
 
-    const actions = [
+    // Merge recovery actions and add a single 'Report Issue' action (de-duplicated by label)
+    const actionsPre = [
       ...(userFriendlyError.recoveryActions?.map(action => ({
         label: action.label,
         action: action.action
       })) || []),
       ...(recoveryActions || []),
-      {
-        label: 'Report Issue',
-        action: () => this.reportError(errorLog)
-      }
+      { label: 'Report Issue', action: () => this.reportError(errorLog) }
     ];
+    const actions = actionsPre.filter((a, i, arr) => arr.findIndex(x => x.label === a.label) === i);
 
     return this.notificationService.showError(
       userFriendlyError.title,
@@ -193,7 +228,16 @@ export class ErrorHandlerService {
     errorLog: ErrorLog,
     recoveryActions?: Array<{ label: string; action: () => void }>
   ): string {
-    console.warn('MEDIUM ERROR:', errorLog.error, errorLog.context);
+    try {
+      console.warn('MEDIUM ERROR (detailed):', {
+        context: errorLog.context,
+        name: errorLog.error.name,
+        message: errorLog.error.message,
+        stack: errorLog.error.stack
+      });
+    } catch {
+      console.warn('MEDIUM ERROR:', errorLog.error, errorLog.context);
+    }
 
     // Create user-friendly error message
     const userFriendlyError = this.errorMessageService.createUserFriendlyError(
@@ -201,13 +245,15 @@ export class ErrorHandlerService {
       errorLog.context
     );
 
-    const actions = [
+    // Merge and de-duplicate actions by label to avoid duplicates like 'Report Issue'
+    const actionsPre = [
       ...(userFriendlyError.recoveryActions?.map(action => ({
         label: action.label,
         action: action.action
       })) || []),
       ...(recoveryActions || [])
     ];
+    const actions = actionsPre.filter((a, i, arr) => arr.findIndex(x => x.label === a.label) === i);
 
     return this.notificationService.showWarning(
       userFriendlyError.title,

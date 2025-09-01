@@ -165,7 +165,7 @@ The extension requires minimal permissions:
 ## 🏗️ Development
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 20.19+ (or 22.12+ for Angular 20 webview)
 - npm or yarn
 - Git
 
@@ -195,6 +195,12 @@ npm run package
 ```
 
 ### Angular Webview Build
+
+Angular 20 requires a recent Node.js version. Ensure one of the following is installed:
+- Node 20.19.x
+- Node 22.12.x or newer (22.x)
+
+Tip: use `nvm use` with the provided `.nvmrc` (22.12.0) to switch quickly.
 
 You can invoke Angular CLI from the repo root:
 
@@ -278,4 +284,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Made with ❤️ by ForgeFlow** | [Website](https://forgeflow.dev) | [GitHub](https://github.com/forgeflow)
-

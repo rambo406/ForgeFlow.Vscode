@@ -3,7 +3,7 @@
   "version": "0.1.1",
   "description": "Angular webview for Azure DevOps PR Code Reviewer",
   "engines": {
-    "node": ">=18 <22"
+    "node": ">=20.19 <21 || >=22.12 <23"
   },
   "scripts": {
     "ng": "ng",

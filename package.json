@@ -47,13 +47,15 @@
     "code-quality"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onCommand:azdo-pr-reviewer.configure",
     "onCommand:azdo-pr-reviewer.analyzePR",
     "onCommand:azdo-pr-reviewer.selectModel",
     "onCommand:azdo-pr-reviewer.quickAnalyze",
     "onCommand:azdo-pr-reviewer.testConnection",
     "onCommand:azdo-pr-reviewer.showStatus",
-    "onCommand:azdo-pr-reviewer.openDashboard"
+    "onCommand:azdo-pr-reviewer.openDashboard",
+    "onCommand:azdo-pr-reviewer.showOverview"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -99,6 +101,12 @@
         "title": "Open PR Dashboard",
         "category": "Azure DevOps PR Reviewer",
         "icon": "$(dashboard)"
+      },
+      {
+        "command": "azdo-pr-reviewer.showOverview",
+        "title": "Open Overview",
+        "category": "Azure DevOps PR Reviewer",
+        "icon": "$(home)"
       }
     ],
     "keybindings": [
@@ -143,6 +151,9 @@
         },
         {
           "command": "azdo-pr-reviewer.openDashboard"
+        },
+        {
+          "command": "azdo-pr-reviewer.showOverview"
         }
       ]
     },
@@ -186,6 +197,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable telemetry to help improve the extension"
+        },
+        "azdo-pr-reviewer.showOverviewOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Overview page when the extension activates"
         }
       }
     }

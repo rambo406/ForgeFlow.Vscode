@@ -1,7 +1,7 @@
-﻿<div class="h-full flex flex-col">
+<div class="h-full flex flex-col">
     <!-- Search and Filters - Enhanced Mobile-First Responsive -->
-    <div class="border-b border-vscode-panel-border bg-vscode-panel-background p-vscode-lg">
-        <div class="flex flex-col space-y-vscode-lg vscode-lg:flex-row vscode-lg:space-y-0 vscode-lg:items-center vscode-lg:gap-vscode-lg">
+    <div class="border-b border-vscode-panel-border bg-vscode-panel-background/95 p-vscode-lg sticky-subheader">
+        <div class="container-vscode flex flex-col space-y-vscode-lg vscode-lg:flex-row vscode-lg:space-y-0 vscode-lg:items-center vscode-lg:gap-vscode-lg">
             <!-- Search Input - Full Width on Mobile -->
             <div class="w-full vscode-sm:min-w-[300px] vscode-lg:flex-1">
                 <input
@@ -80,11 +80,11 @@
     <!-- Pull Request Table -->
     <div class="flex-1 overflow-auto">
         @if (isLoading()) {
-            <div class="flex items-center justify-center h-full">
+            <div class="flex items-center justify-center h-full container-vscode">
                 <div class="text-muted-foreground">Loading pull requests...</div>
             </div>
         } @else if (pullRequests().length === 0) {
-            <div class="flex flex-col items-center justify-center h-full text-center">
+            <div class="flex flex-col items-center justify-center h-full text-center container-vscode">
                 <div class="text-muted-foreground mb-2">No pull requests found</div>
                 <div class="text-sm text-muted-foreground">
                     @if (searchTerm() || filters().author || filters().status) {
@@ -151,7 +151,7 @@
                             }
                         </app-table-cell>
 
-                        <app-table-cell>
+                        <app-table-cell additionalClasses="hidden vscode-sm:table-cell">
                             <div class="text-sm">
                                 {{ formatDate(pr.createdDate) }}
                             </div>
@@ -162,7 +162,7 @@
                             }
                         </app-table-cell>
 
-                        <app-table-cell>
+                        <app-table-cell additionalClasses="hidden vscode-md:table-cell">
                             <div class="text-xs">
                                 <div>{{ pr.sourceRefName }} →</div>
                                 <div>{{ pr.targetRefName }}</div>

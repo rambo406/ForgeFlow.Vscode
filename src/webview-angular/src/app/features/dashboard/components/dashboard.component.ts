@@ -8,7 +8,7 @@ import { PullRequestListComponent } from '@features/dashboard';
 import { PullRequestDetailComponent } from '@features/dashboard';
 import { AppAlertComponent, AppButtonComponent } from '@shared/components';
 import { MessageService, MessageType } from '../../../core/services/message.service';
-import type { 
+import type {
   UpdateViewRequest,
   AIAnalysisProgressPayload,
   AIAnalysisCompletePayload,
@@ -29,14 +29,14 @@ import type { ConfigurationData, DashboardFilters } from '@core/models';
     AppAlertComponent,
     AppButtonComponent
   ],
-  templateUrl: './dashboard.component.html',
+  templateUrl:      './dashboard.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   readonly store = inject(DashboardStore);
   readonly messageService = inject(MessageService);
   readonly DashboardView = DashboardView;
-  
+
   private destroy$ = new Subject<void>();
 
   // Computed getters for template binding
@@ -51,24 +51,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     console.log('Dashboard component initialized - Angular migration in progress');
-    
+
     // Setup message listeners for legacy compatibility
     this.setupMessageListeners();
-    
+
     // Initialize dashboard by loading configuration
     this.store.loadConfiguration();
-    
+
     // The store will reactively handle loading pull requests if configuration is valid
     // through the message listeners and computed properties
-    
+
     console.log('Dashboard initialization complete');
   }
-  
+
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
   }
-  
+
   /**
    * Setup message listeners to maintain compatibility with legacy message protocol
    */
@@ -125,7 +125,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(msg => this.handleSuccessMessage((msg.payload as NotificationPayload)?.message || 'Operation completed'));
   }
-  
+
   /**
    * Handle error messages from extension
    */
@@ -133,7 +133,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     console.error('Extension error:', message);
     // The store will be updated via the message service's error handling
   }
-  
+
   /**
    * Handle success messages from extension
    */
@@ -157,7 +157,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   onSaveConfiguration(config: Partial<ConfigurationData>): void {
     // Trigger configuration update
     this.store.updateConfiguration(config);
-    
+
     // If configuration is now valid, switch to pull request list and load data
     // This will be handled reactively by the store
     if (this.store.hasValidConfiguration()) {

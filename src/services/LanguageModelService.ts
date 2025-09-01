@@ -72,40 +72,33 @@ export class LanguageModelService {
      */
     async getSelectedModel(modelPreference?: string): Promise<vscode.LanguageModelChat> {
         try {
-            let models: vscode.LanguageModelChat[];
+            // Query all available models once to avoid triggering vendor-specific initialization issues
+            const allModels: vscode.LanguageModelChat[] = await vscode.lm.selectChatModels();
 
-            if (modelPreference) {
-                // Try to get the specific preferred model
-                models = await vscode.lm.selectChatModels({
-                    id: modelPreference
-                });
-
-                if (models.length > 0) {
-                    return models[0];
-                }
-
-                console.warn(`Preferred model ${modelPreference} not available, falling back to default`);
-            }
-
-            // Fallback to Copilot models if available
-            models = await vscode.lm.selectChatModels({
-                vendor: 'copilot'
-            });
-
-            if (models.length > 0) {
-                // Prefer GPT-4 models for better code analysis
-                const gpt4Model = models.find(m => m.family.toLowerCase().includes('gpt-4'));
-                return gpt4Model || models[0];
-            }
-
-            // Final fallback to any available model
-            models = await vscode.lm.selectChatModels();
-            
-            if (models.length === 0) {
+            if (allModels.length === 0) {
                 throw new LanguageModelError('No language models available');
             }
 
-            return models[0];
+            // If a specific model was requested, try to match it from the available list
+            if (modelPreference) {
+                const byExactId = allModels.find(m => m.id === modelPreference);
+                if (byExactId) { return byExactId; }
+
+                // Some providers expose IDs with prefixes; try includes as a soft match
+                const bySoftId = allModels.find(m => m.id.toLowerCase().includes(modelPreference.toLowerCase()));
+                if (bySoftId) { return bySoftId; }
+
+                console.warn(`Preferred model ${modelPreference} not available, selecting best available model`);
+            }
+
+            // Prefer Copilot GPT-4 family when present, but do not explicitly query the vendor
+            const copilotModels = allModels.filter(m => (m.vendor || '').toLowerCase() === 'copilot');
+            const copilotGpt4 = copilotModels.find(m => (m.family || '').toLowerCase().includes('gpt-4'));
+            if (copilotGpt4) { return copilotGpt4; }
+            if (copilotModels.length > 0) { return copilotModels[0]; }
+
+            // Otherwise, select the first available model
+            return allModels[0];
         } catch (error) {
             if (error instanceof LanguageModelError) {
                 throw error;

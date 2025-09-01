@@ -26,8 +26,8 @@ export async function activate(context: vscode.ExtensionContext) {
         // Register all commands
         await extensionCommands.registerCommands();
 
-        // Show welcome message for first-time users
-        await showWelcomeMessage(context);
+        // Show Overview page (Angular route) depending on settings/config
+        await maybeShowOverview();
 
         // Add telemetry service to disposables
         context.subscriptions.push({
@@ -76,20 +76,17 @@ export function deactivate() {
 /**
  * Show welcome message for first-time users
  */
-async function showWelcomeMessage(context: vscode.ExtensionContext) {
-    const hasShownWelcome = context.globalState.get<boolean>('hasShownWelcome', false);
-    
-    if (!hasShownWelcome) {
-        const result = await vscode.window.showInformationMessage(
-            'Welcome to Azure DevOps PR Code Reviewer! Would you like to configure it now?',
-            'Configure Now',
-            'Later'
-        );
-        
-        if (result === 'Configure Now') {
-            await vscode.commands.executeCommand('azdo-pr-reviewer.configure');
+async function maybeShowOverview() {
+    try {
+        const config = vscode.workspace.getConfiguration('azdo-pr-reviewer');
+        const showOnStartup = config.get<boolean>('showOverviewOnStartup', true);
+        const isConfigured = await configurationManager.isConfigured();
+
+        // Always show if not configured. Otherwise respect the setting.
+        if (!isConfigured || showOnStartup) {
+            await vscode.commands.executeCommand('azdo-pr-reviewer.showOverview');
         }
-        
-        await context.globalState.update('hasShownWelcome', true);
+    } catch (err) {
+        console.error('Failed to show overview:', err);
     }
 }

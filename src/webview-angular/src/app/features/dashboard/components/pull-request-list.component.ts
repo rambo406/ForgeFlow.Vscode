@@ -49,8 +49,8 @@ export class PullRequestListComponent {
     { key: 'title', label: 'Pull Request', sortable: true },
     { key: 'author', label: 'Author', sortable: true },
     { key: 'status', label: 'Status', sortable: true },
-    { key: 'createdDate', label: 'Created', sortable: true },
-    { key: 'branch', label: 'Branch', sortable: false },
+    { key: 'createdDate', label: 'Created', sortable: true, hideOnMobile: true },
+    { key: 'branch', label: 'Branch', sortable: false, hideOnTablet: true },
     { key: 'actions', label: 'Actions', sortable: false }
   ];
 
@@ -138,7 +138,15 @@ export class PullRequestListComponent {
     }
   }
 
-  formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString();
+  formatDate(dateString?: string): string {
+    if (!dateString) { return ''; }
+    const d = new Date(String(dateString));
+    // Guard against Invalid Date which throws on toLocaleDateString
+    if (isNaN(d.getTime())) { return ''; }
+    try {
+      return d.toLocaleDateString();
+    } catch {
+      return d.toDateString();
+    }
   }
 }

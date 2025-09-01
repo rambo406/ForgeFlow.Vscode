@@ -94,6 +94,33 @@ module.exports = plugin(function({ addComponents, addUtilities }) {
       'padding': '16px',
       'box-shadow': '0 1px 3px rgba(0, 0, 0, 0.1)',
     },
+
+    // Layout containers for consistent paddings and max width
+    '.container-vscode': {
+      'max-width': '1200px',
+      'margin-left': 'auto',
+      'margin-right': 'auto',
+      'padding-left': '1rem',
+      'padding-right': '1rem',
+    },
+
+    // Responsive flex helper used across views
+    '.flex-responsive': {
+      'display': 'flex',
+      'flex-direction': 'column',
+    },
+
+    // Dashboard grid helpers used by dashboard views
+    '.dashboard-main-grid': {
+      'display': 'grid',
+      'grid-template-columns': '1fr',
+      'height': '100%',
+    },
+    '.dashboard-grid': {
+      'display': 'grid',
+      'grid-template-columns': 'repeat(12, minmax(0, 1fr))',
+      'gap': '1rem',
+    },
   });
 
   // Utility Classes
@@ -151,6 +178,15 @@ module.exports = plugin(function({ addComponents, addUtilities }) {
         'outline': '2px solid var(--vscode-focusBorder)',
         'outline-offset': '1px',
       },
+    },
+
+    // Sticky blurred subheaders (e.g., filter bars)
+    '.sticky-subheader': {
+      'position': 'sticky',
+      'top': '0',
+      'z-index': '10',
+      'backdrop-filter': 'saturate(180%) blur(8px)',
+      '-webkit-backdrop-filter': 'saturate(180%) blur(8px)'
     },
   });
 });

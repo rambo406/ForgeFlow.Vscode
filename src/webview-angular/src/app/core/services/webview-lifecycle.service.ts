@@ -162,27 +162,9 @@ export class WebviewLifecycleService implements OnDestroy {
    * Set up error handling
    */
   private setupErrorHandling(): void {
-    // Global error handler
-    window.addEventListener('error', (event) => {
-      console.error('Global error:', event.error);
-      this._hasError.set(true);
-      
-      this.messageService.showError(
-        'An unexpected error occurred',
-        event.error?.message || 'Unknown error'
-      );
-    });
-
-    // Unhandled promise rejection handler
-    window.addEventListener('unhandledrejection', (event) => {
-      console.error('Unhandled promise rejection:', event.reason);
-      this._hasError.set(true);
-      
-      this.messageService.showError(
-        'An unexpected error occurred',
-        event.reason?.message || 'Unknown error'
-      );
-    });
+    // Global error handling is centralized in ErrorHandlerService/Angular ErrorHandler.
+    // Avoid adding additional window-level listeners here to prevent duplicate handling
+    // and potential feedback loops on startup.
   }
 
   /**

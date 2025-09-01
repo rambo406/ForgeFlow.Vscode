@@ -288,7 +288,10 @@ export const CommentPreviewStore = signalStore(
       })
     };
   }),
-  withMethods((store, messageService = inject(MessageService)) => ({
+  withMethods((store) => {
+    // Inject inside the methods factory to ensure a valid Angular injection context
+    const messageService = inject(MessageService);
+    return ({
     /**
      * Load comments for a pull request using rxMethod
      * Converted from async/await to rxMethod pattern for better cancellation and composition
@@ -975,5 +978,6 @@ export const CommentPreviewStore = signalStore(
         throw error;
       }
     }
-  }))
+  });
+  })
 );

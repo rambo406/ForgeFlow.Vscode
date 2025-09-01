@@ -54,7 +54,9 @@ export enum MessageType {
     EXPORT_SETTINGS = 'exportSettings',
     IMPORT_SETTINGS = 'importSettings',
     SETTINGS_CHANGED = 'settingsChanged',
-    LOAD_AVAILABLE_MODELS = 'loadAvailableModels'
+    LOAD_AVAILABLE_MODELS = 'loadAvailableModels',
+    // Navigation
+    NAVIGATE = 'navigate'
 }
 
 /**
@@ -102,7 +104,7 @@ export class PRDashboardController {
     /**
      * Create or show the dashboard panel
      */
-    public async createOrShow(): Promise<void> {
+    public async createOrShow(initialRoute?: string): Promise<void> {
         const column = vscode.window.activeTextEditor
                 ? vscode.window.activeTextEditor.viewColumn
                 : undefined;
@@ -129,6 +131,18 @@ export class PRDashboardController {
         this.panel.webview.html = this.getWebviewContent();
         this.setupMessageHandling();
         this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+
+        // Send initial navigation route to Angular webview if provided
+        if (initialRoute) {
+            try {
+                // Post after a short delay to allow Angular to bootstrap
+                setTimeout(() => {
+                    this.sendMessage({ type: MessageType.NAVIGATE, payload: { path: `/${initialRoute}` } });
+                }, 50);
+            } catch (e) {
+                // ignore
+            }
+        }
     }
 
     /**
@@ -1166,8 +1180,40 @@ export class PRDashboardController {
     <script nonce="${nonce}">
         window.vscode = acquireVsCodeApi();
         const previousState = window.vscode.getState(); if (previousState) { window.vsCodeState = previousState; }
-        window.addEventListener('error', function(e){ console.error('Angular application error:', e.error); window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application failed to initialize: ' + (e.error?.message || e.message) } }); });
-        window.addEventListener('unhandledrejection', function(e){ console.error('Unhandled promise rejection:', e.reason); window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application error: ' + (e.reason?.message || e.reason) } }); });
+        window.addEventListener('error', function(e){
+          try {
+            const err = e && (e.error || new Error(e.message));
+            console.error('Angular application error (detailed):', {
+              name: err?.name,
+              message: err?.message || e.message,
+              stack: err?.stack,
+              ngErrorCode: err && (err as any).ngErrorCode,
+              code: err && (err as any).code,
+              originalEvent: e
+            });
+            window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application failed to initialize: ' + (err?.message || e.message), details: err?.stack || String(err) } });
+          } catch (ex) {
+            console.error('Angular application error:', e.error || e.message);
+            window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application failed to initialize: ' + (e.error?.message || e.message) } });
+          }
+        });
+        window.addEventListener('unhandledrejection', function(e){
+          try {
+            const reason = e && (e.reason instanceof Error ? e.reason : new Error(String(e.reason)));
+            console.error('Unhandled promise rejection (detailed):', {
+              name: reason?.name,
+              message: reason?.message,
+              stack: reason?.stack,
+              ngErrorCode: reason && (reason as any).ngErrorCode,
+              code: reason && (reason as any).code,
+              originalEvent: e
+            });
+            window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application error: ' + (reason?.message || String(e.reason)), details: reason?.stack || String(e.reason) } });
+          } catch (ex) {
+            console.error('Unhandled promise rejection:', e.reason);
+            window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application error: ' + (e.reason?.message || e.reason) } });
+          }
+        });
     </script>
 </body>
 </html>`;

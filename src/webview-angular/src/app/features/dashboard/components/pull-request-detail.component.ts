@@ -19,8 +19,8 @@ import {
   template: `
     <div class="h-full flex flex-col">
       <!-- Header -->
-      <div class="border-b border-border bg-card p-4">
-        <div class="flex items-center justify-between">
+      <div class="border-b border-border bg-card/95 p-4 sticky top-0 z-20 backdrop-blur">
+        <div class="container-vscode flex items-center justify-between">
           <div class="flex items-center gap-4">
             <app-button 
               variant="outline" 
@@ -76,8 +76,8 @@ import {
           </div>
         } @else {
           <!-- Tabs for different sections -->
-          <div class="border-b border-border bg-card">
-            <div class="flex">
+          <div class="border-b border-border bg-card/95 sticky top-[57px] z-10 backdrop-blur">
+            <div class="container-vscode flex">
               <button 
                 class="px-4 py-2 text-sm border-b-2 transition-colors"
                 [class.border-primary]="activeTab() === 'overview'"
@@ -116,7 +116,7 @@ import {
             </div>
           </div>
 
-          <div class="p-4">
+          <div class="p-4 container-vscode">
             <!-- Overview Tab -->
             @if (activeTab() === 'overview') {
               <div class="space-y-6">
@@ -633,7 +633,14 @@ export class PullRequestDetailComponent {
     return ext.toUpperCase();
   }
 
-  formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString();
+  formatDate(dateString?: string): string {
+    if (!dateString) { return ''; }
+    const d = new Date(String(dateString));
+    if (isNaN(d.getTime())) { return ''; }
+    try {
+      return d.toLocaleDateString();
+    } catch {
+      return d.toDateString();
+    }
   }
 }

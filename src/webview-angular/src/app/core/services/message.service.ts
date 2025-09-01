@@ -52,6 +52,9 @@ export enum MessageType {
   IMPORT_SETTINGS = 'importSettings',
   SETTINGS_CHANGED = 'settingsChanged',
   LOAD_AVAILABLE_MODELS = 'loadAvailableModels'
+  ,
+  // Navigation
+  NAVIGATE = 'navigate'
 }
 
 /**

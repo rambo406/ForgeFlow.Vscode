@@ -286,8 +286,10 @@ export class PullRequestItemComponent {
       .slice(0, 2);
   }
 
-  formatDate(dateString: string): string {
-    const date = new Date(dateString);
+  formatDate(dateString?: string): string {
+    if (!dateString) { return ''; }
+    const date = new Date(String(dateString));
+    if (isNaN(date.getTime())) { return ''; }
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -297,7 +299,11 @@ export class PullRequestItemComponent {
     } else if (diffDays < 7) {
       return `${diffDays} days ago`;
     } else {
-      return date.toLocaleDateString();
+      try {
+        return date.toLocaleDateString();
+      } catch {
+        return date.toDateString();
+      }
     }
   }
 

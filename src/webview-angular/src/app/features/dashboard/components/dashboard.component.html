@@ -1,4 +1,4 @@
-<div class="h-screen flex flex-col bg-background text-foreground">
+  <div class="h-screen flex flex-col bg-background text-foreground">
     <!-- Header -->
     <div class="flex-shrink-0 border-b border-border">
         <app-dashboard-header
@@ -49,8 +49,8 @@
                     <div class="col-span-full overflow-auto">
                         <div class="h-full flex flex-col">
                             <!-- Filters and Search Bar - Mobile-First Responsive -->
-                            <div class="flex-shrink-0 border-b border-border bg-card">
-                                <div class="p-vscode-lg">
+                            <div class="flex-shrink-0 border-b border-border bg-card/90 sticky-subheader">
+                                <div class="p-vscode-lg container-vscode">
                                     <div class="flex-responsive gap-vscode-lg">
                                         <div class="w-full vscode-sm:w-auto vscode-sm:flex-1">
                                             <!-- Search and filters will be part of the list component -->
@@ -61,7 +61,7 @@
 
                             <!-- Pull Request Grid - Optimized Layout -->
                             <div class="flex-1 overflow-auto p-vscode-lg">
-                                <div class="dashboard-grid">
+                                <div class="dashboard-grid container-vscode">
                                     <div class="col-span-full">
                                         <app-pull-request-list
                                                 [pullRequests]="store.sortedPullRequests()"

@@ -5,6 +5,7 @@ import { LanguageModelService } from '../services/LanguageModelService';
 import { CommentManager, CommentManagerOptions } from '../services/CommentManager';
 import { PullRequest } from '../models/AzureDevOpsModels';
 import { PRDashboardController } from '../controllers/PRDashboardController';
+import { OverviewController } from '../controllers/OverviewController';
 
 /**
  * Information about pull request selection
@@ -91,6 +92,7 @@ export class ExtensionCommands implements vscode.Disposable {
     private commentManager?: CommentManager;
     private statusBarManager: StatusBarManager;
     private dashboardController?: PRDashboardController;
+    // Overview is now an Angular route; use PRDashboardController
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -136,6 +138,11 @@ export class ExtensionCommands implements vscode.Disposable {
         // Register dashboard command
         this.disposables.push(
             vscode.commands.registerCommand('azdo-pr-reviewer.openDashboard', this.handleOpenDashboardCommand.bind(this))
+        );
+
+        // Register overview command (opens Angular webview to overview route)
+        this.disposables.push(
+            vscode.commands.registerCommand('azdo-pr-reviewer.showOverview', this.handleShowOverviewCommand.bind(this))
         );
 
         console.log('Extension commands registered successfully');
@@ -745,6 +752,30 @@ export class ExtensionCommands implements vscode.Disposable {
     }
 
     /**
+     * Handle the show overview command
+     */
+    private async handleShowOverviewCommand(): Promise<void> {
+        try {
+            // Initialize services before opening dashboard webview
+            await this.initializeServices();
+
+            if (!this.dashboardController) {
+                this.dashboardController = new PRDashboardController(
+                    this.context,
+                    this.configurationManager,
+                    this.azureDevOpsClient
+                );
+            }
+
+            await this.dashboardController.createOrShow('overview');
+        } catch (error) {
+            console.error('Show overview command failed:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            vscode.window.showErrorMessage(`Failed to open overview: ${errorMessage}`);
+        }
+    }
+
+    /**
      * Show detailed analysis results
      */
     private async showAnalysisDetails(summary: string): Promise<void> {
@@ -833,5 +864,7 @@ ${summary.replace(/\n/g, '<br>')}
         if (this.dashboardController) {
             this.dashboardController.dispose();
         }
+
+        // Overview is part of dashboard webview now
     }
 }
