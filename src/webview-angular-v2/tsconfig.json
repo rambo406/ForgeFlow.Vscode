@@ -9,6 +9,8 @@
         "experimentalDecorators": true,
         "target": "es2022",
         "useDefineForClassFields": false,
+        "strict": true,
+        "skipLibCheck": true,
         "lib": [
             "es2022",
             "dom"

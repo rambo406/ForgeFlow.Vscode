@@ -1172,6 +1172,7 @@ export class PRDashboardController {
         </div>
     </app-root>
 
+    <script nonce="${nonce}">(function(){ if (typeof ngDevMode === 'undefined') { try { window['ngDevMode'] = false; } catch(e) { /* ignore */ } } })();</script>
     ${runtimeJsUri ? `<script nonce="${nonce}" src="${runtimeJsUri}"></script>` : ''}
     ${polyfillsJsUri ? `<script nonce="${nonce}" src="${polyfillsJsUri}"></script>` : ''}
     ${vendorJsUri ? `<script nonce="${nonce}" src="${vendorJsUri}"></script>` : ''}
@@ -1180,40 +1181,40 @@ export class PRDashboardController {
     <script nonce="${nonce}">
         window.vscode = acquireVsCodeApi();
         const previousState = window.vscode.getState(); if (previousState) { window.vsCodeState = previousState; }
-        window.addEventListener('error', function(e){
-          try {
-            const err = e && (e.error || new Error(e.message));
-            console.error('Angular application error (detailed):', {
-              name: err?.name,
-              message: err?.message || e.message,
-              stack: err?.stack,
-              ngErrorCode: err && (err as any).ngErrorCode,
-              code: err && (err as any).code,
-              originalEvent: e
-            });
-            window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application failed to initialize: ' + (err?.message || e.message), details: err?.stack || String(err) } });
-          } catch (ex) {
-            console.error('Angular application error:', e.error || e.message);
-            window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application failed to initialize: ' + (e.error?.message || e.message) } });
-          }
-        });
-        window.addEventListener('unhandledrejection', function(e){
-          try {
-            const reason = e && (e.reason instanceof Error ? e.reason : new Error(String(e.reason)));
-            console.error('Unhandled promise rejection (detailed):', {
-              name: reason?.name,
-              message: reason?.message,
-              stack: reason?.stack,
-              ngErrorCode: reason && (reason as any).ngErrorCode,
-              code: reason && (reason as any).code,
-              originalEvent: e
-            });
-            window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application error: ' + (reason?.message || String(e.reason)), details: reason?.stack || String(e.reason) } });
-          } catch (ex) {
-            console.error('Unhandled promise rejection:', e.reason);
-            window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application error: ' + (e.reason?.message || e.reason) } });
-          }
-        });
+                window.addEventListener('error', function(e){
+                    try {
+                        const err = e && (e.error || new Error(e.message));
+                        console.error('Angular application error (detailed):', {
+                            name: err && err.name,
+                            message: err && err.message || e.message,
+                            stack: err && err.stack,
+                            ngErrorCode: err && err.ngErrorCode,
+                            code: err && err.code,
+                            originalEvent: e
+                        });
+                        window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application failed to initialize: ' + (err && err.message || e.message), details: (err && err.stack) || String(err) } });
+                    } catch (ex) {
+                        console.error('Angular application error:', e && (e.error || e.message));
+                        window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application failed to initialize: ' + (e && (e.error && e.error.message) || e && e.message) } });
+                    }
+                });
+                window.addEventListener('unhandledrejection', function(e){
+                    try {
+                        const reason = e && (e.reason instanceof Error ? e.reason : new Error(String(e.reason)));
+                        console.error('Unhandled promise rejection (detailed):', {
+                            name: reason && reason.name,
+                            message: reason && reason.message,
+                            stack: reason && reason.stack,
+                            ngErrorCode: reason && reason.ngErrorCode,
+                            code: reason && reason.code,
+                            originalEvent: e
+                        });
+                        window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application error: ' + (reason && reason.message || String(e.reason)), details: (reason && reason.stack) || String(e.reason) } });
+                    } catch (ex) {
+                        console.error('Unhandled promise rejection:', e && e.reason);
+                        window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application error: ' + (e && (e.reason && e.reason.message) || e && e.reason) } });
+                    }
+                });
     </script>
 </body>
 </html>`;
