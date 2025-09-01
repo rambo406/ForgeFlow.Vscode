@@ -5,7 +5,6 @@ import { LanguageModelService } from '../services/LanguageModelService';
 import { CommentManager, CommentManagerOptions } from '../services/CommentManager';
 import { PullRequest } from '../models/AzureDevOpsModels';
 import { PRDashboardController } from '../controllers/PRDashboardController';
-import { OverviewController } from '../controllers/OverviewController';
 
 /**
  * Information about pull request selection

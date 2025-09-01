@@ -14,7 +14,7 @@ The Tailwind CSS system is already configured in the project. No additional inst
 
 ### File Structure
 ```
-src/webview-angular/
+src/webview-angular-v2/
 ├── tailwind.config.js          # Tailwind configuration
 ├── src/styles/
 │   ├── globals.scss            # Global styles and Tailwind imports

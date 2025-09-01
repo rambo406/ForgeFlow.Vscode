@@ -89,7 +89,7 @@ function removeDirectory(dirPath, description) {
 
 async function main() {
   const rootDir = path.resolve(__dirname, '..');
-  const webviewDir = path.resolve(rootDir, 'src/webview-angular');
+  const webviewDir = path.resolve(rootDir, 'src/webview-angular-v2');
   const distDir = path.resolve(rootDir, 'dist');
   
   console.log(`\n📁 Project structure:`);
@@ -127,49 +127,52 @@ async function main() {
   }
   
   // 3. Build Angular webview
-  // If local Node is incompatible with Angular CLI 20, run the build using a shimmed Node runtime via npx node@22.12.0
-  let angularBuildCmd = isProduction ? 'npm run build:prod' : 'npm run build';
-  try {
-    const [major, minor] = process.versions.node.split('.').map(n => parseInt(n, 10));
-    const nodeOk = ((major === 20 && minor >= 19) || (major === 22 && minor >= 12));
-    if (!nodeOk) {
-      const ngBin = path.resolve(webviewDir, 'node_modules', '@angular', 'cli', 'bin', 'ng.js');
-      const configFlag = isProduction ? '--configuration production' : '--configuration development';
-      angularBuildCmd = `npx -y node@22.12.0 -- ${ngBin} build ${configFlag}`;
-    }
-  } catch {}
-  const angularOk = runCommandSafe(angularBuildCmd, webviewDir, `Building Angular webview (${mode})`);
-  if (!angularOk) {
-    console.error('\n⚠️ Angular webview build failed, creating a minimal fallback webview dist so extension build can continue.');
-    // Create a minimal webview dist so the extension build has assets to copy
-    const webviewDist = path.resolve(webviewDir, 'dist');
+  const buildAngularWebview = (dir) => {
+    let buildCmd = isProduction ? 'npm run build:prod' : 'npm run build';
     try {
-      if (!fs.existsSync(webviewDist)) fs.mkdirSync(webviewDist, { recursive: true });
-      const indexHtml = path.resolve(webviewDist, 'index.html');
-      fs.writeFileSync(indexHtml, '<!doctype html><html><head><meta charset="utf-8"><title>Webview (fallback)</title></head><body><div id="app">Fallback webview build</div><script src="main.js"></script></body></html>');
-      const mainJs = path.resolve(webviewDist, 'main.js');
-      fs.writeFileSync(mainJs, 'console.warn("Fallback webview bundle - replace with a real build for full functionality.");');
-      console.log('✅ Created fallback webview dist with index.html and main.js');
-    } catch (writeErr) {
-      console.error('❌ Failed to create fallback webview dist:', writeErr.message);
-      process.exit(1);
+      const [major, minor] = process.versions.node.split('.').map(n => parseInt(n, 10));
+      const nodeOk = ((major === 20 && minor >= 19) || (major === 22 && minor >= 12));
+      if (!nodeOk) {
+        const ngBin = path.resolve(dir, 'node_modules', '@angular', 'cli', 'bin', 'ng.js');
+        const configFlag = isProduction ? '--configuration production' : '--configuration development';
+        buildCmd = `npx -y node@22.12.0 -- ${ngBin} build ${configFlag}`;
+      }
+    } catch {}
+    const ok = runCommandSafe(buildCmd, dir, `Building Angular webview (${mode})`);
+    if (!ok) {
+      console.error(`\n⚠️ Angular webview build failed, creating a minimal fallback dist so extension build can continue.`);
+      const webviewDist = path.resolve(dir, 'dist');
+      try {
+        if (!fs.existsSync(webviewDist)) fs.mkdirSync(webviewDist, { recursive: true });
+        const indexHtml = path.resolve(webviewDist, 'index.html');
+        fs.writeFileSync(indexHtml, '<!doctype html><html><head><meta charset="utf-8"><title>Webview (fallback)</title></head><body><div id="app">Fallback webview build</div><script src="main.js"></script></body></html>');
+        const mainJs = path.resolve(webviewDist, 'main.js');
+        fs.writeFileSync(mainJs, 'console.warn("Fallback webview bundle - replace with a real build for full functionality.");');
+        console.log(`✅ Created fallback webview dist with index.html and main.js`);
+      } catch (writeErr) {
+        console.error(`❌ Failed to create fallback webview dist:`, writeErr.message);
+        process.exit(1);
+      }
     }
-  }
+  };
+
+  buildAngularWebview(webviewDir);
   
   // 4. Verify webview build output
-  const webviewDistDir = path.resolve(webviewDir, 'dist');
-  if (!fs.existsSync(webviewDistDir)) {
-    console.error('❌ Angular webview build failed - no dist folder found');
-    process.exit(1);
-  }
-  
-  const indexHtml = path.resolve(webviewDistDir, 'index.html');
-  if (!fs.existsSync(indexHtml)) {
-    console.error('❌ Angular webview build failed - no index.html found');
-    process.exit(1);
-  }
-  
-  console.log('✅ Angular webview build verification passed');
+  const verifyDist = (dir) => {
+    const d = path.resolve(dir, 'dist');
+    if (!fs.existsSync(d)) {
+      console.error(`❌ Angular webview build failed - no dist folder found`);
+      process.exit(1);
+    }
+    const index = path.resolve(d, 'index.html');
+    if (!fs.existsSync(index)) {
+      console.error(`❌ Angular webview build failed - no index.html found`);
+      process.exit(1);
+    }
+    console.log(`✅ Angular webview build verification passed`);
+  };
+  verifyDist(webviewDir);
   
   // 5. Ensure extension dist directory exists
   ensureDirectory(distDir);

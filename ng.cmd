@@ -6,9 +6,9 @@ REM Resolve repo root (directory of this script)
 set SCRIPT_DIR=%~dp0
 
 REM Change to the Angular webview workspace
-pushd "%SCRIPT_DIR%src\webview-angular" >NUL 2>&1
+pushd "%SCRIPT_DIR%src\webview-angular-v2" >NUL 2>&1
 if errorlevel 1 (
-  echo [ng.cmd] Error: Could not locate src\webview-angular.>&2
+  echo [ng.cmd] Error: Could not locate src\webview-angular-v2.>&2
   echo Run Angular commands from the webview directory or via:>&2
   echo    npm run build:webview>&2
   exit /b 1

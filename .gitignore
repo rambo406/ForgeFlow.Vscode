@@ -8,7 +8,7 @@ node_modules
 out
 dist
 .angular
-src/webview-angular/src/webview-angular/
+src/webview-angular-v2/src/webview-angular-v2/
 **/*.vsix
 .vscode-test/
 *.log

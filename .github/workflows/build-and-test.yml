@@ -29,7 +29,7 @@ jobs:
       
     - name: Install webview dependencies
       run: |
-        cd src/webview-angular
+        cd src/webview-angular-v2
         npm ci
     
     - name: Lint extension code
@@ -37,12 +37,12 @@ jobs:
       
     - name: Lint webview code
       run: |
-        cd src/webview-angular
+        cd src/webview-angular-v2
         npm run lint
         
     - name: Test webview (if tests exist)
       run: |
-        cd src/webview-angular
+        cd src/webview-angular-v2
         npm run test || echo "No tests to run"
     
     - name: Build extension (development)
@@ -92,7 +92,7 @@ jobs:
     - name: Install dependencies
       run: |
         npm ci
-        cd src/webview-angular && npm ci
+        cd src/webview-angular-v2 && npm ci
     
     - name: Build extension
       run: npm run build:prod
@@ -117,7 +117,7 @@ jobs:
     - name: Install dependencies
       run: |
         npm ci
-        cd src/webview-angular && npm ci
+        cd src/webview-angular-v2 && npm ci
     
     - name: Build extension for performance analysis
       run: npm run build:prod
@@ -146,7 +146,7 @@ jobs:
         
     - name: Bundle analysis (Angular)
       run: |
-        cd src/webview-angular
+        cd src/webview-angular-v2
         if [ -f dist/stats.json ]; then
           echo "📈 Angular bundle analysis available in stats.json"
           echo "Use webpack-bundle-analyzer to analyze:"
@@ -171,5 +171,5 @@ jobs:
       
     - name: Audit webview dependencies
       run: |
-        cd src/webview-angular
+        cd src/webview-angular-v2
         npm audit --audit-level=moderate

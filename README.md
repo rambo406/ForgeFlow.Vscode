@@ -205,7 +205,7 @@ Tip: use `nvm use` with the provided `.nvmrc` (22.12.0) to switch quickly.
 You can invoke Angular CLI from the repo root:
 
 ```bash
-# Build webview (wrapper forwards to src/webview-angular)
+# Build webview (wrapper forwards to src/webview-angular-v2)
 ng build           # or: npm run ng -- build
 
 # Production build
@@ -215,7 +215,7 @@ ng build --configuration production
 If the wrapper is not picked up in your shell, use:
 
 ```bash
-cd src/webview-angular && ng build
+cd src/webview-angular-v2 && ng build
 ```
 
 ### Project Structure
@@ -226,7 +226,7 @@ src/
 ├── services/                 # Core business logic
 ├── models/                   # Data models and interfaces
 ├── utils/                    # Utility functions
-├── webview-angular/          # Angular webview application
+├── webview-angular-v2/       # Angular webview application
 │   ├── src/                  # Angular source code
 │   ├── libs/ui/              # Tailwind-based UI component library
 │   └── tailwind.config.js    # Tailwind CSS configuration

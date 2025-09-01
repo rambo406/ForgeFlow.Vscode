@@ -9,7 +9,7 @@ The VS Code Tailwind plugin (`tailwind-vscode-plugin.js`) extends Tailwind CSS w
 ## 📁 File Location
 
 ```
-src/webview-angular/src/styles/tailwind-vscode-plugin.js
+src/webview-angular-v2/src/styles/tailwind-vscode-plugin.js
 ```
 
 ## 🔧 Plugin Configuration

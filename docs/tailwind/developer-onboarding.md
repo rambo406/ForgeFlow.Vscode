@@ -5,6 +5,7 @@ Welcome to the Azure DevOps PR Code Reviewer extension development team! This gu
 ## 🎯 Quick Start
 
 ### Prerequisites
+
 - VS Code with TypeScript and Angular extensions
 - Node.js 18+
 - Basic understanding of Tailwind CSS
@@ -13,6 +14,7 @@ Welcome to the Azure DevOps PR Code Reviewer extension development team! This gu
 ### First Steps
 
 1. **Clone and Setup**
+
 ```bash
 git clone <repository-url>
 cd azdo-pr-code-reviewer
@@ -20,12 +22,13 @@ npm install
 ```
 
 2. **Development Environment**
+
 ```bash
 # Start development build with watch mode
 npm run watch
 
 # Start Angular development server
-cd src/webview-angular
+cd src/webview-angular-v2
 npm run dev
 ```
 
@@ -36,6 +39,7 @@ npm run dev
 ## 🎨 Design System Overview
 
 ### VS Code Integration
+
 Our design system is built on VS Code's theme variables, ensuring seamless integration with the editor's appearance.
 
 ```html
@@ -46,6 +50,7 @@ Our design system is built on VS Code's theme variables, ensuring seamless integ
 ```
 
 ### Component Philosophy
+
 We follow a **utility-first approach** with **component classes** for common patterns:
 
 ```html
@@ -60,9 +65,9 @@ We follow a **utility-first approach** with **component classes** for common pat
 
 <!-- ❌ Avoid: Custom CSS for existing patterns -->
 <style>
-.custom-button {
-  /* Don't do this - use component classes */
-}
+  .custom-button {
+    /* Don't do this - use component classes */
+  }
 </style>
 ```
 
@@ -79,8 +84,9 @@ Learn these essential component classes first:
 <button class="btn-vscode-ghost">Ghost Button</button>
 
 <!-- Form Inputs -->
-<input class="input-vscode" type="text" placeholder="Enter text">
-<input class="input-vscode input-vscode-error" type="text"> <!-- Error state -->
+<input class="input-vscode" type="text" placeholder="Enter text" />
+<input class="input-vscode input-vscode-error" type="text" />
+<!-- Error state -->
 
 <!-- Containers -->
 <div class="card-vscode">Card with shadow</div>
@@ -131,11 +137,14 @@ We use custom breakpoints designed for VS Code webview panels:
 <!-- Responsive button layout -->
 <div class="flex flex-col vscode-sm:flex-row gap-vscode-sm">
   <button class="btn-vscode w-full vscode-sm:w-auto">Primary</button>
-  <button class="btn-vscode-secondary w-full vscode-sm:w-auto">Secondary</button>
+  <button class="btn-vscode-secondary w-full vscode-sm:w-auto">
+    Secondary
+  </button>
 </div>
 ```
 
 **Breakpoint Reference:**
+
 - `vscode-sm`: 576px+ (Small panels)
 - `vscode-md`: 768px+ (Medium panels)
 - `vscode-lg`: 1024px+ (Large panels)
@@ -148,7 +157,7 @@ We use custom breakpoints designed for VS Code webview panels:
 Understanding the project structure:
 
 ```
-src/webview-angular/
+src/webview-angular-v2/
 ├── tailwind.config.js          # Tailwind configuration
 ├── src/styles/
 │   ├── globals.scss            # Global styles
@@ -163,6 +172,7 @@ src/webview-angular/
 Follow this pattern when creating new components:
 
 1. **Start with utilities:**
+
 ```typescript
 @Component({
   template: `
@@ -172,25 +182,28 @@ Follow this pattern when creating new components:
         <ng-content></ng-content>
       </div>
     </div>
-  `
+  `,
 })
 export class NewComponent {
-  @Input() title: string = '';
+  @Input() title: string = "";
 }
 ```
 
 2. **Add responsive behavior:**
+
 ```html
 <div class="card-vscode space-y-vscode-md">
   <!-- Responsive header -->
-  <div class="flex flex-col vscode-sm:flex-row vscode-sm:items-center vscode-sm:justify-between">
+  <div
+    class="flex flex-col vscode-sm:flex-row vscode-sm:items-center vscode-sm:justify-between"
+  >
     <h3 class="text-vscode-lg font-medium">{{ title }}</h3>
     <div class="flex gap-vscode-xs mt-vscode-xs vscode-sm:mt-0">
       <button class="btn-vscode-secondary text-vscode-xs">Edit</button>
       <button class="btn-vscode text-vscode-xs">Save</button>
     </div>
   </div>
-  
+
   <!-- Content -->
   <div class="text-vscode-sm text-vscode-muted">
     <ng-content></ng-content>
@@ -199,6 +212,7 @@ export class NewComponent {
 ```
 
 3. **Test across themes:**
+
 ```bash
 # Run theme testing script
 ./scripts/theme-testing.sh
@@ -209,6 +223,7 @@ export class NewComponent {
 Learn these frequently used patterns:
 
 #### Dashboard Layout
+
 ```html
 <div class="grid grid-cols-1 vscode-lg:grid-cols-4 gap-vscode-lg h-full">
   <!-- Sidebar -->
@@ -217,7 +232,7 @@ Learn these frequently used patterns:
       <!-- Navigation -->
     </div>
   </aside>
-  
+
   <!-- Main content -->
   <main class="vscode-lg:col-span-3">
     <!-- Content -->
@@ -226,14 +241,15 @@ Learn these frequently used patterns:
 ```
 
 #### Form Layout
+
 ```html
 <form class="space-y-vscode-md max-w-vscode-lg">
   <div class="space-y-vscode-sm">
     <label class="block text-vscode-sm font-medium">Label</label>
-    <input class="input-vscode w-full" type="text">
+    <input class="input-vscode w-full" type="text" />
     <p class="text-vscode-xs text-vscode-muted">Help text</p>
   </div>
-  
+
   <div class="flex justify-end gap-vscode-sm">
     <button type="button" class="btn-vscode-secondary">Cancel</button>
     <button type="submit" class="btn-vscode">Save</button>
@@ -242,6 +258,7 @@ Learn these frequently used patterns:
 ```
 
 #### Comment Card
+
 ```html
 <div class="card-vscode space-y-vscode-sm">
   <div class="flex items-center justify-between">
@@ -251,12 +268,14 @@ Learn these frequently used patterns:
       <button class="btn-vscode text-vscode-xs">Approve</button>
     </div>
   </div>
-  
+
   <div class="text-vscode-sm text-vscode-muted">
     Comment content goes here...
   </div>
-  
-  <div class="pt-vscode-sm border-t border-vscode-panel-border text-vscode-xs text-vscode-muted">
+
+  <div
+    class="pt-vscode-sm border-t border-vscode-panel-border text-vscode-xs text-vscode-muted"
+  >
     src/component.ts • Line 42
   </div>
 </div>
@@ -274,7 +293,7 @@ Always test your components across VS Code themes:
 
 # Manual testing checklist:
 # 1. Light theme
-# 2. Dark theme  
+# 2. Dark theme
 # 3. High contrast themes
 # 4. Different screen sizes
 # 5. Keyboard navigation
@@ -285,20 +304,20 @@ Always test your components across VS Code themes:
 Write tests that verify component behavior:
 
 ```typescript
-describe('CommentCardComponent', () => {
-  it('should render with proper VS Code styling', () => {
+describe("CommentCardComponent", () => {
+  it("should render with proper VS Code styling", () => {
     const fixture = TestBed.createComponent(CommentCardComponent);
-    const element = fixture.debugElement.query(By.css('.card-vscode'));
-    
+    const element = fixture.debugElement.query(By.css(".card-vscode"));
+
     expect(element).toBeTruthy();
-    expect(element.nativeElement.classList).toContain('card-vscode');
+    expect(element.nativeElement.classList).toContain("card-vscode");
   });
-  
-  it('should be accessible with keyboard navigation', () => {
+
+  it("should be accessible with keyboard navigation", () => {
     // Test keyboard accessibility
-    const button = fixture.debugElement.query(By.css('.btn-vscode'));
+    const button = fixture.debugElement.query(By.css(".btn-vscode"));
     button.nativeElement.focus();
-    
+
     expect(document.activeElement).toBe(button.nativeElement);
   });
 });
@@ -342,20 +361,24 @@ Provide proper labels and ARIA attributes:
   <label for="email-input" class="block text-vscode-sm font-medium">
     Email Address
   </label>
-  <input id="email-input" 
-         class="input-vscode w-full" 
-         type="email"
-         aria-describedby="email-help"
-         required>
+  <input
+    id="email-input"
+    class="input-vscode w-full"
+    type="email"
+    aria-describedby="email-help"
+    required
+  />
   <p id="email-help" class="text-vscode-xs text-vscode-muted">
     We'll never share your email
   </p>
 </div>
 
 <!-- Error states -->
-<input class="input-vscode input-vscode-error" 
-       aria-describedby="error-message"
-       aria-invalid="true">
+<input
+  class="input-vscode input-vscode-error"
+  aria-describedby="error-message"
+  aria-invalid="true"
+/>
 <div id="error-message" class="text-vscode-xs text-vscode-error" role="alert">
   This field is required
 </div>
@@ -367,9 +390,7 @@ Always use high-contrast color combinations:
 
 ```html
 <!-- ✅ Good: High contrast -->
-<div class="bg-primary text-primary-foreground">
-  Readable content
-</div>
+<div class="bg-primary text-primary-foreground">Readable content</div>
 
 <!-- ✅ Good: Theme-aware contrast -->
 <div class="bg-vscode-panel-background text-vscode-foreground">
@@ -390,14 +411,23 @@ Always use high-contrast color combinations:
 
 <!-- ❌ Avoid: Repeating utility combinations -->
 <div>
-  <div class="bg-vscode-panel-background border border-vscode-panel-border rounded-lg p-vscode-md">Card 1</div>
-  <div class="bg-vscode-panel-background border border-vscode-panel-border rounded-lg p-vscode-md">Card 2</div>
+  <div
+    class="bg-vscode-panel-background border border-vscode-panel-border rounded-lg p-vscode-md"
+  >
+    Card 1
+  </div>
+  <div
+    class="bg-vscode-panel-background border border-vscode-panel-border rounded-lg p-vscode-md"
+  >
+    Card 2
+  </div>
 </div>
 ```
 
 ### Bundle Optimization
 
 The build system automatically:
+
 - Purges unused CSS in production
 - Optimizes for VS Code webview constraints
 - Minifies and compresses assets
@@ -408,11 +438,15 @@ The build system automatically:
 
 ```typescript
 // Check if VS Code variables are available
-console.log(getComputedStyle(document.documentElement).getPropertyValue('--vscode-foreground'));
+console.log(
+  getComputedStyle(document.documentElement).getPropertyValue(
+    "--vscode-foreground"
+  )
+);
 
 // Ensure component is in webview context
-if (!document.body.classList.contains('vscode-body')) {
-  console.warn('Not in VS Code webview context');
+if (!document.body.classList.contains("vscode-body")) {
+  console.warn("Not in VS Code webview context");
 }
 ```
 
@@ -422,7 +456,9 @@ if (!document.body.classList.contains('vscode-body')) {
 <!-- Debug responsive breakpoints -->
 <div class="block vscode-sm:hidden bg-red-500">XS Screen</div>
 <div class="hidden vscode-sm:block vscode-md:hidden bg-blue-500">SM Screen</div>
-<div class="hidden vscode-md:block vscode-lg:hidden bg-green-500">MD Screen</div>
+<div class="hidden vscode-md:block vscode-lg:hidden bg-green-500">
+  MD Screen
+</div>
 <div class="hidden vscode-lg:block bg-purple-500">LG+ Screen</div>
 ```
 
@@ -435,12 +471,14 @@ if (!document.body.classList.contains('vscode-body')) {
 ## 📚 Learning Resources
 
 ### Essential Reading
+
 1. [Getting Started Guide](./getting-started.md)
 2. [Component Reference](./component-reference.md)
 3. [Utility Guidelines](./utility-guidelines.md)
 4. [VS Code Plugin Documentation](./vscode-plugin.md)
 
 ### External Resources
+
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
 - [VS Code Webview API](https://code.visualstudio.com/api/extension-guides/webview)
 - [SpartanNG Components](https://www.spartan.ng/)
@@ -453,15 +491,17 @@ if (!document.body.classList.contains('vscode-body')) {
 Create a simple notification component:
 
 1. **Plan the component:**
+
    - Use `card-vscode` as base
    - Add icon support
    - Include dismiss functionality
    - Make it responsive
 
 2. **Implement with utilities:**
+
 ```typescript
 @Component({
-  selector: 'app-notification',
+  selector: "app-notification",
   template: `
     <div class="card-vscode flex items-start gap-vscode-md">
       <i [class]="iconClass" class="flex-shrink-0 mt-0.5"></i>
@@ -473,25 +513,25 @@ Create a simple notification component:
         Dismiss
       </button>
     </div>
-  `
+  `,
 })
 export class NotificationComponent {
-  @Input() title: string = '';
-  @Input() message: string = '';
-  @Input() type: 'info' | 'warning' | 'error' | 'success' = 'info';
+  @Input() title: string = "";
+  @Input() message: string = "";
+  @Input() type: "info" | "warning" | "error" | "success" = "info";
   @Output() dismissed = new EventEmitter<void>();
-  
+
   get iconClass() {
-    const baseClass = 'codicon';
+    const baseClass = "codicon";
     const iconMap = {
-      info: 'codicon-info text-vscode-info',
-      warning: 'codicon-warning text-vscode-warning',
-      error: 'codicon-error text-vscode-error',
-      success: 'codicon-check text-vscode-success'
+      info: "codicon-info text-vscode-info",
+      warning: "codicon-warning text-vscode-warning",
+      error: "codicon-error text-vscode-error",
+      success: "codicon-check text-vscode-success",
     };
     return `${baseClass} ${iconMap[this.type]}`;
   }
-  
+
   dismiss() {
     this.dismissed.emit();
   }
@@ -499,11 +539,14 @@ export class NotificationComponent {
 ```
 
 3. **Test the component:**
+
 ```html
-<app-notification title="Success!" 
-                  message="Your changes have been saved." 
-                  type="success"
-                  (dismissed)="onNotificationDismissed()">
+<app-notification
+  title="Success!"
+  message="Your changes have been saved."
+  type="success"
+  (dismissed)="onNotificationDismissed()"
+>
 </app-notification>
 ```
 
@@ -521,6 +564,7 @@ Once you're comfortable with the basics:
 ## 💬 Getting Help
 
 ### Team Resources
+
 - **Code Reviews**: Always request reviews for component changes
 - **Design System Discussions**: Propose new patterns in team meetings
 - **Documentation**: Update docs when adding new components

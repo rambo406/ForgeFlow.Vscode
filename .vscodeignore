@@ -6,7 +6,7 @@ src/**
 !src/**/*.json
 
 # Webview source (only include built artifacts)
-src/webview-angular/**
+src/webview-angular-v2/**
 !dist/webview/**
 
 # Development and build files
@@ -19,10 +19,10 @@ scripts/**
 
 # Node modules
 node_modules/
-src/webview-angular/node_modules/
+src/webview-angular-v2/node_modules/
 
 # Build artifacts to exclude
-src/webview-angular/dist/**
+src/webview-angular-v2/dist/**
 *.map
 *.log
 *.tsbuildinfo
@@ -53,20 +53,13 @@ Thumbs.db
 *~
 
 # Angular specific
-src/webview-angular/.angular/
-src/webview-angular/angular.json
-src/webview-angular/tailwind.config.js
-src/webview-angular/components.json
-src/webview-angular/package*.json
-src/webview-angular/tsconfig*.json
-src/webview-angular/jest.config.js
-src/webview-angular/setup-jest.ts
-src/webview-angular/.eslintrc*
-src/webview-angular/BUNDLE_OPTIMIZATION.md
-src/webview-angular/CSS_OPTIMIZATION.md
-src/webview-angular/RESPONSIVE_TESTING.md
-src/webview-angular/bundle-analysis.js
-src/webview-angular/performance-test.js
+src/webview-angular-v2/.angular/
+src/webview-angular-v2/angular.json
+src/webview-angular-v2/tailwind.config.js
+src/webview-angular-v2/components.json
+src/webview-angular-v2/package*.json
+src/webview-angular-v2/tsconfig*.json
+src/webview-angular-v2/jest.config.js
 
 # Testing files
 **/*.spec.ts

@@ -1,0 +1,33 @@
+:root {
+    /* Mirror VS Code theme tokens where possible */
+    --ff-bg: var(--vscode-editor-background, #1e1e1e);
+    --ff-fg: var(--vscode-editor-foreground, #e0e0e0);
+    --ff-accent: var(--vscode-button-background, #0e639c);
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+    margin: 0;
+    background: var(--ff-bg);
+    color: var(--ff-fg);
+}
+
+.container {
+    padding: 16px;
+}
+
+.muted {
+    color: rgba(127, 127, 127, 0.9);
+}
+
+.button-primary {
+    background: var(--ff-accent);
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+}
+

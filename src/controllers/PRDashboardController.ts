@@ -589,7 +589,7 @@ export class PRDashboardController {
     /**
      * Handle language model test
      */
-    private async handleTestModel(message: WebviewMessage, params: any): Promise<void> {
+    private async handleTestModel(message: WebviewMessage, params: unknown): Promise<void> {
         const { modelName } = params;
         if (!modelName) {
             this.sendMessage({
@@ -1077,7 +1077,7 @@ export class PRDashboardController {
         }
         // Keep implementation simple and explicit: compute URIs, then return either a clear
         // fallback page (when the build is a placeholder) or the normal Angular webview HTML.
-        // Path to the Angular build output (copied by webpack to dist/webview)
+        // Path to the Angular webview build output (copied by webpack to dist/webview)
         const webviewPath = path.join(this.context.extensionPath, 'dist', 'webview');
 
         // Detect available build files in the webview output and get URIs for those that exist
@@ -1140,7 +1140,7 @@ export class PRDashboardController {
     <p>The Angular webview bundle appears to be a fallback placeholder instead of a real build. The extension could not find the full set of webview build artifacts required to boot the Angular application.</p>
     <p>Missing or placeholder build files:</p>
     ${missingListHtml}
-    <p>Please rebuild the webview and make sure the compiled files are copied to the extension <code>dist/webview</code> folder. For development, run the webview build (see the repo README or the webview-angular package).</p>
+    <p>Please rebuild the webview and make sure the compiled files are copied to the extension <code>dist/webview</code> folder. For development, run the webview build (see the repo README or the webview-angular-v2 package).</p>
 </body>
 </html>`;
         }
