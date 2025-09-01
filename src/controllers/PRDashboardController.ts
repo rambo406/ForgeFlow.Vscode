@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import { ConfigurationManager } from '../services/ConfigurationManager';
 import { AzureDevOpsClient } from '../services/AzureDevOpsClient';
-import { CommentAnalysisEngine, AnalysisProgress, AnalysisResult } from '../services/CommentAnalysisEngine';
+import { AnalysisProgress, CommentAnalysisEngine } from '../services/CommentAnalysisEngine';
 import { LanguageModelService } from '../services/LanguageModelService';
 import { SettingsValidationService } from '../services/SettingsValidationService';
-import { SettingsConfiguration, ValidationResult } from '../models/AzureDevOpsModels';
+import { ValidationResult } from '../models/AzureDevOpsModels';
 import { SettingsUtils } from '../utils/SettingsUtils';
 
 /**
@@ -16,7 +17,7 @@ export enum MessageType {
     LOAD_CONFIG = 'loadConfig',
     SAVE_CONFIG = 'saveConfig',
     TEST_CONNECTION = 'testConnection',
-    
+
     // Search and Filtering
     SEARCH_PULL_REQUESTS = 'searchPullRequests',
     FILTER_PULL_REQUESTS = 'filterPullRequests',
@@ -26,24 +27,24 @@ export enum MessageType {
     LOAD_PROJECTS = 'loadProjects',
     SELECT_PULL_REQUEST = 'selectPullRequest',
     LOAD_PR_DETAILS = 'loadPRDetails',
-    
+
     // AI Analysis
     START_AI_ANALYSIS = 'startAIAnalysis',
     AI_ANALYSIS_PROGRESS = 'aiAnalysisProgress',
     AI_ANALYSIS_COMPLETE = 'aiAnalysisComplete',
     AI_ANALYSIS_CANCEL = 'aiAnalysisCancel',
-    
+
     // AI Comments
     APPROVE_COMMENT = 'approveComment',
     DISMISS_COMMENT = 'dismissComment',
     MODIFY_COMMENT = 'modifyComment',
     EXPORT_COMMENTS = 'exportComments',
-    
+
     // UI Updates
     UPDATE_VIEW = 'updateView',
     SHOW_ERROR = 'showError',
     SHOW_SUCCESS = 'showSuccess',
-    
+
     // Settings
     OPEN_SETTINGS = 'openSettings',
     CLOSE_SETTINGS = 'closeSettings',
@@ -90,9 +91,9 @@ export class PRDashboardController {
     private settingsPanelOpen = false;
 
     constructor(
-        private context: vscode.ExtensionContext,
-        private configurationManager: ConfigurationManager,
-        private azureDevOpsClient: AzureDevOpsClient | undefined
+            private context: vscode.ExtensionContext,
+            private configurationManager: ConfigurationManager,
+            private azureDevOpsClient: AzureDevOpsClient | undefined
     ) {
         this.languageModelService = new LanguageModelService();
         this.settingsValidationService = new SettingsValidationService(this.languageModelService);
@@ -103,8 +104,8 @@ export class PRDashboardController {
      */
     public async createOrShow(): Promise<void> {
         const column = vscode.window.activeTextEditor
-            ? vscode.window.activeTextEditor.viewColumn
-            : undefined;
+                ? vscode.window.activeTextEditor.viewColumn
+                : undefined;
 
         if (this.panel) {
             this.panel.reveal(column);
@@ -112,17 +113,17 @@ export class PRDashboardController {
         }
 
         this.panel = vscode.window.createWebviewPanel(
-            'prDashboard',
-            'Azure DevOps PR Dashboard',
-            column || vscode.ViewColumn.One,
-            {
-                enableScripts: true,
-                retainContextWhenHidden: true,
-                localResourceRoots: [
-                    // Angular webview build output
-                    vscode.Uri.file(path.join(this.context.extensionPath, 'dist', 'webview'))
-                ]
-            }
+                'prDashboard',
+                'Azure DevOps PR Dashboard',
+                column || vscode.ViewColumn.One,
+                {
+                    enableScripts: true,
+                    retainContextWhenHidden: true,
+                    localResourceRoots: [
+                        // Angular webview build output
+                        vscode.Uri.file(path.join(this.context.extensionPath, 'dist', 'webview'))
+                    ]
+                }
         );
 
         this.panel.webview.html = this.getWebviewContent();
@@ -131,28 +132,61 @@ export class PRDashboardController {
     }
 
     /**
+     * Dispose of resources
+     */
+    public dispose(): void {
+        // Dispose any current analysis
+        if (this.currentAnalysis) {
+            this.currentAnalysis.cancellationTokenSource.cancel();
+            this.currentAnalysis = undefined;
+        }
+
+        // Dispose settings validation service
+        if (this.settingsValidationService) {
+            this.settingsValidationService.dispose();
+        }
+
+        if (this.panel) {
+            this.panel.dispose();
+            this.panel = undefined;
+        }
+
+        while (this.disposables.length) {
+            const x = this.disposables.pop();
+            if (x) {
+                x.dispose();
+            }
+        }
+    }
+
+    /**
      * Setup message handling between extension and webview
      */
     private setupMessageHandling(): void {
-        if (!this.panel) return;
+        if (!this.panel) {
+            return;
+        }
 
         this.panel.webview.onDidReceiveMessage(
-            async (message: WebviewMessage) => {
-                // Log incoming message for debugging request/response flow
-                try {
-                    console.log('[PRDashboard] Received message from webview', { type: message?.type, requestId: message?.requestId });
-                    await this.handleMessage(message);
-                } catch (error) {
-                    console.error('Error handling webview message:', error);
-                    this.sendMessage({
-                        type: MessageType.SHOW_ERROR,
-                        payload: { message: 'An error occurred processing your request' },
-                        requestId: message.requestId
-                    });
-                }
-            },
-            null,
-            this.disposables
+                async (message: WebviewMessage) => {
+                    // Log incoming message for debugging request/response flow
+                    try {
+                        console.log('[PRDashboard] Received message from webview', {
+                            type: message?.type,
+                            requestId: message?.requestId
+                        });
+                        await this.handleMessage(message);
+                    } catch (error) {
+                        console.error('Error handling webview message:', error);
+                        this.sendMessage({
+                            type: MessageType.SHOW_ERROR,
+                            payload: { message: 'An error occurred processing your request' },
+                            requestId: message.requestId
+                        });
+                    }
+                },
+                null,
+                this.disposables
         );
     }
 
@@ -212,7 +246,7 @@ export class PRDashboardController {
             case MessageType.EXPORT_COMMENTS:
                 await this.handleExportComments(message);
                 break;
-            // Settings-related handlers
+                // Settings-related handlers
             case MessageType.OPEN_SETTINGS:
                 await this.handleOpenSettings(message);
                 break;
@@ -237,9 +271,6 @@ export class PRDashboardController {
             case MessageType.LOAD_AVAILABLE_MODELS:
                 await this.handleLoadAvailableModels(message);
                 break;
-            case MessageType.TEST_CONNECTION:
-                await this.handleTestConnection(message);
-                break;
             default:
                 console.warn('Unknown message type:', message.type);
         }
@@ -252,7 +283,10 @@ export class PRDashboardController {
         if (this.panel) {
             // Log outgoing messages to help match responses to requests
             try {
-                console.log('[PRDashboard] Sending message to webview', { type: message?.type, requestId: message?.requestId });
+                console.log('[PRDashboard] Sending message to webview', {
+                    type: message?.type,
+                    requestId: message?.requestId
+                });
             } catch (e) {
                 // ignore
             }
@@ -264,7 +298,7 @@ export class PRDashboardController {
      * Handle configuration loading
      */
     private async handleLoadConfig(message: WebviewMessage): Promise<void> {
-        try {
+    try {
             const config = {
                 organizationUrl: this.configurationManager.getOrganizationUrl() || '',
                 personalAccessToken: await this.configurationManager.getPatToken() || '',
@@ -320,11 +354,11 @@ export class PRDashboardController {
 
             // Save other configuration settings
             const vscodeConfig = vscode.workspace.getConfiguration('azdo-pr-reviewer');
-            
+
             if (config.defaultProject !== undefined) {
                 await vscodeConfig.update('defaultProject', config.defaultProject || undefined, vscode.ConfigurationTarget.Global);
             }
-            
+
             if (config.selectedModel) {
                 const modelResult = await this.configurationManager.setSelectedModel(config.selectedModel);
                 if (!modelResult.isValid) {
@@ -336,15 +370,15 @@ export class PRDashboardController {
                     return;
                 }
             }
-            
+
             if (config.customInstructions !== undefined) {
                 await vscodeConfig.update('customInstructions', config.customInstructions, vscode.ConfigurationTarget.Global);
             }
-            
+
             if (config.batchSize !== undefined) {
                 await vscodeConfig.update('batchSize', config.batchSize, vscode.ConfigurationTarget.Global);
             }
-            
+
             if (config.enableTelemetry !== undefined) {
                 await vscodeConfig.update('enableTelemetry', config.enableTelemetry, vscode.ConfigurationTarget.Global);
             }
@@ -423,8 +457,8 @@ export class PRDashboardController {
 
         // Test the connection using the configuration manager
         const validationResult = await this.configurationManager.validatePatToken(
-            config.personalAccessToken,
-            config.organizationUrl
+                config.personalAccessToken,
+                config.organizationUrl
         );
 
         if (validationResult.isValid) {
@@ -469,11 +503,11 @@ export class PRDashboardController {
         }
 
         const validationResult = await this.settingsValidationService.validateOrganizationUrl(organizationUrl);
-        
+
         this.sendMessage({
             type: MessageType.TEST_CONNECTION,
-            payload: { 
-                success: validationResult.isValid, 
+            payload: {
+                success: validationResult.isValid,
                 message: validationResult.details,
                 error: validationResult.error,
                 testType: 'organization'
@@ -497,11 +531,11 @@ export class PRDashboardController {
         }
 
         const validationResult = await this.settingsValidationService.validatePatToken(patToken, organizationUrl);
-        
+
         this.sendMessage({
             type: MessageType.TEST_CONNECTION,
-            payload: { 
-                success: validationResult.isValid, 
+            payload: {
+                success: validationResult.isValid,
                 message: validationResult.details,
                 error: validationResult.error,
                 testType: 'patToken'
@@ -525,11 +559,11 @@ export class PRDashboardController {
         }
 
         const validationResult = await this.settingsValidationService.validateProject(projectName, organizationUrl, patToken);
-        
+
         this.sendMessage({
             type: MessageType.TEST_CONNECTION,
-            payload: { 
-                success: validationResult.isValid, 
+            payload: {
+                success: validationResult.isValid,
                 message: validationResult.details,
                 error: validationResult.error,
                 testType: 'project'
@@ -553,11 +587,11 @@ export class PRDashboardController {
         }
 
         const validationResult = await this.settingsValidationService.validateLanguageModel(modelName);
-        
+
         this.sendMessage({
             type: MessageType.TEST_CONNECTION,
-            payload: { 
-                success: validationResult.isValid, 
+            payload: {
+                success: validationResult.isValid,
                 message: validationResult.details,
                 error: validationResult.error,
                 testType: 'model'
@@ -586,7 +620,7 @@ export class PRDashboardController {
 
                 const organizationUrl = this.configurationManager.getOrganizationUrl();
                 const patToken = await this.configurationManager.getPatToken();
-                
+
                 if (!organizationUrl || !patToken) {
                     this.sendMessage({
                         type: MessageType.SHOW_ERROR,
@@ -604,7 +638,7 @@ export class PRDashboardController {
             // Get filter parameters from the request
             const filters = message.payload?.filters || {};
             const projectName = filters.project || this.configurationManager.getDefaultProject();
-            
+
             if (!projectName) {
                 this.sendMessage({
                     type: MessageType.SHOW_ERROR,
@@ -616,9 +650,9 @@ export class PRDashboardController {
 
             // Fetch pull requests
             const pullRequests = await this.azureDevOpsClient.getOpenPullRequests(
-                projectName,
-                filters.repository,
-                filters.maxResults || 50
+                    projectName,
+                    filters.repository,
+                    filters.maxResults || 50
             );
 
             // Transform the data for the webview
@@ -638,7 +672,7 @@ export class PRDashboardController {
 
             this.sendMessage({
                 type: MessageType.LOAD_PULL_REQUESTS,
-                payload: { 
+                payload: {
                     pullRequests: transformedPRs,
                     projectName: projectName,
                     totalCount: transformedPRs.length
@@ -647,16 +681,19 @@ export class PRDashboardController {
             });
 
             // Explicit log for visibility in extension output
-            console.log('[PRDashboard] Loaded pull requests', { count: transformedPRs.length, requestId: message.requestId });
+            console.log('[PRDashboard] Loaded pull requests', {
+                count: transformedPRs.length,
+                requestId: message.requestId
+            });
 
         } catch (error) {
             console.error('Failed to load pull requests:', error);
-            
+
             let errorMessage = 'Failed to load pull requests';
             if (error instanceof Error) {
                 errorMessage += ': ' + error.message;
             }
-            
+
             this.sendMessage({
                 type: MessageType.SHOW_ERROR,
                 payload: { message: errorMessage },
@@ -769,12 +806,12 @@ export class PRDashboardController {
 
             // Get the pull request details
             const pullRequest = await this.azureDevOpsClient.getPullRequest(projectName, prId);
-            
+
             // Get file changes for this PR
             const fileChanges = await this.azureDevOpsClient.getDetailedFileChanges(
-                projectName,
-                pullRequest.repository.id,
-                prId
+                    projectName,
+                    pullRequest.repository.id,
+                    prId
             );
 
             // Transform the PR data for the webview
@@ -810,10 +847,10 @@ export class PRDashboardController {
             }));
 
             this.currentView = DashboardView.PULL_REQUEST_DETAIL;
-            
+
             this.sendMessage({
                 type: MessageType.SELECT_PULL_REQUEST,
-                payload: { 
+                payload: {
                     pullRequest: transformedPR,
                     fileChanges: transformedFileChanges,
                     stats: {
@@ -895,12 +932,12 @@ export class PRDashboardController {
 
             // Get the pull request details
             const pullRequest = await this.azureDevOpsClient.getPullRequest(projectName, prId);
-            
+
             // Get file changes for this PR
             const fileChanges = await this.azureDevOpsClient.getDetailedFileChanges(
-                projectName,
-                pullRequest.repository.id,
-                prId
+                    projectName,
+                    pullRequest.repository.id,
+                    prId
             );
 
             if (fileChanges.length === 0) {
@@ -920,7 +957,7 @@ export class PRDashboardController {
             const progressCallback = (progress: AnalysisProgress) => {
                 this.sendMessage({
                     type: MessageType.AI_ANALYSIS_PROGRESS,
-                    payload: { 
+                    payload: {
                         progress: {
                             completed: progress.completed,
                             total: progress.total,
@@ -943,9 +980,9 @@ export class PRDashboardController {
 
             // Run the analysis
             const analysisResult = await analysisEngine.analyzeChanges(
-                fileChanges,
-                progressCallback,
-                cancellationTokenSource.token
+                    fileChanges,
+                    progressCallback,
+                    cancellationTokenSource.token
             );
 
             // Clear current analysis
@@ -967,7 +1004,7 @@ export class PRDashboardController {
 
         } catch (error) {
             console.error('AI analysis failed:', error);
-            
+
             // Clear current analysis
             this.currentAnalysis = undefined;
 
@@ -994,7 +1031,7 @@ export class PRDashboardController {
         if (this.currentAnalysis) {
             this.currentAnalysis.cancellationTokenSource.cancel();
             this.currentAnalysis = undefined;
-            
+
             this.sendMessage({
                 type: MessageType.SHOW_SUCCESS,
                 payload: { message: 'Analysis cancelled' },
@@ -1020,30 +1057,44 @@ export class PRDashboardController {
         try {
             // Path to the Angular build output (copied by webpack to dist/webview)
             const webviewPath = path.join(this.context.extensionPath, 'dist', 'webview');
-            
-            // Get URIs for Angular build files
-            const mainJsUri = this.panel.webview.asWebviewUri(
-                vscode.Uri.file(path.join(webviewPath, 'main.js'))
-            );
-            const polyfillsJsUri = this.panel.webview.asWebviewUri(
-                vscode.Uri.file(path.join(webviewPath, 'polyfills.js'))
-            );
-            const stylesUri = this.panel.webview.asWebviewUri(
-                vscode.Uri.file(path.join(webviewPath, 'styles.css'))
-            );
-            
+
+            // Detect available build files in the webview output and get URIs for those that exist
+            const resolveIfExists = (fileName: string): vscode.Uri | undefined => {
+                const fullPath = path.join(webviewPath, fileName);
+                try {
+                    if (fs.existsSync(fullPath)) {
+                        return this.panel!.webview.asWebviewUri(vscode.Uri.file(fullPath));
+                    }
+                } catch (e) {
+                    // ignore filesystem errors and treat file as missing
+                }
+                return undefined;
+            };
+
+            const runtimeJsUri = resolveIfExists('runtime.js');
+            const polyfillsJsUri = resolveIfExists('polyfills.js');
+            const mainJsUri = resolveIfExists('main.js');
+            const vendorJsUri = resolveIfExists('vendor.js');
+            const stylesUri = resolveIfExists('styles.css');
+
             // Generate CSP nonce for security
             const nonce = this.generateNonce();
+            // Detect fallback bundle case: index.html/main.js from build fallback
+            const isFallback = !runtimeJsUri && !polyfillsJsUri && !!mainJsUri && fs.readFileSync(path.join(webviewPath, 'main.js'), 'utf8').includes('Fallback webview bundle');
+
+            if (isFallback) {
+                console.warn('[PRDashboard] Angular webview build failed; using fallback bundle. Check the build output for errors.');
+            }
 
             return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel.webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; font-src ${this.panel.webview.cspSource}; img-src ${this.panel.webview.cspSource} data:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel.webview.cspSource} 'unsafe-inline'; script-src ${this.panel.webview.cspSource} 'nonce-${nonce}'; font-src ${this.panel.webview.cspSource}; img-src ${this.panel.webview.cspSource} data:;">
     <title>Azure DevOps PR Dashboard</title>
     <base href="${this.panel.webview.asWebviewUri(vscode.Uri.file(webviewPath))}/">
-    <link rel="stylesheet" href="${stylesUri}">
+    ${stylesUri ? `<link rel="stylesheet" href="${stylesUri}">` : ''}
     <style nonce="${nonce}">
         /* VS Code theme integration */
         :root {
@@ -1116,9 +1167,10 @@ export class PRDashboardController {
     </app-root>
     
     <!-- Angular runtime scripts -->
-    <script nonce="${nonce}" src="${this.panel.webview.asWebviewUri(vscode.Uri.file(path.join(webviewPath, 'runtime.js')))}"></script>
-    <script nonce="${nonce}" src="${polyfillsJsUri}"></script>
-    <script nonce="${nonce}" src="${mainJsUri}"></script>
+    ${runtimeJsUri ? `<script nonce="${nonce}" src="${runtimeJsUri}"></script>` : ''}
+    ${polyfillsJsUri ? `<script nonce="${nonce}" src="${polyfillsJsUri}"></script>` : ''}
+    ${vendorJsUri ? `<script nonce="${nonce}" src="${vendorJsUri}"></script>` : ''}
+    ${mainJsUri ? `<script nonce="${nonce}" src="${mainJsUri}"></script>` : ''}
     
     <!-- Initialize webview API for Angular -->
     <script nonce="${nonce}">
@@ -1208,40 +1260,12 @@ export class PRDashboardController {
     }
 
     /**
-     * Dispose of resources
-     */
-    public dispose(): void {
-        // Dispose any current analysis
-        if (this.currentAnalysis) {
-            this.currentAnalysis.cancellationTokenSource.cancel();
-            this.currentAnalysis = undefined;
-        }
-
-        // Dispose settings validation service
-        if (this.settingsValidationService) {
-            this.settingsValidationService.dispose();
-        }
-
-        if (this.panel) {
-            this.panel.dispose();
-            this.panel = undefined;
-        }
-
-        while (this.disposables.length) {
-            const x = this.disposables.pop();
-            if (x) {
-                x.dispose();
-            }
-        }
-    }
-
-    /**
      * Handle comment approval
      */
     private async handleApproveComment(message: WebviewMessage): Promise<void> {
         try {
             const { commentId, filePath } = message.payload;
-            
+
             if (!commentId) {
                 this.sendMessage({
                     type: MessageType.SHOW_ERROR,
@@ -1253,7 +1277,7 @@ export class PRDashboardController {
 
             // Here you would typically save the approved comment to Azure DevOps
             // For now, we'll just mark it as approved in our local state
-            
+
             this.sendMessage({
                 type: MessageType.APPROVE_COMMENT,
                 payload: { commentId, status: 'approved' },
@@ -1282,7 +1306,7 @@ export class PRDashboardController {
     private async handleDismissComment(message: WebviewMessage): Promise<void> {
         try {
             const { commentId, reason } = message.payload;
-            
+
             if (!commentId) {
                 this.sendMessage({
                     type: MessageType.SHOW_ERROR,
@@ -1320,7 +1344,7 @@ export class PRDashboardController {
     private async handleModifyComment(message: WebviewMessage): Promise<void> {
         try {
             const { commentId, newText } = message.payload;
-            
+
             if (!commentId || !newText) {
                 this.sendMessage({
                     type: MessageType.SHOW_ERROR,
@@ -1358,7 +1382,7 @@ export class PRDashboardController {
     private async handleExportComments(message: WebviewMessage): Promise<void> {
         try {
             const { comments, format = 'json' } = message.payload;
-            
+
             if (!comments || !Array.isArray(comments)) {
                 this.sendMessage({
                     type: MessageType.SHOW_ERROR,
@@ -1369,14 +1393,14 @@ export class PRDashboardController {
             }
 
             const approved = comments.filter(c => c.status === 'approved');
-            
+
             let exportData = '';
             let filename = '';
-            
+
             if (format === 'csv') {
                 const csvHeader = 'File,Line,Severity,Comment,Status\n';
-                const csvRows = approved.map(c => 
-                    `"${c.filePath}","${c.lineNumber}","${c.severity}","${c.content.replace(/"/g, '""')}","${c.status}"`
+                const csvRows = approved.map(c =>
+                        `"${c.filePath}","${c.lineNumber}","${c.severity}","${c.content.replace(/"/g, '""')}","${c.status}"`
                 ).join('\n');
                 exportData = csvHeader + csvRows;
                 filename = `pr-review-comments-${Date.now()}.csv`;
@@ -1397,7 +1421,7 @@ export class PRDashboardController {
 
             if (saveUri) {
                 await vscode.workspace.fs.writeFile(saveUri, Buffer.from(exportData, 'utf8'));
-                
+
                 this.sendMessage({
                     type: MessageType.EXPORT_COMMENTS,
                     payload: { success: true, filename: saveUri.fsPath },
@@ -1437,7 +1461,7 @@ export class PRDashboardController {
 
             const { query, projectName, repositoryId } = message.payload;
             const targetProject = projectName || this.configurationManager.getDefaultProject();
-            
+
             if (!targetProject) {
                 this.sendMessage({
                     type: MessageType.SHOW_ERROR,
@@ -1449,26 +1473,26 @@ export class PRDashboardController {
 
             // Get all pull requests first
             let pullRequests = await this.azureDevOpsClient.getOpenPullRequests(targetProject);
-            
+
             // Apply repository filter if specified
             if (repositoryId) {
                 pullRequests = pullRequests.filter(pr => pr.repository.id === repositoryId);
             }
-            
+
             // Apply search query if provided
             if (query && query.trim()) {
                 const searchTerm = query.trim().toLowerCase();
-                pullRequests = pullRequests.filter(pr => 
-                    pr.title.toLowerCase().includes(searchTerm) ||
-                    pr.description?.toLowerCase().includes(searchTerm) ||
-                    pr.createdBy?.displayName?.toLowerCase().includes(searchTerm) ||
-                    pr.repository.name.toLowerCase().includes(searchTerm)
+                pullRequests = pullRequests.filter(pr =>
+                        pr.title.toLowerCase().includes(searchTerm) ||
+                        pr.description?.toLowerCase().includes(searchTerm) ||
+                        pr.createdBy?.displayName?.toLowerCase().includes(searchTerm) ||
+                        pr.repository.name.toLowerCase().includes(searchTerm)
                 );
             }
 
             this.sendMessage({
                 type: MessageType.SEARCH_PULL_REQUESTS,
-                payload: { 
+                payload: {
                     pullRequests,
                     query,
                     total: pullRequests.length
@@ -1502,7 +1526,7 @@ export class PRDashboardController {
 
             const { filters, projectName } = message.payload;
             const targetProject = projectName || this.configurationManager.getDefaultProject();
-            
+
             if (!targetProject) {
                 this.sendMessage({
                     type: MessageType.SHOW_ERROR,
@@ -1514,23 +1538,23 @@ export class PRDashboardController {
 
             // Get all pull requests
             let pullRequests = await this.azureDevOpsClient.getOpenPullRequests(targetProject);
-            
+
             // Apply filters
             if (filters) {
                 if (filters.repositoryId) {
                     pullRequests = pullRequests.filter(pr => pr.repository.id === filters.repositoryId);
                 }
-                
+
                 if (filters.author) {
-                    pullRequests = pullRequests.filter(pr => 
-                        pr.createdBy?.displayName?.toLowerCase().includes(filters.author.toLowerCase())
+                    pullRequests = pullRequests.filter(pr =>
+                            pr.createdBy?.displayName?.toLowerCase().includes(filters.author.toLowerCase())
                     );
                 }
-                
+
                 if (filters.status) {
                     pullRequests = pullRequests.filter(pr => pr.status === filters.status);
                 }
-                
+
                 if (filters.dateRange) {
                     const { startDate, endDate } = filters.dateRange;
                     if (startDate) {
@@ -1546,7 +1570,7 @@ export class PRDashboardController {
 
             this.sendMessage({
                 type: MessageType.FILTER_PULL_REQUESTS,
-                payload: { 
+                payload: {
                     pullRequests,
                     filters,
                     total: pullRequests.length
@@ -1580,7 +1604,7 @@ export class PRDashboardController {
 
             const { projectName } = message.payload || {};
             const targetProject = projectName || this.configurationManager.getDefaultProject();
-            
+
             if (!targetProject) {
                 this.sendMessage({
                     type: MessageType.SHOW_ERROR,
@@ -1595,7 +1619,7 @@ export class PRDashboardController {
 
             this.sendMessage({
                 type: MessageType.REFRESH_PULL_REQUESTS,
-                payload: { 
+                payload: {
                     pullRequests,
                     timestamp: new Date().toISOString()
                 },
@@ -1618,14 +1642,14 @@ export class PRDashboardController {
     private async handleOpenSettings(message: WebviewMessage): Promise<void> {
         try {
             this.settingsPanelOpen = true;
-            
+
             // Get current settings configuration
             const settings = await this.configurationManager.exportSettings();
             const validationResult = await this.configurationManager.validateAllSettings();
-            
+
             this.sendMessage({
                 type: MessageType.OPEN_SETTINGS,
-                payload: { 
+                payload: {
                     settings,
                     validation: validationResult,
                     isOpen: true
@@ -1649,7 +1673,7 @@ export class PRDashboardController {
     private async handleCloseSettings(message: WebviewMessage): Promise<void> {
         try {
             this.settingsPanelOpen = false;
-            
+
             this.sendMessage({
                 type: MessageType.CLOSE_SETTINGS,
                 payload: { isOpen: false },
@@ -1672,7 +1696,7 @@ export class PRDashboardController {
     private async handleValidateSetting(message: WebviewMessage): Promise<void> {
         try {
             const { settingKey, settingValue, context } = message.payload || {};
-            
+
             if (!settingKey) {
                 this.sendMessage({
                     type: MessageType.SHOW_ERROR,
@@ -1732,7 +1756,7 @@ export class PRDashboardController {
 
             this.sendMessage({
                 type: MessageType.VALIDATE_SETTING,
-                payload: { 
+                payload: {
                     settingKey,
                     validation: validationResult
                 },
@@ -1755,7 +1779,7 @@ export class PRDashboardController {
     private async handleSaveSettings(message: WebviewMessage): Promise<void> {
         try {
             const { settings, categories } = message.payload || {};
-            
+
             if (!settings) {
                 this.sendMessage({
                     type: MessageType.SHOW_ERROR,
@@ -1773,7 +1797,7 @@ export class PRDashboardController {
 
             // Import the new settings
             const importResult = await this.configurationManager.importSettings(settings, { categories });
-            
+
             if (!importResult.isValid) {
                 this.sendMessage({
                     type: MessageType.SHOW_ERROR,
@@ -1788,7 +1812,7 @@ export class PRDashboardController {
 
             this.sendMessage({
                 type: MessageType.SAVE_SETTINGS,
-                payload: { 
+                payload: {
                     success: true,
                     validation: validationResult,
                     message: 'Settings saved successfully'
@@ -1799,7 +1823,7 @@ export class PRDashboardController {
             // Notify of settings change
             this.sendMessage({
                 type: MessageType.SETTINGS_CHANGED,
-                payload: { 
+                payload: {
                     settings: await this.configurationManager.exportSettings(),
                     validation: validationResult
                 }
@@ -1832,7 +1856,7 @@ export class PRDashboardController {
                 // Reset specific categories
                 const defaultValues = SettingsUtils.getDefaultValues();
                 const config = vscode.workspace.getConfiguration('azdo-pr-reviewer');
-                
+
                 for (const category of categories) {
                     const categorySettings = SettingsUtils.getSettingsCategories()[category] || [];
                     for (const settingKey of categorySettings) {
@@ -1859,7 +1883,7 @@ export class PRDashboardController {
 
             this.sendMessage({
                 type: MessageType.RESET_SETTINGS,
-                payload: { 
+                payload: {
                     success: true,
                     settings: updatedSettings,
                     validation: validationResult,
@@ -1871,7 +1895,7 @@ export class PRDashboardController {
             // Notify of settings change
             this.sendMessage({
                 type: MessageType.SETTINGS_CHANGED,
-                payload: { 
+                payload: {
                     settings: updatedSettings,
                     validation: validationResult
                 }
@@ -1893,9 +1917,9 @@ export class PRDashboardController {
     private async handleExportSettings(message: WebviewMessage): Promise<void> {
         try {
             const { includeSecrets, format } = message.payload || {};
-            
+
             const settings = await this.configurationManager.exportSettings();
-            
+
             // Remove sensitive data if not requested
             if (!includeSecrets && settings.azureDevOps) {
                 settings.azureDevOps.hasPatToken = false;
@@ -1907,7 +1931,7 @@ export class PRDashboardController {
 
             this.sendMessage({
                 type: MessageType.EXPORT_SETTINGS,
-                payload: { 
+                payload: {
                     data: exportData,
                     filename,
                     format: format || 'json',
@@ -1932,7 +1956,7 @@ export class PRDashboardController {
     private async handleImportSettings(message: WebviewMessage): Promise<void> {
         try {
             const { data, options } = message.payload || {};
-            
+
             if (!data) {
                 this.sendMessage({
                     type: MessageType.SHOW_ERROR,
@@ -1953,7 +1977,7 @@ export class PRDashboardController {
 
             // Import settings
             const importResult = await this.configurationManager.importSettings(settings, options);
-            
+
             if (!importResult.isValid) {
                 this.sendMessage({
                     type: MessageType.SHOW_ERROR,
@@ -1969,7 +1993,7 @@ export class PRDashboardController {
 
             this.sendMessage({
                 type: MessageType.IMPORT_SETTINGS,
-                payload: { 
+                payload: {
                     success: true,
                     settings: updatedSettings,
                     validation: validationResult,
@@ -1981,7 +2005,7 @@ export class PRDashboardController {
             // Notify of settings change
             this.sendMessage({
                 type: MessageType.SETTINGS_CHANGED,
-                payload: { 
+                payload: {
                     settings: updatedSettings,
                     validation: validationResult
                 }
@@ -2003,10 +2027,10 @@ export class PRDashboardController {
     private async handleLoadAvailableModels(message: WebviewMessage): Promise<void> {
         try {
             const models = await this.languageModelService.getAvailableModels();
-            
+
             this.sendMessage({
                 type: MessageType.LOAD_AVAILABLE_MODELS,
-                payload: { 
+                payload: {
                     models,
                     success: true
                 },

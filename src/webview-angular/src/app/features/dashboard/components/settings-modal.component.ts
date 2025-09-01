@@ -579,7 +579,7 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
    */
   closeSettings(): void {
     if (this.hasUnsavedChanges()) {
-      if (confirm('You have unsaved changes. Are you sure you want to close without saving?')) {
+      if (globalThis.confirm?.('You have unsaved changes. Are you sure you want to close without saving?')) {
         this.discardChanges();
         this.isOpen.set(false);
         this.close.emit();
@@ -840,7 +840,7 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
    * Reset all settings to defaults
    */
   resetAllSettings(): void {
-    if (confirm('Are you sure you want to reset all settings to their default values? This action cannot be undone.')) {
+    if (globalThis.confirm?.('Are you sure you want to reset all settings to their default values? This action cannot be undone.')) {
       const defaultSettings: SettingsData = {
         azureDevOps: {
           organizationUrl: '',

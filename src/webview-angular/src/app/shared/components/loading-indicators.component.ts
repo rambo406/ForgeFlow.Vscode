@@ -1,4 +1,4 @@
-import { Component, Input, computed, inject } from '@angular/core';
+import { Component, Input, computed, inject, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LoadingService, LoadingOperation } from '../../core/services/loading.service';
 
@@ -10,12 +10,12 @@ import { LoadingService, LoadingOperation } from '../../core/services/loading.se
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="loading-spinner" [class.with-text]="text">
-      <div class="spinner" [style.width.px]="size" [style.height.px]="size">
+    <div class="loading-spinner" [class.with-text]="text()">
+      <div class="spinner" [style.width.px]="size()" [style.height.px]="size()">
         <div class="spinner-circle"></div>
       </div>
-      @if (text) {
-        <span class="spinner-text">{{ text }}</span>
+      @if (text()) {
+        <span class="spinner-text">{{ text() }}</span>
       }
     </div>
   `,
@@ -58,8 +58,8 @@ import { LoadingService, LoadingOperation } from '../../core/services/loading.se
   `]
 })
 export class LoadingSpinnerComponent {
-  @Input() size = 24;
-  @Input() text?: string;
+  size = input(24);
+  text = input<string | undefined>(undefined);
 }
 
 /**
@@ -71,24 +71,24 @@ export class LoadingSpinnerComponent {
   imports: [CommonModule],
   template: `
     <div class="progress-container">
-      @if (label) {
+      @if (label()) {
         <div class="progress-label">
-          <span>{{ label }}</span>
-          @if (showPercentage && !isIndeterminate) {
-            <span class="progress-percentage">{{ Math.round(progress) }}%</span>
+          <span>{{ label() }}</span>
+          @if (showPercentage() && !isIndeterminate()) {
+            <span class="progress-percentage">{{ Math.round(progress()) }}%</span>
           }
         </div>
       }
-      <div class="progress-bar" [style.height.px]="height">
+      <div class="progress-bar" [style.height.px]="height()">
         <div 
           class="progress-fill" 
-          [class.indeterminate]="isIndeterminate"
-          [style.width.%]="isIndeterminate ? 100 : progress"
-          [style.transform]="isIndeterminate ? 'translateX(-100%)' : 'none'"
+          [class.indeterminate]="isIndeterminate()"
+          [style.width.%]="isIndeterminate() ? 100 : progress()"
+          [style.transform]="isIndeterminate() ? 'translateX(-100%)' : 'none'"
         ></div>
       </div>
-      @if (description) {
-        <div class="progress-description">{{ description }}</div>
+      @if (description()) {
+        <div class="progress-description">{{ description() }}</div>
       }
     </div>
   `,
@@ -151,12 +151,12 @@ export class LoadingSpinnerComponent {
   `]
 })
 export class ProgressBarComponent {
-  @Input() progress = 0;
-  @Input() isIndeterminate = false;
-  @Input() label?: string;
-  @Input() description?: string;
-  @Input() showPercentage = true;
-  @Input() height = 4;
+  progress = input(0);
+  isIndeterminate = input(false);
+  label = input<string | undefined>(undefined);
+  description = input<string | undefined>(undefined);
+  showPercentage = input(true);
+  height = input(4);
 
   protected readonly Math = Math;
 }
@@ -169,12 +169,12 @@ export class ProgressBarComponent {
   standalone: true,
   imports: [CommonModule, LoadingSpinnerComponent, ProgressBarComponent],
   template: `
-    <div class="loading-overlay" [class.visible]="visible">
+    <div class="loading-overlay" [class.visible]="visible()">
       <div class="loading-content">
         @if (operation(); as op) {
           @if (op.isIndeterminate) {
             <app-loading-spinner 
-              [size]="spinnerSize" 
+              [size]="spinnerSize()" 
               [text]="op.name"
             />
           } @else {
@@ -198,8 +198,8 @@ export class ProgressBarComponent {
           }
         } @else {
           <app-loading-spinner 
-            [size]="spinnerSize" 
-            [text]="text || 'Loading...'"
+            [size]="spinnerSize()"
+            [text]="text() || 'Loading...'"
           />
         }
       </div>
@@ -261,21 +261,23 @@ export class ProgressBarComponent {
   `]
 })
 export class LoadingOverlayComponent {
-  @Input() visible = false;
-  @Input() text?: string;
-  @Input() operationId?: string;
-  @Input() spinnerSize = 32;
+  visible = input(false);
+  text = input<string | undefined>(undefined);
+  operationId = input<string | undefined>(undefined);
+  spinnerSize = input(32);
 
   private loadingService = inject(LoadingService);
 
   protected readonly operation = computed(() => {
-    if (!this.operationId) return null;
-    return this.loadingService.getOperation(this.operationId);
+    const id = this.operationId();
+    if (!id) return null;
+    return this.loadingService.getOperation(id);
   });
 
   protected cancelOperation(): void {
-    if (this.operationId) {
-      this.loadingService.cancelLoading(this.operationId);
+    const id = this.operationId();
+    if (id) {
+      this.loadingService.cancelLoading(id);
     }
   }
 }

@@ -74,7 +74,6 @@ export class MessageService {
   private _lastError = signal<string | null>(null);
   private _isLoading = signal(false);
   private _retryCount = signal(0);
-  private errorHandler = inject(ErrorHandlerService);
   
   readonly lastError = this._lastError.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
@@ -94,7 +93,10 @@ export class MessageService {
     DEFAULT: 10000
   };
 
-  constructor(private vscodeApi: VSCodeApiService) {
+  constructor(
+    private vscodeApi: VSCodeApiService,
+    private errorHandler: ErrorHandlerService
+  ) {
     // Set up message handlers
     this.setupMessageHandlers();
   }

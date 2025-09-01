@@ -208,22 +208,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
   get analysisResults() { return this.store.analysisResults?.(); }
   get analysisProgress() { return this.store.currentAnalysis?.(); }
 
-  async ngOnInit() {
+  ngOnInit() {
     console.log('Dashboard component initialized - Angular migration in progress');
     
     // Setup message listeners for legacy compatibility
     this.setupMessageListeners();
     
     // Initialize dashboard by loading configuration
-    await this.store.loadConfigurationAsync();
+    this.store.loadConfiguration();
     
-    // If configuration is valid, load pull requests
-    if (this.store.hasValidConfiguration()) {
-      await this.store.loadPullRequests();
-    } else {
-      // Switch to configuration view if not configured
-      this.store.setActiveView(DashboardView.CONFIGURATION);
-    }
+    // The store will reactively handle loading pull requests if configuration is valid
+    // through the message listeners and computed properties
     
     console.log('Dashboard initialization complete');
   }
@@ -295,30 +290,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.store.setActiveView(view);
   }
 
-  async onRefresh(): Promise<void> {
-    await this.store.refresh();
+  onRefresh(): void {
+    this.store.refresh();
   }
 
   onDismissError(): void {
     this.store.clearError();
   }
 
-  async onSaveConfiguration(config: Partial<ConfigurationData>): Promise<void> {
-    await this.store.updateConfiguration(config);
+  onSaveConfiguration(config: Partial<ConfigurationData>): void {
+    // Trigger configuration update
+    this.store.updateConfiguration(config);
     
-    // If configuration is now valid, switch to pull request list
+    // If configuration is now valid, switch to pull request list and load data
+    // This will be handled reactively by the store
     if (this.store.hasValidConfiguration()) {
       this.store.setActiveView(DashboardView.PULL_REQUEST_LIST);
-      await this.store.loadPullRequests();
+      this.store.loadPullRequests(undefined);
     }
   }
 
-  async onTestConnection(): Promise<void> {
-    await this.store.testConnectionAsync();
+  onTestConnection(): void {
+    this.store.testConnection();
   }
 
-  async onSelectPullRequest(prId: number): Promise<void> {
-    await this.store.selectPullRequest(prId);
+  onSelectPullRequest(prId: number): void {
+    this.store.selectPullRequest(prId);
   }
 
   onSearch(searchTerm: string): void {

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, forwardRef } from '@angular/core';
+import { Component, ChangeDetectionStrategy, forwardRef, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
@@ -15,57 +15,58 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
   ],
   template: `
     <div class="space-y-vscode-sm">
-      @if (label) {
+      @if (label()) {
         <label 
           class="text-vscode-sm font-medium text-vscode-foreground"
           [for]="textareaId"
         >
-          {{ label }}
+          {{ label() }}
         </label>
       }
       <textarea
         class="input-vscode w-full resize-y"
-        [class.input-vscode-error]="!!error"
-        [class]="additionalClasses"
+        [class.input-vscode-error]="!!error()"
+        [class]="additionalClasses()"
         [id]="textareaId"
-        [placeholder]="placeholder"
-        [disabled]="disabled"
-        [rows]="rows"
-        [value]="value"
+        [placeholder]="placeholder()"
+        [disabled]="disabled() || isDisabled()"
+        [rows]="rows()"
+        [value]="value()"
         (input)="onInput($event)"
         (blur)="onBlur()"
         (focus)="onFocus.emit($event)"
       ></textarea>
-      @if (error) {
-        <div class="text-vscode-xs text-vscode-error">{{ error }}</div>
+      @if (error()) {
+        <div class="text-vscode-xs text-vscode-error">{{ error() }}</div>
       }
-      @if (helpText) {
-        <div class="text-vscode-xs text-vscode-muted">{{ helpText }}</div>
+      @if (helpText()) {
+        <div class="text-vscode-xs text-vscode-muted">{{ helpText() }}</div>
       }
     </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppTextareaComponent implements ControlValueAccessor {
-  @Input() label = '';
-  @Input() placeholder = '';
-  @Input() disabled = false;
-  @Input() error = '';
-  @Input() helpText = '';
-  @Input() rows = 3;
-  @Input() additionalClasses = '';
-  @Output() onFocus = new EventEmitter<Event>();
+  label = input('');
+  placeholder = input('');
+  disabled = input(false);
+  error = input('');
+  helpText = input('');
+  rows = input(3);
+  additionalClasses = input('');
+  onFocus = output<Event>();
 
   textareaId = `textarea-${Math.random().toString(36).substring(2, 9)}`;
-  value = '';
+  value = signal('');
+  protected isDisabled = signal(false);
 
   private onChange = (value: string) => {};
   private onTouched = () => {};
 
   onInput(event: Event): void {
     const target = event.target as HTMLTextAreaElement;
-    this.value = target.value;
-    this.onChange(this.value);
+    this.value.set(target.value);
+    this.onChange(this.value());
   }
 
   onBlur(): void {
@@ -73,7 +74,7 @@ export class AppTextareaComponent implements ControlValueAccessor {
   }
 
   writeValue(value: string): void {
-    this.value = value || '';
+    this.value.set(value || '');
   }
 
   registerOnChange(fn: (value: string) => void): void {
@@ -85,6 +86,6 @@ export class AppTextareaComponent implements ControlValueAccessor {
   }
 
   setDisabledState(isDisabled: boolean): void {
-    this.disabled = isDisabled;
+    this.isDisabled.set(isDisabled);
   }
 }

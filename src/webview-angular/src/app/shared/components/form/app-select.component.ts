@@ -36,7 +36,7 @@ export interface SelectOption {
         </label>
       }
       <brn-select 
-        [id]="selectId"
+        [attr.id]="selectId"
         [disabled]="disabled"
         (valueChange)="onValueChange($event)"
         [value]="value"

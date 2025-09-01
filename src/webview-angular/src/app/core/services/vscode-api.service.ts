@@ -121,29 +121,39 @@ export class VSCodeApiService {
     timeout: number = 30000
   ): Promise<T> {
     return new Promise((resolve, reject) => {
-      const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+      // Use provided requestId if present so tests can control matching
+      const requestId = (message && (message as any).requestId) || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
       // Set up timeout
       const timeoutId = setTimeout(() => {
         cleanup();
         reject(new Error(`Request timeout after ${timeout}ms`));
       }, timeout);
-      
+
       // Set up response listener
       const cleanup = this.onMessage((response: any) => {
+        if (!response) return;
         if (response.requestId === requestId) {
           clearTimeout(timeoutId);
           cleanup();
-          
+
           if (response.error) {
             reject(new Error(response.error));
-          } else {
+            return;
+          }
+
+          // Support responses that either provide a `payload` field or inline fields
+          if (response.payload !== undefined) {
             resolve(response.payload);
+          } else {
+            // Strip requestId from response and return remaining data
+            const { requestId: _rid, ...rest } = response;
+            resolve(rest);
           }
         }
       });
-      
-      // Send message with request ID
+
+      // Send message with request ID (preserve any provided fields)
       this.postMessage({
         ...message,
         requestId

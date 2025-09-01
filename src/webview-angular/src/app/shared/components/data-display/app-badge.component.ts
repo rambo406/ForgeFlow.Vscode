@@ -1,7 +1,6 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HlmBadge } from '@spartan-ng/helm/badge';
-import type { VariantProps } from 'class-variance-authority';
 
 @Component({
   selector: 'app-badge',

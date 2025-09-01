@@ -75,7 +75,7 @@ export class AppTableComponent {
   @Input() additionalClasses = '';
 
   protected getColumnClasses(column: TableColumn): string {
-    const classes = [];
+  const classes: string[] = [];
     
     if (column.sortable) {
       classes.push('cursor-pointer hover:bg-muted/50');

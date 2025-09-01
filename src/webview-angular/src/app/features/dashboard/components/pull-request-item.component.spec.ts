@@ -8,9 +8,7 @@ import { PullRequest, PullRequestStatus, ReviewerVote } from '@core/models';
 @Component({
   selector: 'app-button',
   template: '<button [class]="additionalClasses" (click)="onClick.emit()"><ng-content></ng-content></button>',
-  standalone: true,
-  inputs: ['variant', 'size', 'disabled', 'additionalClasses'],
-  outputs: ['onClick']
+  // Not standalone so it can be declared in the testing module
 })
 class MockAppButtonComponent {
   variant = 'default';

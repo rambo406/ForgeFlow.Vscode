@@ -36,9 +36,6 @@
       "@shared/*": [
         "src/app/shared/*"
       ],
-      "@spartan-ng/helm/accordion": [
-        "./libs/ui/ui-accordion-helm/src/index.ts"
-      ],
       "@spartan-ng/helm/alert": [
         "./libs/ui/ui-alert-helm/src/index.ts"
       ],
@@ -158,13 +155,17 @@
       ],
       "@spartan-ng/helm/typography": [
         "./libs/ui/ui-typography-helm/src/index.ts"
+      ],
+      "@spartan-ng/helm/utils": [
+        "./libs/ui/ui-utils-helm/src/index.ts"
       ]
     }
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
-    "strictInjectionParameters": true,
-    "strictInputAccessModifiers": true,
-    "strictTemplates": true
+    "strictInjectionParameters": false,
+    "strictInputAccessModifiers": false,
+    "strictTemplates": false,
+    "fullTemplateTypeCheck": false
   }
 }

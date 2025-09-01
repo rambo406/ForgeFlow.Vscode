@@ -20,11 +20,11 @@ import { BrnCheckboxImports } from '@spartan-ng/brain/checkbox';
       <div class="flex items-center space-x-vscode-sm">
         <brn-checkbox
           hlmCheckbox
-          [id]="checkboxId"
+          [attr.id]="checkboxId"
           [disabled]="disabled"
           [checked]="checked"
           (checkedChange)="onCheckedChange($event)"
-          [class]="additionalClasses"
+          [attr.class]="additionalClasses"
         />
         @if (label) {
           <label 

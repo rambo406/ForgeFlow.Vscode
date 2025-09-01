@@ -11,7 +11,9 @@ import {
   ChangeDetectionStrategy,
   computed,
   signal,
-  effect
+  effect,
+  input,
+  output
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -49,7 +51,7 @@ interface ScrollMetrics {
     <div 
       #scrollContainer
       class="virtual-scroll-container"
-      [style.height.px]="containerHeight"
+      [style.height.px]="containerHeight()"
       [style.overflow]="'auto'"
       (scroll)="onScroll($event)"
     >
@@ -65,12 +67,12 @@ interface ScrollMetrics {
           <div 
             #itemElement
             class="virtual-scroll-item"
-            [style.height.px]="config.enableDynamicHeight ? null : config.itemHeight"
+            [style.height.px]="config().enableDynamicHeight ? null : config().itemHeight"
             [attr.data-index]="startIndex() + i"
             [attr.data-item-id]="item.id"
           >
             <ng-container 
-              *ngTemplateOutlet="itemTemplate; context: { 
+              *ngTemplateOutlet="itemTemplate(); context: { 
                 $implicit: item.data, 
                 index: startIndex() + i,
                 id: item.id 
@@ -163,19 +165,21 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
   @ViewChild('scrollContainer', { static: true }) 
   scrollContainer!: ElementRef<HTMLElement>;
 
-  @Input() items: T[] = [];
-  @Input() itemTemplate!: TemplateRef<any>;
-  @Input() containerHeight = 400;
-  @Input() config: VirtualScrollConfig = {
+  // Signal-based inputs
+  items = input<T[]>([]);
+  itemTemplate = input.required<TemplateRef<any>>();
+  containerHeight = input(400);
+  config = input<VirtualScrollConfig>({
     itemHeight: 60,
     bufferSize: 5,
     threshold: 0.8,
     enableDynamicHeight: false
-  };
+  });
 
-  @Output() scrollToEnd = new EventEmitter<void>();
-  @Output() itemClick = new EventEmitter<{ item: T; index: number }>();
-  @Output() visibleRangeChange = new EventEmitter<VisibleRange>();
+  // Signal-based outputs
+  scrollToEnd = output<void>();
+  itemClick = output<{ item: T; index: number }>();
+  visibleRangeChange = output<VisibleRange>();
 
   // Signals for reactive state management
   private scrollTop = signal(0);
@@ -184,15 +188,16 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
   isLoading = signal(false);
 
   // Computed signals for virtual scrolling calculations
-  private totalItems = computed(() => this.items.length);
+  private totalItems = computed(() => this.items().length);
   
   private visibleRange = computed(() => {
     const scrollTop = this.scrollTop();
-    const containerHeight = this.containerHeight;
-    const itemHeight = this.config.itemHeight || 60;
-    const bufferSize = this.config.bufferSize || 5;
+    const containerHeight = this.containerHeight();
+    const config = this.config();
+    const itemHeight = config.itemHeight || 60;
+    const bufferSize = config.bufferSize || 5;
 
-    if (this.config.enableDynamicHeight) {
+    if (config.enableDynamicHeight) {
       return this.calculateDynamicVisibleRange(scrollTop, containerHeight, bufferSize);
     }
 
@@ -210,30 +215,33 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
 
   visibleItems = computed(() => {
     const range = this.visibleRange();
-    return this.items.slice(range.start, range.end + 1).map((item, index) => ({
+    const config = this.config();
+    return this.items().slice(range.start, range.end + 1).map((item: T, index: number) => ({
       id: this.getItemId(item, range.start + index),
       data: item,
-      height: this.config.enableDynamicHeight ? 
+      height: config.enableDynamicHeight ? 
         this.itemHeights().get(range.start + index) : 
-        this.config.itemHeight
+        config.itemHeight
     }));
   });
 
   beforeHeight = computed(() => {
     const range = this.visibleRange();
-    if (this.config.enableDynamicHeight) {
+    const config = this.config();
+    if (config.enableDynamicHeight) {
       return this.calculateDynamicOffset(0, range.start);
     }
-    return range.start * (this.config.itemHeight || 60);
+    return range.start * (config.itemHeight || 60);
   });
 
   afterHeight = computed(() => {
     const range = this.visibleRange();
     const totalItems = this.totalItems();
-    if (this.config.enableDynamicHeight) {
+    const config = this.config();
+    if (config.enableDynamicHeight) {
       return this.calculateDynamicOffset(range.end + 1, totalItems);
     }
-    return (totalItems - range.end - 1) * (this.config.itemHeight || 60);
+    return (totalItems - range.end - 1) * (config.itemHeight || 60);
   });
 
   private scrollTimeoutId?: number;
@@ -249,7 +257,8 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
 
     // Effect to handle dynamic height calculations
     effect(() => {
-      if (this.config.enableDynamicHeight) {
+      const config = this.config();
+      if (config.enableDynamicHeight) {
         this.updateItemHeights();
       }
     });
@@ -283,7 +292,8 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
   }
 
   private checkScrollToEnd(container: HTMLElement): void {
-    const threshold = this.config.threshold || 0.8;
+    const config = this.config();
+    const threshold = config.threshold || 0.8;
     const scrollPercentage = 
       (container.scrollTop + container.clientHeight) / container.scrollHeight;
 
@@ -298,13 +308,14 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
     bufferSize: number
   ): VisibleRange {
     const heights = this.itemHeights();
+    const config = this.config();
     let currentOffset = 0;
     let startIndex = 0;
     let endIndex = 0;
 
     // Find start index
     for (let i = 0; i < this.totalItems(); i++) {
-      const itemHeight = heights.get(i) || this.config.itemHeight || 60;
+      const itemHeight = heights.get(i) || config.itemHeight || 60;
       if (currentOffset + itemHeight > scrollTop) {
         startIndex = Math.max(0, i - bufferSize);
         break;
@@ -315,7 +326,7 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
     // Find end index
     currentOffset = this.calculateDynamicOffset(0, startIndex);
     for (let i = startIndex; i < this.totalItems(); i++) {
-      const itemHeight = heights.get(i) || this.config.itemHeight || 60;
+      const itemHeight = heights.get(i) || config.itemHeight || 60;
       if (currentOffset > scrollTop + containerHeight) {
         endIndex = Math.min(this.totalItems() - 1, i + bufferSize);
         break;
@@ -332,17 +343,19 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
 
   private calculateDynamicOffset(startIndex: number, endIndex: number): number {
     const heights = this.itemHeights();
+    const config = this.config();
     let offset = 0;
 
     for (let i = startIndex; i < endIndex; i++) {
-      offset += heights.get(i) || this.config.itemHeight || 60;
+      offset += heights.get(i) || config.itemHeight || 60;
     }
 
     return offset;
   }
 
   private setupDynamicHeightObserver(): void {
-    if (!this.config.enableDynamicHeight) return;
+    const config = this.config();
+    if (!config.enableDynamicHeight) return;
 
     // Observe size changes to item elements
     this.resizeObserver = new ResizeObserver((entries) => {
@@ -378,7 +391,8 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
   }
 
   private updateItemHeights(): void {
-    if (!this.config.enableDynamicHeight) return;
+    const config = this.config();
+    if (!config.enableDynamicHeight) return;
 
     const container = this.scrollContainer.nativeElement;
     const itemElements = container.querySelectorAll('.virtual-scroll-item');
@@ -411,7 +425,8 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
   private initialScroll(): void {
     // Allow time for initial render before setting up observers
     setTimeout(() => {
-      if (this.config.enableDynamicHeight) {
+      const config = this.config();
+      if (config.enableDynamicHeight) {
         this.updateItemHeights();
       }
     }, 100);
@@ -435,12 +450,13 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
     if (index < 0 || index >= this.totalItems()) return;
 
     const container = this.scrollContainer.nativeElement;
+    const config = this.config();
     let targetOffset: number;
 
-    if (this.config.enableDynamicHeight) {
+    if (config.enableDynamicHeight) {
       targetOffset = this.calculateDynamicOffset(0, index);
     } else {
-      targetOffset = index * (this.config.itemHeight || 60);
+      targetOffset = index * (config.itemHeight || 60);
     }
 
     container.scrollTo({
@@ -492,9 +508,10 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
   }
 
   private calculateTotalHeight(): number {
-    if (this.config.enableDynamicHeight) {
+    const config = this.config();
+    if (config.enableDynamicHeight) {
       return this.calculateDynamicOffset(0, this.totalItems());
     }
-    return this.totalItems() * (this.config.itemHeight || 60);
+    return this.totalItems() * (config.itemHeight || 60);
   }
 }

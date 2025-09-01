@@ -11,19 +11,19 @@ import {
 	untracked,
 } from '@angular/core';
 import { FormGroupDirective, NgControl, NgForm } from '@angular/forms';
-import { hlm } from '@spartan-ng/brain/core';
 import { BrnFormFieldControl } from '@spartan-ng/brain/form-field';
 import { ErrorStateMatcher, ErrorStateTracker } from '@spartan-ng/brain/forms';
+import { hlm } from '@spartan-ng/helm/utils';
 import { cva, VariantProps } from 'class-variance-authority';
 import type { ClassValue } from 'clsx';
 
 export const inputVariants = cva(
-	'input-vscode file:text-vscode-foreground placeholder:text-vscode-descriptionForeground selection:bg-vscode-list-activeSelectionBackground selection:text-vscode-list-activeSelectionForeground bg-vscode-input-background border-vscode-input-border flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-vscode-focusBorder focus-visible:ring-vscode-focusBorder/50 focus-visible:ring-[3px] text-vscode-input-foreground',
+	'file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
 	{
 		variants: {
 			error: {
-				auto: '[&.ng-invalid.ng-touched]:text-vscode-errorForeground [&.ng-invalid.ng-touched]:border-vscode-errorBorder [&.ng-invalid.ng-touched]:focus-visible:ring-vscode-errorBorder',
-				true: 'text-vscode-errorForeground border-vscode-errorBorder focus-visible:ring-vscode-errorBorder',
+				auto: '[&.ng-invalid.ng-touched]:text-destructive/20 dark:[&.ng-invalid.ng-touched]:text-destructive/40 [&.ng-invalid.ng-touched]:border-destructive [&.ng-invalid.ng-touched]:focus-visible:ring-destructive',
+				true: 'text-destructive/20 dark:text-destructive/40 border-destructive focus-visible:ring-destructive',
 			},
 		},
 		defaultVariants: {

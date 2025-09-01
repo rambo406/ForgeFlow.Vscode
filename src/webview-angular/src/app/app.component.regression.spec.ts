@@ -10,16 +10,14 @@ import { PerformanceOptimizationService } from './core/services/performance-opti
 // Mock dashboard component for testing
 @Component({
   selector: 'app-dashboard',
-  template: '<div>Dashboard Mock</div>',
-  standalone: true
+  template: '<div>Dashboard Mock</div>'
 })
 class MockDashboardComponent {}
 
 // Mock toast container for testing
 @Component({
   selector: 'app-toast-container',
-  template: '<div>Toast Container Mock</div>',
-  standalone: true
+  template: '<div>Toast Container Mock</div>'
 })
 class MockToastContainerComponent {}
 

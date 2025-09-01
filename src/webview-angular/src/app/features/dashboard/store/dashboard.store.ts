@@ -1,7 +1,7 @@
 import { computed, inject } from '@angular/core';
 import { signalStore, withState, withComputed, withMethods, patchState } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { pipe, switchMap, tap, catchError, finalize, from, lastValueFrom, EMPTY } from 'rxjs';
+import { pipe, switchMap, tap, catchError, from, EMPTY } from 'rxjs';
 import { MessageService } from '../../../core/services/message.service';
 import { 
   DashboardState, 
@@ -262,45 +262,53 @@ export const DashboardStore = signalStore(
       })
     };
   }),
-  withMethods((store, messageService = inject(MessageService)) => ({
+  withMethods((store) => {
+    const messageService = inject(MessageService);
+    return ({
     /**
+     * Load pull requests from the extension host
      * Load pull requests from the extension host
      * Replaces legacy loadPullRequests function
      */
-    // Observable-based implementation for loadPullRequests (compat approach)
-    loadPullRequestsRx(filters?: Partial<DashboardFilters>) {
-      // return an Observable that performs the load and updates state
-      return from((async () => {
+    loadPullRequests: rxMethod<Partial<DashboardFilters> | undefined>(pipe(
+      tap((_filters?: Partial<DashboardFilters>) => {
+        console.log('Loading pull requests...');
         patchState(store, { isLoading: true, error: undefined });
-        try {
-          console.log('Loading pull requests...');
-          const response = await messageService.loadPullRequests();
-          patchState(store, { pullRequests: response.pullRequests || [] });
-          console.log('Pull requests loaded:', response.pullRequests?.length || 0);
-          if (filters) {
-            patchState(store, { filters: { ...store.filters(), ...filters } });
-          }
-          return response;
-        } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : 'Failed to load pull requests';
-          console.error('Pull requests load error:', err);
-          patchState(store, { error: errorMessage });
-          throw err;
-        } finally {
-          patchState(store, { isLoading: false });
-        }
-      })());
-    },
-
-    // Compatibility wrapper for callers that expect a Promise
-    async loadPullRequests(filters?: Partial<DashboardFilters>) {
-      try {
-        const res = await lastValueFrom(this.loadPullRequestsRx(filters));
-        return res;
-      } catch (err) {
-        throw err;
-      }
-    },
+      }),
+      switchMap((filters?: Partial<DashboardFilters>) => 
+        from(messageService.loadPullRequests()).pipe(
+          tap({
+            next: (response: any) => {
+              patchState(store, { 
+                pullRequests: response.pullRequests || [],
+                isLoading: false
+              });
+              console.log('Pull requests loaded:', response.pullRequests?.length || 0);
+              if (filters) {
+                patchState(store, { filters: { ...store.filters(), ...filters } });
+              }
+            },
+            error: (error: any) => {
+              const errorMessage = error instanceof Error ? error.message : 'Failed to load pull requests';
+              console.error('Pull requests load error:', error);
+              patchState(store, { 
+                isLoading: false,
+                error: errorMessage 
+              });
+            }
+          }),
+          catchError((error: any) => {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to load pull requests';
+            console.error('Pull requests load error:', error);
+            patchState(store, { 
+              isLoading: false,
+              error: errorMessage 
+            });
+            return EMPTY;
+          })
+        )
+      )
+    )),
 
     /**
      * Select a pull request and load its details
@@ -370,42 +378,6 @@ export const DashboardStore = signalStore(
     )),
 
     /**
-     * Compatibility wrapper for selectPullRequest
-     * TODO: Remove this wrapper once all callers are updated to use the rxMethod directly
-     */
-    async selectPullRequestAsync(prId: number): Promise<void> {
-      const pullRequest = store.pullRequests().find(pr => pr.id === prId);
-      if (!pullRequest) {
-        patchState(store, { error: 'Pull request not found' });
-        return;
-      }
-
-      console.log('Selecting pull request:', prId);
-      patchState(store, { 
-        selectedPR: pullRequest,
-        activeView: DashboardView.PULL_REQUEST_DETAIL,
-        isLoading: true,
-        error: undefined
-      });
-
-      try {
-        const response = await messageService.selectPullRequest(prId);
-        patchState(store, { 
-          selectedPR: response.pullRequest,
-          isLoading: false
-        });
-        console.log('Pull request details loaded');
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to load pull request details';
-        console.error('Pull request details load error:', error);
-        patchState(store, { 
-          isLoading: false, 
-          error: errorMessage 
-        });
-      }
-    },
-
-    /**
      * Update configuration
     /**
      * Update configuration with optimistic updates and validation
@@ -464,34 +436,6 @@ export const DashboardStore = signalStore(
     )),
 
     /**
-     * Compatibility wrapper for updateConfiguration
-     * TODO: Remove this wrapper once all callers are updated to use the rxMethod directly
-     */
-    async updateConfigurationAsync(config: Partial<ConfigurationData>): Promise<void> {
-      const updatedConfig = { ...store.configuration(), ...config };
-      
-      console.log('Updating configuration...');
-      patchState(store, { 
-        configuration: updatedConfig,
-        isLoading: true,
-        error: undefined
-      });
-
-      try {
-        await messageService.saveConfiguration(updatedConfig);
-        patchState(store, { isLoading: false });
-        console.log('Configuration saved successfully');
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to save configuration';
-        console.error('Configuration save error:', error);
-        patchState(store, { 
-          isLoading: false, 
-          error: errorMessage 
-        });
-      }
-    },
-
-    /**
      * loadConfiguration converted to rxMethod
      * Original: async loadConfiguration()
      * Load configuration from extension host
@@ -533,31 +477,6 @@ export const DashboardStore = signalStore(
         )
       )
     )),
-
-    /**
-     * Compatibility wrapper for loadConfiguration
-     * TODO: Remove this wrapper once all callers are updated to use the rxMethod directly
-     */
-    async loadConfigurationAsync(): Promise<void> {
-      patchState(store, { isLoading: true, error: undefined });
-
-      try {
-        console.log('Loading configuration...');
-        const response = await messageService.loadConfiguration();
-        patchState(store, { 
-          configuration: response.config || store.configuration(),
-          isLoading: false
-        });
-        console.log('Configuration loaded');
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to load configuration';
-        console.error('Configuration load error:', error);
-        patchState(store, { 
-          isLoading: false, 
-          error: errorMessage 
-        });
-      }
-    },
 
     /**
      * testConnection converted to rxMethod
@@ -607,40 +526,6 @@ export const DashboardStore = signalStore(
         );
       })
     )),
-
-    /**
-     * Compatibility wrapper for testConnection
-     * TODO: Remove this wrapper once all callers are updated to use the rxMethod directly
-     */
-    async testConnectionAsync(): Promise<any> {
-      const config = store.configuration();
-      patchState(store, { isLoading: true, error: undefined });
-
-      try {
-        console.log('Testing connection...');
-        const response = await messageService.testConnection(config);
-        patchState(store, { isLoading: false });
-        
-        if (response.success) {
-          console.log('Connection test successful');
-          messageService.showSuccess('Connection test successful');
-        } else {
-          console.warn('Connection test failed:', response.message);
-          messageService.showError('Connection test failed', response.message);
-        }
-        
-        return response;
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Connection test failed';
-        console.error('Connection test error:', error);
-        patchState(store, { 
-          isLoading: false, 
-          error: errorMessage 
-        });
-        messageService.showError('Connection test failed', errorMessage);
-        throw error;
-      }
-    },
 
     /**
      * Set active dashboard view
@@ -782,12 +667,16 @@ export const DashboardStore = signalStore(
      * Replaces legacy refresh functionality
      */
     /**
-     * refresh converted to rxMethod
+     * refresh converted to rxMethod with proper loading state management
      * Original: async refresh()
      * Refresh current view data
      * Replaces legacy refresh functionality
      */
     refresh: rxMethod<void>(pipe(
+      tap(() => {
+        console.log('Refreshing view...');
+        patchState(store, { isLoading: true, error: undefined });
+      }),
       switchMap(() => {
         const activeView = store.activeView();
         console.log('Refreshing view:', activeView);
@@ -799,7 +688,7 @@ export const DashboardStore = signalStore(
               tap(response => {
                 patchState(store, { 
                   configuration: response,
-                  error: undefined 
+                  isLoading: false
                 });
               })
             );
@@ -808,31 +697,37 @@ export const DashboardStore = signalStore(
               tap(response => {
                 patchState(store, { 
                   pullRequests: response.pullRequests || [],
-                  error: undefined 
+                  isLoading: false
                 });
               })
             );
-          case DashboardView.PULL_REQUEST_DETAIL:
+          case DashboardView.PULL_REQUEST_DETAIL: {
             const selectedPR = store.selectedPR?.();
             if (selectedPR) {
               return from(messageService.selectPullRequest(selectedPR.id)).pipe(
                 tap(response => {
                   patchState(store, { 
                     selectedPR: response,
-                    error: undefined 
+                    isLoading: false
                   });
                 })
               );
             }
+            patchState(store, { isLoading: false });
             return EMPTY;
+          }
           default:
+            patchState(store, { isLoading: false });
             return EMPTY;
         }
       }),
       catchError((error: any) => {
         const errorMessage = error instanceof Error ? error.message : 'Failed to refresh view';
         console.error('Refresh error:', error);
-        patchState(store, { error: errorMessage });
+        patchState(store, { 
+          isLoading: false,
+          error: errorMessage 
+        });
         return EMPTY;
       })
     )),
@@ -864,5 +759,6 @@ export const DashboardStore = signalStore(
     setPullRequests(pullRequests: PullRequest[]) {
       patchState(store, { pullRequests });
     }
-  }))
+    });
+  })
 );

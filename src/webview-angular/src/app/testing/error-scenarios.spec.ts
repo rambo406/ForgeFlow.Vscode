@@ -9,6 +9,8 @@ import { NotificationService } from '../core/services/notification.service';
 import { MessageService } from '../core/services/message.service';
 
 @Component({
+  standalone: true,
+  imports: [],
   template: `
     <div>
       <button (click)="triggerNetworkError()" data-testid="network-error">Network Error</button>
@@ -119,8 +121,7 @@ describe('Error Scenarios End-to-End Tests', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [TestErrorComponent],
-      imports: [HttpClientTestingModule],
+      imports: [TestErrorComponent, HttpClientTestingModule],
       providers: [
         ErrorHandlerService,
         LoadingService,

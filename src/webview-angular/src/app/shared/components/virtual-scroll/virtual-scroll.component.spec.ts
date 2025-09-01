@@ -10,6 +10,8 @@ interface TestItem {
 }
 
 @Component({
+  standalone: true,
+  imports: [VirtualScrollComponent],
   template: `
     <app-virtual-scroll
       [items]="items"
@@ -74,8 +76,7 @@ describe('VirtualScrollComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [VirtualScrollComponent],
-      declarations: [TestHostComponent]
+      imports: [TestHostComponent]
     }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);

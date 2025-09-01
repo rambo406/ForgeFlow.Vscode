@@ -8,9 +8,8 @@ import { PullRequest, PullRequestStatus, FileChange, FileChangeType, AnalysisPro
 @Component({
   selector: 'app-button',
   template: '<button [class]="additionalClasses" [disabled]="disabled" (click)="onClick.emit()"><ng-content></ng-content></button>',
-  standalone: true,
-  inputs: ['variant', 'size', 'disabled', 'additionalClasses'],
-  outputs: ['onClick']
+  // Not standalone so it can be declared in the testing module
+  // Inputs/outputs are declared via class properties
 })
 class MockAppButtonComponent {
   variant = 'default';

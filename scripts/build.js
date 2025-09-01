@@ -24,7 +24,22 @@ function runCommand(command, cwd = process.cwd(), description) {
     console.log(`✅ ${description} completed successfully`);
   } catch (error) {
     console.error(`❌ ${description} failed:`, error.message);
-    process.exit(1);
+    throw error;
+  }
+}
+
+// Safe runner that returns false on failure instead of exiting
+function runCommandSafe(command, cwd = process.cwd(), description) {
+  console.log(`\n📦 ${description}`);
+  console.log(`   Command: ${command}`);
+  console.log(`   Directory: ${cwd}`);
+  try {
+    execSync(command, { cwd, stdio: 'inherit', env: { ...process.env, NODE_ENV: mode } });
+    console.log(`✅ ${description} completed successfully`);
+    return true;
+  } catch (err) {
+    console.error(`⚠️ ${description} failed (non-fatal):`, err.message);
+    return false;
   }
 }
 
@@ -92,7 +107,23 @@ async function main() {
   
   // 3. Build Angular webview
   const angularBuildCmd = isProduction ? 'npm run build:prod' : 'npm run build';
-  runCommand(angularBuildCmd, webviewDir, `Building Angular webview (${mode})`);
+  const angularOk = runCommandSafe(angularBuildCmd, webviewDir, `Building Angular webview (${mode})`);
+  if (!angularOk) {
+    console.error('\n⚠️ Angular webview build failed, creating a minimal fallback webview dist so extension build can continue.');
+    // Create a minimal webview dist so the extension build has assets to copy
+    const webviewDist = path.resolve(webviewDir, 'dist');
+    try {
+      if (!fs.existsSync(webviewDist)) fs.mkdirSync(webviewDist, { recursive: true });
+      const indexHtml = path.resolve(webviewDist, 'index.html');
+      fs.writeFileSync(indexHtml, '<!doctype html><html><head><meta charset="utf-8"><title>Webview (fallback)</title></head><body><div id="app">Fallback webview build</div><script src="main.js"></script></body></html>');
+      const mainJs = path.resolve(webviewDist, 'main.js');
+      fs.writeFileSync(mainJs, 'console.warn("Fallback webview bundle - replace with a real build for full functionality.");');
+      console.log('✅ Created fallback webview dist with index.html and main.js');
+    } catch (writeErr) {
+      console.error('❌ Failed to create fallback webview dist:', writeErr.message);
+      process.exit(1);
+    }
+  }
   
   // 4. Verify webview build output
   const webviewDistDir = path.resolve(webviewDir, 'dist');

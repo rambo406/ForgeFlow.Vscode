@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, TemplateRef, ViewChild } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { By } from '@angular/platform-browser';
 import { VirtualScrollComponent, VirtualScrollConfig } from './virtual-scroll.component';
 
@@ -13,6 +14,8 @@ interface PerformanceTestItem {
 }
 
 @Component({
+  standalone: true,
+  imports: [VirtualScrollComponent, CommonModule],
   template: `
     <app-virtual-scroll
       [items]="items"
@@ -135,8 +138,7 @@ describe('VirtualScrollComponent Performance Tests', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [VirtualScrollComponent],
-      declarations: [PerformanceTestHostComponent]
+      imports: [PerformanceTestHostComponent]
     }).compileComponents();
 
     fixture = TestBed.createComponent(PerformanceTestHostComponent);

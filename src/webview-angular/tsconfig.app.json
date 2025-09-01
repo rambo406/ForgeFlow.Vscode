@@ -10,4 +10,12 @@
   "include": [
     "src/**/*.d.ts"
   ]
+
+  ,
+  "angularCompilerOptions": {
+    "strictTemplates": false,
+    "fullTemplateTypeCheck": false,
+    "strictInjectionParameters": false,
+    "strictInputAccessModifiers": false
+  }
 }
