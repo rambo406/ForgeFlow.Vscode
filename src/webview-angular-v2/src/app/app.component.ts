@@ -7,12 +7,16 @@ import { VsCodeApiService } from './core/services/vscode-api.service';
     standalone: true,
     imports: [DashboardComponent],
     template: `
-        <div class="container">
+        <div class="p-4">
             <dashboard-root />
-            <div style="margin-top: 16px; padding: 8px; border: 1px solid #333; border-radius: 4px;">
-                <p>Zoneless Mode Test:</p>
-                <p>Counter: {{ counter() }}</p>
-                <button (click)="increment()">Increment</button>
+            <div class="mt-4 p-3 border border-gray-600 rounded-md card-vscode">
+                <p class="text-sm font-medium mb-2">Zoneless Mode Test:</p>
+                <p class="mb-3">Counter: <span class="font-mono text-blue-400">{{ counter() }}</span></p>
+                <button 
+                    (click)="increment()" 
+                    class="btn-vscode hover:opacity-90 transition-opacity">
+                    Increment
+                </button>
             </div>
         </div>
     `

@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
     /* Mirror VS Code theme tokens where possible */
     --ff-bg: var(--vscode-editor-background, #1e1e1e);
@@ -29,5 +33,23 @@ body {
     border: none;
     padding: 8px 12px;
     border-radius: 4px;
+}
+
+/* Tailwind-compatible VS Code theme utilities */
+@layer components {
+    .btn-vscode {
+        @apply px-3 py-2 rounded border-none text-white;
+        background: var(--vscode-button-background);
+    }
+    
+    .btn-vscode:hover {
+        background: var(--vscode-button-hoverBackground);
+    }
+    
+    .card-vscode {
+        background: var(--vscode-editor-background);
+        border: 1px solid var(--vscode-widget-border);
+        color: var(--vscode-editor-foreground);
+    }
 }
 
