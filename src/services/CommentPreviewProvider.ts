@@ -244,27 +244,42 @@ export class CommentPreviewProvider {
     
     <!-- Initialize webview API for Angular -->
     <script nonce="${nonce}">
-        // Make VS Code API available to Angular
-        window.vscode = acquireVsCodeApi();
-        
+        // Make VS Code API available to Angular if not already set
+        try {
+            if (typeof window.vscode === 'undefined' && typeof acquireVsCodeApi !== 'undefined') {
+                window.vscode = acquireVsCodeApi();
+            }
+        } catch (e) {
+            // If acquireVsCodeApi throws, we continue without vscode API. Angular will detect absence.
+            console.warn('acquireVsCodeApi unavailable or error during initialization', e);
+        }
+
         // Pass initial comments data to Angular
         window.initialComments = ${JSON.stringify(this.comments)};
-        
+
         // Restore webview state if available
-        const previousState = window.vscode.getState();
-        if (previousState) {
-            window.vsCodeState = previousState;
+        try {
+            const previousState = window.vscode?.getState && window.vscode.getState();
+            if (previousState) {
+                window.vsCodeState = previousState;
+            }
+        } catch (e) {
+            // Ignore state restore errors
         }
-        
+
         // Set up error handling for Angular initialization
         window.addEventListener('error', function(e) {
             console.error('Angular application error:', e.error);
-            window.vscode.postMessage({
-                type: 'showError',
-                data: { 
-                    message: 'Angular application failed to initialize: ' + e.error?.message 
-                }
-            });
+            try {
+                window.vscode?.postMessage({
+                    type: 'showError',
+                    data: { 
+                        message: 'Angular application failed to initialize: ' + e.error?.message 
+                    }
+                });
+            } catch (postError) {
+                // ignore
+            }
         });
     </script>
 </body>

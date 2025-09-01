@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "azdo-pr-reviewer-webview": "file:../.."
+  }
+}

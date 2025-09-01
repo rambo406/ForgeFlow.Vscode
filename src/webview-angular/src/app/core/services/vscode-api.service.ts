@@ -9,7 +9,7 @@ import { VsCodeApi } from '../models/vscode-api.types';
 })
 export class VSCodeApiService {
   private vscodeApi: VsCodeApi | null = null;
-  private _state = signal<any>(null);
+  private _state = signal<unknown>(null);
   private _isInitialized = signal(false);
 
   readonly state = this._state.asReadonly();
@@ -27,7 +27,8 @@ export class VSCodeApiService {
     try {
       if (typeof acquireVsCodeApi !== 'undefined') {
         this.vscodeApi = acquireVsCodeApi();
-        this._state.set(this.vscodeApi.getState() || {});
+        const existing = this.vscodeApi.getState();
+        this._state.set(existing ?? {});
         this._isInitialized.set(true);
         
         // Listen for messages from extension host
@@ -45,7 +46,7 @@ export class VSCodeApiService {
   /**
    * Post a message to the extension host
    */
-  postMessage(message: any): void {
+  postMessage(message: unknown): void {
     if (this.vscodeApi) {
       this.vscodeApi.postMessage(message);
     } else {
@@ -56,7 +57,7 @@ export class VSCodeApiService {
   /**
    * Get the current webview state
    */
-  getState(): any {
+  getState(): unknown {
     if (this.vscodeApi) {
       return this.vscodeApi.getState();
     }
@@ -66,7 +67,7 @@ export class VSCodeApiService {
   /**
    * Set the webview state
    */
-  setState(state: any): void {
+  setState(state: unknown): void {
     if (this.vscodeApi) {
       this.vscodeApi.setState(state);
       this._state.set(state);
@@ -78,9 +79,9 @@ export class VSCodeApiService {
   /**
    * Update partial state
    */
-  updateState(partialState: any): void {
-    const currentState = this.getState() || {};
-    const newState = { ...currentState, ...partialState };
+  updateState(partialState: Record<string, unknown>): void {
+    const currentState = (this.getState() as Record<string, unknown>) || {};
+    const newState = { ...currentState, ...partialState } as Record<string, unknown>;
     this.setState(newState);
   }
 
@@ -100,7 +101,7 @@ export class VSCodeApiService {
   /**
    * Add message listener
    */
-  onMessage(handler: (message: any) => void): () => void {
+  onMessage(handler: (message: unknown) => void): () => void {
     const listener = (event: CustomEvent) => {
       handler(event.detail);
     };
@@ -116,13 +117,13 @@ export class VSCodeApiService {
   /**
    * Send a request and wait for response (with timeout)
    */
-  async sendRequest<T = any>(
-    message: any, 
+  async sendRequest<T = unknown>(
+    message: unknown, 
     timeout: number = 30000
   ): Promise<T> {
     return new Promise((resolve, reject) => {
       // Use provided requestId if present so tests can control matching
-      const requestId = (message && (message as any).requestId) || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const requestId = (message && (message as { requestId?: string }).requestId) || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       // Set up timeout
       const timeoutId = setTimeout(() => {
@@ -131,31 +132,35 @@ export class VSCodeApiService {
       }, timeout);
 
       // Set up response listener
-      const cleanup = this.onMessage((response: any) => {
+      const cleanup = this.onMessage((response: unknown) => {
         if (!response) return;
-        if (response.requestId === requestId) {
+        const resp = response as { requestId?: string; error?: string; payload?: T } & Record<string, unknown>;
+        if (resp.requestId === requestId) {
           clearTimeout(timeoutId);
           cleanup();
 
-          if (response.error) {
-            reject(new Error(response.error));
+          if (resp.error) {
+            reject(new Error(resp.error));
             return;
           }
 
           // Support responses that either provide a `payload` field or inline fields
-          if (response.payload !== undefined) {
-            resolve(response.payload);
+          if ((resp as { payload?: T }).payload !== undefined) {
+            resolve((resp as { payload: T }).payload);
           } else {
             // Strip requestId from response and return remaining data
-            const { requestId: _rid, ...rest } = response;
-            resolve(rest);
+            const { requestId: _rid, ...rest } = resp;
+            resolve(rest as T);
           }
         }
       });
 
       // Send message with request ID (preserve any provided fields)
+      const base = (typeof message === 'object' && message !== null)
+        ? (message as Record<string, unknown>)
+        : {};
       this.postMessage({
-        ...message,
+        ...base,
         requestId
       });
     });

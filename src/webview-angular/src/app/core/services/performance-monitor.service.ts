@@ -5,7 +5,7 @@ export interface PerformanceMetric {
   startTime: number;
   endTime?: number;
   duration?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PerformanceReport {
@@ -75,7 +75,7 @@ export class PerformanceMonitorService {
   /**
    * Start timing a performance metric
    */
-  startTiming(name: string, metadata?: Record<string, any>): void {
+  startTiming(name: string, metadata?: Record<string, unknown>): void {
     const metric: PerformanceMetric = {
       name,
       startTime: performance.now(),
@@ -123,8 +123,8 @@ export class PerformanceMonitorService {
   /**
    * Measure component loading time
    */
-  measureComponentLoad(componentName: string): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
-    return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+  measureComponentLoad(componentName: string): (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) => void {
+    return (_target: unknown, _propertyKey: string, descriptor: PropertyDescriptor) => {
       const originalMethod = descriptor.value;
 
       descriptor.value = function (...args: any[]) {
@@ -134,8 +134,8 @@ export class PerformanceMonitorService {
         const result = originalMethod.apply(this, args);
         
         // Handle both sync and async methods
-        if (result && typeof result.then === 'function') {
-          return result.then((value: any) => {
+        if (result && typeof (result as Promise<unknown>).then === 'function') {
+          return (result as Promise<unknown>).then((value: unknown) => {
             performance.mark(`${metricName}-end`);
             performance.measure(metricName, `${metricName}-start`, `${metricName}-end`);
             return value;
@@ -154,11 +154,11 @@ export class PerformanceMonitorService {
   /**
    * Measure function execution time
    */
-  measureExecution(name: string): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
-    return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+  measureExecution(name: string): (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) => void {
+    return (_target: unknown, _propertyKey: string, descriptor: PropertyDescriptor) => {
       const originalMethod = descriptor.value;
 
-      descriptor.value = function (...args: any[]) {
+      descriptor.value = function (...args: unknown[]) {
         const startTime = performance.now();
         const result = originalMethod.apply(this, args);
         const endTime = performance.now();
@@ -174,12 +174,13 @@ export class PerformanceMonitorService {
   /**
    * Get current memory usage
    */
-  getMemoryUsage(): any {
+  getMemoryUsage(): PerformanceMemory | null {
     if ('memory' in performance) {
+      const mem = (performance as unknown as { memory: PerformanceMemory }).memory;
       return {
-        usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
-        totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
-        jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit
+        usedJSHeapSize: mem.usedJSHeapSize,
+        totalJSHeapSize: mem.totalJSHeapSize,
+        jsHeapSizeLimit: mem.jsHeapSizeLimit
       };
     }
     return null;
@@ -312,4 +313,10 @@ export class PerformanceMonitorService {
     }
     this.clearMetrics();
   }
+}
+
+export interface PerformanceMemory {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
 }

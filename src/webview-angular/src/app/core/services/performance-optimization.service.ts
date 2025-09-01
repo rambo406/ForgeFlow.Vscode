@@ -26,7 +26,7 @@ export class PerformanceOptimizationService {
 
   private config$ = new BehaviorSubject<OptimizationConfig>(this.defaultConfig);
   private imageCache = new Map<string, HTMLImageElement>();
-  private componentCache = new Map<string, any>();
+  private componentCache = new Map<string, LoadedComponent>();
 
   /**
    * Initialize performance optimizations
@@ -111,15 +111,15 @@ export class PerformanceOptimizationService {
   /**
    * Load and cache components
    */
-  private loadComponent(componentName: string): Promise<any> {
+  private loadComponent(componentName: string): Promise<LoadedComponent> {
     if (this.componentCache.has(componentName)) {
-      return Promise.resolve(this.componentCache.get(componentName));
+      return Promise.resolve(this.componentCache.get(componentName)!);
     }
 
     // Simulate component loading
     return new Promise(resolve => {
       setTimeout(() => {
-        const component = { name: componentName, loaded: true };
+        const component: LoadedComponent = { name: componentName, loaded: true };
         this.componentCache.set(componentName, component);
         resolve(component);
       }, 100);
@@ -134,7 +134,10 @@ export class PerformanceOptimizationService {
     this.preloadCriticalResources();
     
     // Setup service worker for caching if available
-    if ('serviceWorker' in navigator) {
+    // In VS Code webviews service workers are not supported (blob:vscode-webview protocol)
+    // or may fail due to CSP. Also, acquireVsCodeApi presence indicates webview environment.
+    const isVsCodeWebview = typeof (window as any).acquireVsCodeApi !== 'undefined' || location.protocol.startsWith('blob:');
+    if ('serviceWorker' in navigator && !isVsCodeWebview) {
       this.setupServiceWorker();
     }
   }
@@ -359,7 +362,7 @@ export class PerformanceOptimizationService {
   /**
    * Debounce function calls for performance
    */
-  debounce<T extends (...args: any[]) => any>(
+  debounce<T extends (...args: unknown[]) => unknown>(
     func: T,
     delay: number = this.defaultConfig.debounceTime
   ): (...args: Parameters<T>) => void {
@@ -374,7 +377,7 @@ export class PerformanceOptimizationService {
   /**
    * Throttle function calls for performance
    */
-  throttle<T extends (...args: any[]) => any>(
+  throttle<T extends (...args: unknown[]) => unknown>(
     func: T,
     delay: number = this.defaultConfig.debounceTime
   ): (...args: Parameters<T>) => void {
@@ -407,14 +410,31 @@ export class PerformanceOptimizationService {
   /**
    * Get performance metrics
    */
-  getMetrics(): any {
+  getMetrics(): PerformanceMetrics {
     return {
       cacheSize: {
         images: this.imageCache.size,
         components: this.componentCache.size
       },
-      memoryUsage: 'memory' in performance ? (performance as any).memory : null,
+      memoryUsage: 'memory' in performance ? (performance as unknown as { memory: PerformanceMemory }).memory : null,
       config: this.config$.value
     };
   }
+}
+
+export interface LoadedComponent {
+  name: string;
+  loaded: boolean;
+}
+
+export interface PerformanceMemory {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+export interface PerformanceMetrics {
+  cacheSize: { images: number; components: number };
+  memoryUsage: PerformanceMemory | null;
+  config: OptimizationConfig;
 }

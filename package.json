@@ -205,10 +205,7 @@
     "build:webview:dev": "cd src/webview-angular && npm run build",
     "install:webview": "cd src/webview-angular && npm install",
     "clean": "rimraf dist out",
-    "clean:all": "npm run clean && cd src/webview-angular && rimraf dist node_modules",
-    "codemod:analyze": "node scripts/rxmethod-codemod.js --dry-run",
-    "codemod:convert": "node scripts/rxmethod-codemod.js",
-    "codemod:validate": "node scripts/rxmethod-validator.js"
+    "clean:all": "npm run clean && cd src/webview-angular && rimraf dist node_modules"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.1",

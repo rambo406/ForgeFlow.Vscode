@@ -42,8 +42,12 @@ module.exports = (env, argv) => {
   const mode = argv.mode || 'development';
   const isProduction = mode === 'production';
   
-  // Build Angular webview before extension build
-  buildAngularWebview(mode);
+  // Build Angular webview before extension build unless skipped by env
+  if (process.env.SKIP_WEBVIEW_BUILD !== '1') {
+    buildAngularWebview(mode);
+  } else {
+    console.log('Skipping Angular webview build (SKIP_WEBVIEW_BUILD=1)');
+  }
   
   return {
     target: 'node',

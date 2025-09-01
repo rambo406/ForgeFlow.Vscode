@@ -57,7 +57,7 @@ export enum MessageType {
 /**
  * Generic message interface
  */
-export interface WebviewMessage<T = any> {
+export interface WebviewMessage<T = unknown> {
   type: MessageType;
   payload: T;
   requestId?: string;
@@ -74,13 +74,16 @@ export class MessageService {
   private _lastError = signal<string | null>(null);
   private _isLoading = signal(false);
   private _retryCount = signal(0);
+  // Track recently sent request IDs to avoid processing echoed responses
+  private _sentRequestIds: Map<string, number> = new Map<string, number>();
+  private readonly ECHO_TTL_MS = 60_000; // 60 seconds
   
   readonly lastError = this._lastError.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
   readonly retryCount = this._retryCount.asReadonly();
 
   // Default timeouts for different operations (in milliseconds)
-  private readonly DEFAULT_TIMEOUTS = {
+  private readonly DEFAULT_TIMEOUTS: Partial<Record<MessageType, number>> & { DEFAULT: number } = {
     [MessageType.LOAD_CONFIG]: 5000,
     [MessageType.SAVE_CONFIG]: 10000,
     [MessageType.TEST_CONNECTION]: 30000,
@@ -102,13 +105,44 @@ export class MessageService {
   }
 
   /**
+   * Record a requestId we've sent so we can ignore any immediate echoes
+   */
+  private recordSentRequestId(requestId?: string) {
+    if (!requestId) { return; }
+    try {
+      const ts = Date.now();
+      this._sentRequestIds.set(requestId, ts);
+      // Schedule cleanup after TTL
+      setTimeout(() => this._sentRequestIds.delete(requestId), this.ECHO_TTL_MS);
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  /**
+   * Check whether a given requestId was recently sent from this webview
+   * Returns true if it appears to be an echo and should be ignored
+   */
+  isEcho(requestId?: string): boolean {
+    try {
+      if (!requestId) { return false; }
+      const ts = this._sentRequestIds.get(requestId);
+      if (!ts) { return false; }
+      return (Date.now() - ts) <= this.ECHO_TTL_MS;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Set up handlers for incoming messages
    */
   private setupMessageHandlers(): void {
-    this.vscodeApi.onMessage((message: WebviewMessage) => {
-      switch (message.type) {
+    this.vscodeApi.onMessage((message: unknown) => {
+      const msg = message as WebviewMessage<unknown>;
+      switch (msg.type) {
         case MessageType.SHOW_ERROR:
-          this._lastError.set(message.payload.message);
+          this._lastError.set((msg.payload as { message?: string })?.message ?? null);
           break;
         case MessageType.SHOW_SUCCESS:
         case MessageType.SHOW_WARNING:
@@ -129,7 +163,7 @@ export class MessageService {
   /**
    * Safe message sending with error handling
    */
-  sendMessage<T = any>(type: MessageType, payload?: T): void {
+  sendMessage<T = unknown>(type: MessageType, payload?: T): void {
     try {
       const message: WebviewMessage<T> = {
         type,
@@ -137,7 +171,8 @@ export class MessageService {
         timestamp: new Date().toISOString(),
         requestId: this.generateRequestId()
       };
-      
+      // Record the requestId so we can ignore echoed messages coming back
+      this.recordSentRequestId(message.requestId);
       this.vscodeApi.postMessage(message);
       this._lastError.set(null);
       
@@ -156,7 +191,7 @@ export class MessageService {
   /**
    * Send a request and wait for response with error handling and retry
    */
-  private async sendRequest<TRequest = any, TResponse = any>(
+  private async sendRequest<TRequest = unknown, TResponse = unknown>(
     type: MessageType, 
     payload?: TRequest,
     timeoutMs?: number,
@@ -165,7 +200,7 @@ export class MessageService {
     this._isLoading.set(true);
     this._retryCount.set(0);
     
-    const operationTimeout = timeoutMs || (this.DEFAULT_TIMEOUTS as any)[type] || this.DEFAULT_TIMEOUTS.DEFAULT;
+    const operationTimeout = timeoutMs || this.DEFAULT_TIMEOUTS[type] || this.DEFAULT_TIMEOUTS.DEFAULT;
     const operationName = `${type} request`;
     
     try {
@@ -177,7 +212,10 @@ export class MessageService {
             timestamp: new Date().toISOString(),
             requestId: this.generateRequestId()
           };
-          
+
+          // Record the requestId so that any echoed messages aren't handled as new events
+          this.recordSentRequestId(message.requestId);
+
           // Use the existing vscodeApi.sendRequest method with timeout
           const response = await this.vscodeApi.sendRequest<TResponse>(message, operationTimeout);
           return response;
@@ -216,28 +254,28 @@ export class MessageService {
   }
 
   // Configuration methods
-  async loadConfiguration(): Promise<any> {
+  async loadConfiguration(): Promise<unknown> {
     return this.sendRequest(MessageType.LOAD_CONFIG);
   }
 
-  async saveConfiguration(config: any): Promise<void> {
+  async saveConfiguration(config: unknown): Promise<void> {
     return this.sendRequest(MessageType.SAVE_CONFIG, { config });
   }
 
-  async testConnection(config: any): Promise<any> {
+  async testConnection(config: unknown): Promise<unknown> {
     return this.sendRequest(MessageType.TEST_CONNECTION, { config });
   }
 
   // Pull request methods
-  async loadPullRequests(): Promise<any> {
+  async loadPullRequests(): Promise<unknown> {
     return this.sendRequest(MessageType.LOAD_PULL_REQUESTS);
   }
 
-  async selectPullRequest(prId: number): Promise<any> {
+  async selectPullRequest(prId: number): Promise<unknown> {
     return this.sendRequest(MessageType.SELECT_PULL_REQUEST, { prId });
   }
 
-  async loadPRDetails(prId: number): Promise<any> {
+  async loadPRDetails(prId: number): Promise<unknown> {
     return this.sendRequest(MessageType.LOAD_PR_DETAILS, { prId });
   }
 
@@ -268,11 +306,11 @@ export class MessageService {
   }
 
   // Repository and project methods
-  async loadRepositories(): Promise<any> {
+  async loadRepositories(): Promise<unknown> {
     return this.sendRequest(MessageType.LOAD_REPOSITORIES);
   }
 
-  async loadProjects(): Promise<any> {
+  async loadProjects(): Promise<unknown> {
     return this.sendRequest(MessageType.LOAD_PROJECTS);
   }
 
@@ -290,11 +328,11 @@ export class MessageService {
     this.sendMessage(MessageType.CLOSE_SETTINGS);
   }
 
-  async validateSetting(key: string, value: any): Promise<any> {
+  async validateSetting(key: string, value: unknown): Promise<unknown> {
     return this.sendRequest(MessageType.VALIDATE_SETTING, { key, value });
   }
 
-  async saveSettings(settings: any): Promise<void> {
+  async saveSettings(settings: unknown): Promise<void> {
     return this.sendRequest(MessageType.SAVE_SETTINGS, { settings });
   }
 
@@ -306,11 +344,11 @@ export class MessageService {
     this.sendMessage(MessageType.EXPORT_SETTINGS);
   }
 
-  importSettings(settings: any): void {
+  importSettings(settings: unknown): void {
     this.sendMessage(MessageType.IMPORT_SETTINGS, { settings });
   }
 
-  async loadAvailableModels(): Promise<any> {
+  async loadAvailableModels(): Promise<unknown> {
     return this.sendRequest(MessageType.LOAD_AVAILABLE_MODELS);
   }
 
@@ -334,16 +372,30 @@ export class MessageService {
   /**
    * Observable for incoming messages
    */
-  onMessage<T = any>(): Observable<WebviewMessage<T>> {
+  onMessage<T = unknown>(): Observable<WebviewMessage<T>> {
     return fromEvent<CustomEvent>(window, 'vscode-message').pipe(
-      map(event => event.detail as WebviewMessage<T>)
+      map(event => event.detail as WebviewMessage<T>),
+      // Filter out messages that are simply echoes of requests we just sent from this webview.
+      // The extension often echoes the same `requestId` back; handling those can cause loops
+      // when the UI reacts by re-sending the same request. Ignore if recently sent.
+      filter((message: WebviewMessage<T>) => {
+        try {
+          if (!message || !message.requestId) { return true; }
+          const ts = this._sentRequestIds.get(message.requestId as string);
+          if (!ts) { return true; }
+          // If the requestId was recorded within TTL, ignore this incoming message
+          return (Date.now() - ts) > this.ECHO_TTL_MS;
+        } catch (e) {
+          return true;
+        }
+      })
     );
   }
 
   /**
    * Observable for specific message types
    */
-  onMessageOfType<T = any>(messageType: MessageType): Observable<WebviewMessage<T>> {
+  onMessageOfType<T = unknown>(messageType: MessageType): Observable<WebviewMessage<T>> {
     return this.onMessage<T>().pipe(
       filter(message => message.type === messageType)
     );

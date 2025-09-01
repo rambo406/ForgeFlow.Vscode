@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppToastComponent, ToastAction } from './app-toast.component';
-import { NotificationService } from '../../../core/services/notification.service';
+import { NotificationService, Notification } from '../../../core/services/notification.service';
 
 @Component({
   selector: 'app-toast-container',
@@ -224,10 +224,10 @@ export class AppToastContainerComponent {
   /**
    * Map notification actions to toast actions
    */
-  mapNotificationActions(notification: any): ToastAction[] {
+  mapNotificationActions(notification: Notification): ToastAction[] {
     if (!notification.actions) return [];
     
-    return notification.actions.map((action: any) => ({
+    return notification.actions.map((action) => ({
       label: action.label,
       action: action.action,
       primary: action.primary || false
@@ -237,7 +237,7 @@ export class AppToastContainerComponent {
   /**
    * Determine notification position based on type and severity
    */
-  private getNotificationPosition(notification: any): 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' {
+  private getNotificationPosition(notification: Notification): 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' {
     // Critical errors go to top-left to be more prominent
     if (notification.type === 'error' && notification.persistent) {
       return 'top-left';

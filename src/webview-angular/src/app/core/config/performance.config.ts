@@ -185,7 +185,7 @@ export function getPerformanceConfig(environment: 'development' | 'production') 
 /**
  * Validate performance against thresholds
  */
-export function validatePerformance(metrics: any): {
+export function validatePerformance(metrics: Record<string, unknown>): {
   passed: boolean;
   failures: string[];
   score: number;
@@ -197,7 +197,7 @@ export function validatePerformance(metrics: any): {
   // Check each threshold
   Object.entries(PERFORMANCE_THRESHOLDS).forEach(([key, threshold]) => {
     totalCount++;
-    const metricValue = metrics[key];
+    const metricValue = metrics[key] as number | undefined;
     
     if (metricValue !== undefined) {
       const passed = key === 'virtualScrollFps' ? 
@@ -222,31 +222,31 @@ export function validatePerformance(metrics: any): {
 /**
  * Get performance recommendations based on current metrics
  */
-export function getPerformanceRecommendations(metrics: any): string[] {
+export function getPerformanceRecommendations(metrics: Record<string, number>): string[] {
   const recommendations: string[] = [];
 
-  if (metrics.componentLoad > PERFORMANCE_THRESHOLDS.componentLoad) {
+  if (metrics['componentLoad'] > PERFORMANCE_THRESHOLDS.componentLoad) {
     recommendations.push('Consider implementing more aggressive lazy loading for components');
     recommendations.push('Use OnPush change detection strategy consistently');
   }
 
-  if (metrics.renderTime > PERFORMANCE_THRESHOLDS.renderTime) {
+  if (metrics['renderTime'] > PERFORMANCE_THRESHOLDS.renderTime) {
     recommendations.push('Optimize change detection cycles with signals');
     recommendations.push('Implement virtual scrolling for large lists');
   }
 
-  if (metrics.memoryUsage > PERFORMANCE_THRESHOLDS.memoryUsage) {
+  if (metrics['memoryUsage'] > PERFORMANCE_THRESHOLDS.memoryUsage) {
     recommendations.push('Implement proper subscription cleanup with takeUntilDestroyed');
     recommendations.push('Use memory-efficient data structures and caching');
   }
 
-  if (metrics.bundleSize > PERFORMANCE_THRESHOLDS.bundleSize) {
+  if (metrics['bundleSize'] > PERFORMANCE_THRESHOLDS.bundleSize) {
     recommendations.push('Enable more aggressive tree shaking');
     recommendations.push('Analyze and remove unused dependencies');
     recommendations.push('Implement route-based code splitting');
   }
 
-  if (metrics.virtualScrollFps < PERFORMANCE_THRESHOLDS.virtualScrollFps) {
+  if (metrics['virtualScrollFps'] < PERFORMANCE_THRESHOLDS.virtualScrollFps) {
     recommendations.push('Optimize virtual scrolling item rendering');
     recommendations.push('Implement item recycling for better performance');
   }

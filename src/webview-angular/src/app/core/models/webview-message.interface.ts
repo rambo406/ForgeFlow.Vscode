@@ -1,4 +1,4 @@
-import { MessageType } from './enums';
+import { MessageType, AnalysisStage } from './enums';
 import { 
   ConfigurationData,
   PullRequest,
@@ -13,7 +13,7 @@ import {
 /**
  * Base interface for all webview messages
  */
-export interface WebviewMessage<T = any> {
+export interface WebviewMessage<T = unknown> {
   type: MessageType;
   payload: T;
   requestId?: string;
@@ -48,7 +48,7 @@ export interface TestConnectionRequest {
 export interface TestConnectionResponse {
   success: boolean;
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 /**
@@ -98,7 +98,7 @@ export interface StartAIAnalysisRequest {
 
 export interface AIAnalysisProgressPayload {
   prId: number;
-  stage: string;
+  stage: AnalysisStage;
   currentFileName?: string;
   completed: number;
   total: number;
@@ -147,7 +147,7 @@ export interface BulkCommentActionRequest {
  */
 export interface ValidateSettingRequest {
   key: string;
-  value: any;
+  value: unknown;
 }
 
 export interface ValidateSettingResponse {
@@ -157,7 +157,7 @@ export interface ValidateSettingResponse {
 }
 
 export interface SaveSettingsRequest {
-  settings: Record<string, any>;
+  settings: Record<string, unknown>;
 }
 
 export interface LoadAvailableModelsResponse {
@@ -170,7 +170,7 @@ export interface LoadAvailableModelsResponse {
  */
 export interface UpdateViewRequest {
   view: string;
-  data?: any;
+  data?: unknown;
 }
 
 /**

@@ -9,7 +9,7 @@ export interface WebviewState {
   activeView?: string;
   selectedPRId?: number;
   scrollPosition?: number;
-  filterState?: any;
+  filterState?: Record<string, unknown>;
   lastUpdate?: string;
 }
 
@@ -97,8 +97,9 @@ export class WebviewLifecycleService implements OnDestroy {
     this.messageService.onMessageOfType(MessageType.UPDATE_VIEW)
       .pipe(takeUntil(this.destroy$))
       .subscribe(message => {
-        if (message.payload?.visible !== undefined) {
-          this._isVisible.set(message.payload.visible);
+        const payload = message.payload as { visible?: boolean } | undefined;
+        if (payload?.visible !== undefined) {
+          this._isVisible.set(payload.visible);
         }
       });
 
@@ -106,7 +107,8 @@ export class WebviewLifecycleService implements OnDestroy {
     this.messageService.onMessage()
       .pipe(takeUntil(this.destroy$))
       .subscribe(message => {
-        if (message.type === MessageType.UPDATE_VIEW && message.payload?.action === 'updateState') {
+        const payload = message.payload as { action?: string } | undefined;
+        if (message.type === MessageType.UPDATE_VIEW && payload?.action === 'updateState') {
           this.saveCurrentState();
         }
       });
@@ -295,7 +297,7 @@ export class WebviewLifecycleService implements OnDestroy {
   /**
    * Get current filter state
    */
-  private getFilterState(): any {
+  private getFilterState(): Record<string, unknown> {
     // This would be implemented based on your filter state management
     return {
       // Extract filter state from stores or localStorage
@@ -366,7 +368,7 @@ export class WebviewLifecycleService implements OnDestroy {
   /**
    * Get webview capabilities
    */
-  getCapabilities(): any {
+  getCapabilities(): WebviewCapabilities {
     return {
       canPersistState: this.vscodeApi.isAvailable(),
       canReceiveMessages: this.vscodeApi.isAvailable(),
@@ -375,4 +377,12 @@ export class WebviewLifecycleService implements OnDestroy {
       supportsHeartbeat: true
     };
   }
+}
+
+export interface WebviewCapabilities {
+  canPersistState: boolean;
+  canReceiveMessages: boolean;
+  canSendMessages: boolean;
+  supportsThemes: boolean;
+  supportsHeartbeat: boolean;
 }

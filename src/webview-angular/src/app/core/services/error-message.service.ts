@@ -28,7 +28,7 @@ export class ErrorMessageService {
   /**
    * Error patterns and their user-friendly equivalents
    */
-  private readonly ERROR_PATTERNS = [
+  private readonly ERROR_PATTERNS: ErrorPattern[] = [
     // Network and connectivity errors
     {
       pattern: /network|connection|timeout|unreachable/i,
@@ -233,9 +233,9 @@ export class ErrorMessageService {
 
   /**
    * Create error message from recognized pattern
-   */
+  */
   private createErrorFromPattern(
-    pattern: any,
+    pattern: ErrorPattern,
     error: Error,
     context: string,
     originalOperation?: () => void
@@ -460,4 +460,13 @@ export class ErrorMessageService {
       default: return '❓';
     }
   }
+}
+
+interface ErrorPattern {
+  pattern: RegExp;
+  category: string;
+  title: string;
+  message: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  suggestions: string[];
 }

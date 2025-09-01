@@ -1,11 +1,10 @@
+@use './vscode-theme.scss' as vscode-theme;
+
 @import '@angular/cdk/overlay-prebuilt.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* VS Code theme integration */
-@import './vscode-theme.scss';
 
 /* Essential global styles */
 @layer base {

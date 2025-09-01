@@ -4,6 +4,7 @@ import {
 	Component,
 	booleanAttribute,
 	computed,
+	effect,
 	forwardRef,
 	input,
 	model,
@@ -30,19 +31,19 @@ export const HLM_CHECKBOX_VALUE_ACCESSOR = {
 	imports: [BrnCheckbox, NgIcon, HlmIcon],
 	template: `
 		<brn-checkbox
-			[id]="id()"
-			[name]="name()"
-			[class]="_computedClass()"
-			[checked]="checked()"
-			[disabled]="_state().disabled()"
-			[required]="required()"
-			[aria-label]="ariaLabel()"
-			[aria-labelledby]="ariaLabelledby()"
-			[aria-describedby]="ariaDescribedby()"
+			[attr.id]="$any(idValue)"
+			[attr.name]="$any(nameValue)"
+			[attr.aria-label]="$any(ariaLabelValue)"
+			[attr.aria-labelledby]="$any(ariaLabelledbyValue)"
+			[attr.aria-describedby]="$any(ariaDescribedbyValue)"
+			[attr.class]="$any(computedClassValue)"
+			[checked]="$any(checkedValue)"
+			[disabled]="$any(stateDisabled)"
+			[required]="$any(requiredValue)"
 			(changed)="_handleChange()"
-			(touched)="_onTouched?.()"
+			(touched)="_invokeTouched()"
 		>
-			@if (checked()) {
+			@if (checkedValue) {
 				<span class="flex items-center justify-center text-current transition-none">
 					<ng-icon hlm size="14px" name="lucideCheck" />
 				</span>
@@ -63,6 +64,17 @@ export const HLM_CHECKBOX_VALUE_ACCESSOR = {
 })
 export class HlmCheckbox implements ControlValueAccessor {
 	public readonly userClass = input<ClassValue>('', { alias: 'class' });
+
+	// Template-friendly primitive snapshots to avoid union signal types in template binding
+	public idValue: string | null = null;
+	public nameValue: string | null = null;
+	public computedClassValue: string = '';
+	public checkedValue: boolean | 'indeterminate' = false;
+	public stateDisabled: boolean = false;
+	public requiredValue: boolean = false;
+	public ariaLabelValue: string | null = null;
+	public ariaLabelledbyValue: string | null = null;
+	public ariaDescribedbyValue: string | null = null;
 
 	protected readonly _computedClass = computed(() =>
 		hlm(
@@ -104,6 +116,66 @@ export class HlmCheckbox implements ControlValueAccessor {
 
 	protected _onChange?: ChangeFn<CheckboxValue>;
 	protected _onTouched?: TouchFn;
+
+	constructor() {
+		// Keep primitive snapshots in sync with signal-backed inputs
+		effect(() => {
+			try {
+				this.idValue = (this.id as any)?.() ?? null;
+			} catch (e) {
+				this.idValue = null;
+			}
+			try {
+				this.nameValue = (this.name as any)?.() ?? null;
+			} catch (e) {
+				this.nameValue = null;
+			}
+			try {
+				this.computedClassValue = String((this._computedClass as any)?.());
+			} catch (e) {
+				this.computedClassValue = '';
+			}
+			try {
+				this.checkedValue = (this.checked as any)?.();
+			} catch (e) {
+				this.checkedValue = false;
+			}
+			try {
+				this.stateDisabled = Boolean((this._state as any)?.().disabled?.());
+			} catch (e) {
+				this.stateDisabled = false;
+			}
+			try {
+				this.requiredValue = Boolean((this.required as any)?.());
+			} catch (e) {
+				this.requiredValue = false;
+			}
+			try {
+				this.ariaLabelValue = (this.ariaLabel as any)?.() ?? null;
+			} catch (e) {
+				this.ariaLabelValue = null;
+			}
+			try {
+				this.ariaLabelledbyValue = (this.ariaLabelledby as any)?.() ?? null;
+			} catch (e) {
+				this.ariaLabelledbyValue = null;
+			}
+			try {
+				this.ariaDescribedbyValue = (this.ariaDescribedby as any)?.() ?? null;
+			} catch (e) {
+				this.ariaDescribedbyValue = null;
+			}
+		});
+	}
+
+	// Safe wrapper to invoke touched callback (used from template)
+	protected _invokeTouched(): void {
+		try {
+			this._onTouched?.();
+		} catch (e) {
+			// swallow errors from touched callback
+		}
+	}
 
 	protected _handleChange(): void {
 		if (this._state().disabled()) return;

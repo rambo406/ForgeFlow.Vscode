@@ -17,9 +17,9 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-export interface VirtualScrollItem {
+export interface VirtualScrollItem<T = unknown> {
   id: string | number;
-  data: any;
+  data: T;
   height?: number;
 }
 
@@ -161,13 +161,13 @@ interface ScrollMetrics {
     }
   `]
 })
-export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy {
+export class VirtualScrollComponent<T = unknown> implements AfterViewInit, OnDestroy {
   @ViewChild('scrollContainer', { static: true }) 
   scrollContainer!: ElementRef<HTMLElement>;
 
   // Signal-based inputs
   items = input<T[]>([]);
-  itemTemplate = input.required<TemplateRef<any>>();
+  itemTemplate = input.required<TemplateRef<unknown>>();
   containerHeight = input(400);
   config = input<VirtualScrollConfig>({
     itemHeight: 60,
@@ -216,7 +216,7 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
   visibleItems = computed(() => {
     const range = this.visibleRange();
     const config = this.config();
-    return this.items().slice(range.start, range.end + 1).map((item: T, index: number) => ({
+    return this.items().slice(range.start, range.end + 1).map((item: T, index: number): VirtualScrollItem<T> => ({
       id: this.getItemId(item, range.start + index),
       data: item,
       height: config.enableDynamicHeight ? 
@@ -414,10 +414,12 @@ export class VirtualScrollComponent<T = any> implements AfterViewInit, OnDestroy
   }
 
   private getItemId(item: T, index: number): string | number {
-    // Try to extract ID from common properties
     if (item && typeof item === 'object') {
-      const obj = item as any;
-      return obj.id || obj._id || obj.key || index;
+      const obj = item as Record<string, unknown>;
+      const id = obj['id'] ?? obj['_id'] ?? obj['key'];
+      if (typeof id === 'string' || typeof id === 'number') {
+        return id;
+      }
     }
     return index;
   }

@@ -12,7 +12,6 @@ import { LanguageModelConfigComponent, LanguageModelConfig } from './language-mo
 // Import Helm Dialog components
 import { 
   HlmDialog,
-  HlmDialogClose,
   HlmDialogContent,
   HlmDialogDescription,
   HlmDialogFooter,
@@ -71,6 +70,11 @@ export interface SettingsExportData {
   };
 }
 
+// Allow nested partial shapes for editing UI
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
 @Component({
   selector: 'app-settings-modal',
   standalone: true,
@@ -80,15 +84,14 @@ export interface SettingsExportData {
     AppAlertComponent,
     AzureDevOpsConfigComponent,
     LanguageModelConfigComponent,
-    // Helm Dialog components
-    HlmDialog,
-    HlmDialogClose,
-    HlmDialogContent,
-    HlmDialogDescription,
-    HlmDialogFooter,
-    HlmDialogHeader,
-    HlmDialogOverlay,
-    HlmDialogTitle,
+  // Helm Dialog components
+  HlmDialog,
+  HlmDialogContent,
+  HlmDialogDescription,
+  HlmDialogFooter,
+  HlmDialogHeader,
+  HlmDialogOverlay,
+  HlmDialogTitle,
     // Helm Tabs components
     HlmTabs,
     HlmTabsList,
@@ -108,52 +111,53 @@ export interface SettingsExportData {
     }
 
     <!-- Settings Dialog -->
-    <hlm-dialog [open]="isOpen()">
-      <hlm-dialog-overlay />
-      <hlm-dialog-content 
+    @if (isOpen()) {
+      <hlm-dialog>
+        <div hlmDialogOverlay></div>
+        <hlm-dialog-content 
         class="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
         (escapeKeyDown)="closeSettings()">
         
         <!-- Dialog Header -->
         <hlm-dialog-header class="border-b border-[var(--vscode-panel-border)] pb-4">
-          <hlm-dialog-title class="text-xl font-semibold text-[var(--vscode-foreground)]">
+          <div hlmDialogTitle class="text-xl font-semibold text-[var(--vscode-foreground)]">
             <span class="codicon codicon-settings-gear mr-2"></span>
             Extension Settings
-          </hlm-dialog-title>
-          <hlm-dialog-description class="text-[var(--vscode-descriptionForeground)]">
+          </div>
+          <div hlmDialogDescription class="text-[var(--vscode-descriptionForeground)]">
             Configure Azure DevOps connection, AI models, and extension preferences
-          </hlm-dialog-description>
+          </div>
         </hlm-dialog-header>
 
         <!-- Main Content with Tabs -->
         <div class="flex-1 overflow-hidden py-4">
-          <hlm-tabs [value]="activeTab()" (valueChange)="setActiveTab($event)" class="h-full flex flex-col">
+          <hlm-tabs [tab]="activeTab()" (tabActivated)="setActiveTab($event)" class="h-full flex flex-col">
             <!-- Tab Navigation -->
-            <hlm-tabs-list class="grid grid-cols-5 w-full mb-4 bg-[var(--vscode-editor-background)] border border-[var(--vscode-panel-border)] rounded-lg p-1">
-              <hlm-tabs-trigger value="connection" class="flex items-center space-x-2 text-xs">
-                <span class="codicon codicon-plug"></span>
-                <span>Connection</span>
-              </hlm-tabs-trigger>
-              <hlm-tabs-trigger value="ai-model" class="flex items-center space-x-2 text-xs">
-                <span class="codicon codicon-robot"></span>
-                <span>AI Model</span>
-              </hlm-tabs-trigger>
-              <hlm-tabs-trigger value="processing" class="flex items-center space-x-2 text-xs">
-                <span class="codicon codicon-gear"></span>
-                <span>Processing</span>
-              </hlm-tabs-trigger>
-              <hlm-tabs-trigger value="features" class="flex items-center space-x-2 text-xs">
-                <span class="codicon codicon-extensions"></span>
-                <span>Features</span>
-              </hlm-tabs-trigger>
-              <hlm-tabs-trigger value="preferences" class="flex items-center space-x-2 text-xs">
-                <span class="codicon codicon-preferences-open"></span>
-                <span>Preferences</span>
-              </hlm-tabs-trigger>
-            </hlm-tabs-list>
+              <hlm-tabs-list class="grid grid-cols-5 w-full mb-4 bg-[var(--vscode-editor-background)] border border-[var(--vscode-panel-border)] rounded-lg p-1">
+                <button hlmTabsTrigger="connection" class="flex items-center space-x-2 text-xs">
+                  <span class="codicon codicon-plug"></span>
+                  <span>Connection</span>
+                </button>
+                <button hlmTabsTrigger="ai-model" class="flex items-center space-x-2 text-xs">
+                  <span class="codicon codicon-robot"></span>
+                  <span>AI Model</span>
+                </button>
+                <button hlmTabsTrigger="processing" class="flex items-center space-x-2 text-xs">
+                  <span class="codicon codicon-gear"></span>
+                  <span>Processing</span>
+                </button>
+                <button hlmTabsTrigger="features" class="flex items-center space-x-2 text-xs">
+                  <span class="codicon codicon-extensions"></span>
+                  <span>Features</span>
+                </button>
+                <button hlmTabsTrigger="preferences" class="flex items-center space-x-2 text-xs">
+                  <span class="codicon codicon-preferences-open"></span>
+                  <span>Preferences</span>
+                </button>
+              </hlm-tabs-list>
 
             <!-- Tab Content -->
-            <div class="flex-1 overflow-auto">
+              <div class="flex-1 overflow-auto">
               <!-- Status Alerts -->
               @if (alertMessage()) {
                 <app-alert 
@@ -165,7 +169,7 @@ export interface SettingsExportData {
               }
 
               <!-- Azure DevOps Connection Tab -->
-              <hlm-tabs-content value="connection" class="space-y-4">
+              <div hlmTabsContent="connection" class="space-y-4">
                 <app-azure-devops-config
                   [configuration]="settings()?.azureDevOps || null"
                   [isLoading]="isLoading"
@@ -173,10 +177,10 @@ export interface SettingsExportData {
                   (test)="onAzureDevOpsConfigTest($event)"
                   (configurationChange)="onAzureDevOpsConfigChange($event)"
                 />
-              </hlm-tabs-content>
+              </div>
 
               <!-- AI Model Configuration Tab -->
-              <hlm-tabs-content value="ai-model" class="space-y-4">
+              <div hlmTabsContent="ai-model" class="space-y-4">
                 <app-language-model-config
                   [configuration]="settings()?.languageModel || null"
                   [isLoading]="isLoading"
@@ -184,10 +188,10 @@ export interface SettingsExportData {
                   (test)="onLanguageModelConfigTest($event)"
                   (configurationChange)="onLanguageModelConfigChange($event)"
                 />
-              </hlm-tabs-content>
+              </div>
 
               <!-- Processing Settings Tab -->
-              <hlm-tabs-content value="processing" class="space-y-4">
+              <div hlmTabsContent="processing" class="space-y-4">
                 <div class="bg-[var(--vscode-editor-background)] border border-[var(--vscode-panel-border)] rounded-lg p-6">
                   <h3 class="text-lg font-medium text-[var(--vscode-foreground)] mb-4">Processing Configuration</h3>
                   
@@ -247,10 +251,10 @@ export interface SettingsExportData {
                     </div>
                   </div>
                 </div>
-              </hlm-tabs-content>
+              </div>
 
               <!-- Features Tab -->
-              <hlm-tabs-content value="features" class="space-y-4">
+              <div hlmTabsContent="features" class="space-y-4">
                 <div class="bg-[var(--vscode-editor-background)] border border-[var(--vscode-panel-border)] rounded-lg p-6">
                   <h3 class="text-lg font-medium text-[var(--vscode-foreground)] mb-4">Feature Settings</h3>
                   
@@ -278,10 +282,10 @@ export interface SettingsExportData {
                     }
                   </div>
                 </div>
-              </hlm-tabs-content>
+              </div>
 
               <!-- Preferences Tab -->
-              <hlm-tabs-content value="preferences" class="space-y-4">
+              <div hlmTabsContent="preferences" class="space-y-4">
                 <div class="space-y-6">
                   <!-- UI Preferences -->
                   <div class="bg-[var(--vscode-editor-background)] border border-[var(--vscode-panel-border)] rounded-lg p-6">
@@ -393,7 +397,7 @@ export interface SettingsExportData {
                     </div>
                   </div>
                 </div>
-              </hlm-tabs-content>
+              </div>
             </div>
           </hlm-tabs>
         </div>
@@ -454,8 +458,9 @@ export interface SettingsExportData {
             </div>
           </div>
         </hlm-dialog-footer>
-      </hlm-dialog-content>
-    </hlm-dialog>
+        </hlm-dialog-content>
+      </hlm-dialog>
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -478,13 +483,110 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
   // State signals
   activeTab = signal('connection');
   alertMessage = signal<{ type: 'success' | 'error'; message: string } | null>(null);
-  pendingChanges = signal<Partial<SettingsData>>({});
+  pendingChanges = signal<DeepPartial<SettingsData>>({});
 
   // Computed properties
   hasUnsavedChanges = computed(() => {
     const changes = this.pendingChanges();
     return Object.keys(changes).length > 0;
   });
+
+  // Default settings used to fill missing values when merging
+  private readonly DEFAULT_SETTINGS: SettingsData = {
+    azureDevOps: {
+      organizationUrl: '',
+      personalAccessToken: '',
+      defaultProject: ''
+    },
+    languageModel: {
+      selectedModel: 'gpt-4',
+      temperature: 0.7,
+      maxTokens: 2048
+    },
+    processing: {
+      batchSize: 10,
+      analysisTimeout: 15,
+      fileSizeLimit: 5
+    },
+    features: {
+      enableTelemetry: false,
+      enableAdvancedAnalysis: true,
+      enableAutoReview: false,
+      enableCodeSuggestions: true,
+      enableSecurityAnalysis: true,
+      enablePerformanceAnalysis: true
+    },
+    ui: {
+      theme: 'auto',
+      language: 'en',
+      compactMode: false,
+      showLineNumbers: true,
+      syntaxHighlighting: true
+    },
+    notifications: {
+      level: 'all',
+      soundEnabled: false,
+      desktopNotifications: true,
+      emailNotifications: false
+    }
+  };
+
+  // Runtime validator - ensures a merged object contains required keys with correct types
+  private validateAndFill(current: SettingsData, pending: DeepPartial<SettingsData>): SettingsData {
+    const merged = {
+      azureDevOps: { ...this.DEFAULT_SETTINGS.azureDevOps, ...current.azureDevOps, ...pending.azureDevOps },
+      languageModel: { ...this.DEFAULT_SETTINGS.languageModel, ...current.languageModel, ...pending.languageModel },
+      processing: { ...this.DEFAULT_SETTINGS.processing, ...current.processing, ...pending.processing },
+      features: { ...this.DEFAULT_SETTINGS.features, ...current.features, ...pending.features },
+      ui: { ...this.DEFAULT_SETTINGS.ui, ...current.ui, ...pending.ui },
+      notifications: { ...this.DEFAULT_SETTINGS.notifications, ...current.notifications, ...pending.notifications }
+    };
+
+    // Coerce types for a few known fields (defensive)
+    merged.processing.batchSize = Number(merged.processing.batchSize) || this.DEFAULT_SETTINGS.processing.batchSize;
+    merged.processing.analysisTimeout = Number(merged.processing.analysisTimeout) || this.DEFAULT_SETTINGS.processing.analysisTimeout;
+    merged.processing.fileSizeLimit = Number(merged.processing.fileSizeLimit) || this.DEFAULT_SETTINGS.processing.fileSizeLimit;
+
+    merged.features = {
+      enableTelemetry: Boolean(merged.features.enableTelemetry),
+      enableAdvancedAnalysis: Boolean(merged.features.enableAdvancedAnalysis),
+      enableAutoReview: Boolean(merged.features.enableAutoReview),
+      enableCodeSuggestions: Boolean(merged.features.enableCodeSuggestions),
+      enableSecurityAnalysis: Boolean(merged.features.enableSecurityAnalysis),
+      enablePerformanceAnalysis: Boolean(merged.features.enablePerformanceAnalysis)
+    };
+
+    merged.ui = {
+      theme: String(merged.ui.theme || this.DEFAULT_SETTINGS.ui.theme),
+      language: String(merged.ui.language || this.DEFAULT_SETTINGS.ui.language),
+      compactMode: Boolean(merged.ui.compactMode),
+      showLineNumbers: Boolean(merged.ui.showLineNumbers),
+      syntaxHighlighting: Boolean(merged.ui.syntaxHighlighting)
+    };
+
+    merged.notifications = {
+      level: String(merged.notifications.level || this.DEFAULT_SETTINGS.notifications.level),
+      soundEnabled: Boolean(merged.notifications.soundEnabled),
+      desktopNotifications: Boolean(merged.notifications.desktopNotifications),
+      emailNotifications: Boolean(merged.notifications.emailNotifications)
+    };
+
+    // Ensure required azureDevOps fields are strings
+    merged.azureDevOps = {
+      organizationUrl: String(merged.azureDevOps.organizationUrl || this.DEFAULT_SETTINGS.azureDevOps.organizationUrl),
+      personalAccessToken: String(merged.azureDevOps.personalAccessToken || this.DEFAULT_SETTINGS.azureDevOps.personalAccessToken),
+      defaultProject: String(merged.azureDevOps.defaultProject || this.DEFAULT_SETTINGS.azureDevOps.defaultProject)
+    };
+
+    // Language model defaults/coercions
+    merged.languageModel = {
+      selectedModel: String(merged.languageModel.selectedModel || this.DEFAULT_SETTINGS.languageModel.selectedModel),
+      temperature: Number(merged.languageModel.temperature) || this.DEFAULT_SETTINGS.languageModel.temperature,
+      maxTokens: Number(merged.languageModel.maxTokens) || this.DEFAULT_SETTINGS.languageModel.maxTokens
+    };
+
+    return merged as SettingsData;
+  }
 
   // Feature toggle definitions
   featureToggles = [
@@ -617,9 +719,9 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
    * Handle Azure DevOps config change
    */
   onAzureDevOpsConfigChange(config: Partial<AzureDevOpsConfig>): void {
-    const currentAzureDevOps = this.pendingChanges().azureDevOps || this.settings()?.azureDevOps || {};
-    this.updatePendingChanges({ 
-      azureDevOps: { ...currentAzureDevOps, ...config }
+    const currentAzureDevOps = (this.pendingChanges().azureDevOps || this.settings()?.azureDevOps || {}) as Partial<AzureDevOpsConfig>;
+    this.updatePendingChanges({
+      azureDevOps: { ...currentAzureDevOps, ...config } as Partial<AzureDevOpsConfig>
     });
   }
 
@@ -642,9 +744,9 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
    * Handle Language Model config change
    */
   onLanguageModelConfigChange(config: Partial<LanguageModelConfig>): void {
-    const currentLanguageModel = this.pendingChanges().languageModel || this.settings()?.languageModel || {};
-    this.updatePendingChanges({ 
-      languageModel: { ...currentLanguageModel, ...config }
+    const currentLanguageModel = (this.pendingChanges().languageModel || this.settings()?.languageModel || {}) as Partial<LanguageModelConfig>;
+    this.updatePendingChanges({
+      languageModel: { ...currentLanguageModel, ...config } as Partial<LanguageModelConfig>
     });
   }
 
@@ -653,9 +755,9 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
    */
   updateProcessingSetting(key: string, event: Event): void {
     const value = parseInt((event.target as HTMLInputElement).value, 10);
-    const currentProcessing = this.pendingChanges().processing || this.settings()?.processing || {};
+    const currentProcessing = (this.pendingChanges().processing || this.settings()?.processing || {}) as Partial<SettingsData['processing']>;
     this.updatePendingChanges({
-      processing: { ...currentProcessing, [key]: value }
+      processing: { ...currentProcessing, [key]: value } as Partial<SettingsData['processing']>
     });
   }
 
@@ -674,9 +776,9 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
    */
   updateFeatureSetting(key: string, event: Event): void {
     const value = (event.target as HTMLInputElement).checked;
-    const currentFeatures = this.pendingChanges().features || this.settings()?.features || {};
+    const currentFeatures = (this.pendingChanges().features || this.settings()?.features || {}) as Partial<SettingsData['features']>;
     this.updatePendingChanges({
-      features: { ...currentFeatures, [key]: value }
+      features: { ...currentFeatures, [key]: value } as Partial<SettingsData['features']>
     });
   }
 
@@ -686,8 +788,9 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
   getUISetting(key: string): boolean {
     const pendingUI = this.pendingChanges().ui;
     const currentUI = this.settings()?.ui;
-    return pendingUI?.[key as keyof typeof pendingUI] ?? 
-           currentUI?.[key as keyof typeof currentUI] ?? false;
+    const pendingVal = pendingUI?.[key as keyof typeof pendingUI];
+    const currentVal = currentUI?.[key as keyof typeof currentUI];
+    return (typeof pendingVal === 'boolean' ? pendingVal : typeof currentVal === 'boolean' ? currentVal : false) as boolean;
   }
 
   /**
@@ -695,9 +798,9 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
    */
   updateUISetting(key: string, event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
-    const currentUI = this.pendingChanges().ui || this.settings()?.ui || {};
+    const currentUI = (this.pendingChanges().ui || this.settings()?.ui || {}) as Partial<SettingsData['ui']>;
     this.updatePendingChanges({
-      ui: { ...currentUI, [key]: value }
+      ui: { ...currentUI, [key]: value } as Partial<SettingsData['ui']>
     });
   }
 
@@ -706,10 +809,8 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
    */
   updateUIToggle(key: string, event: Event): void {
     const value = (event.target as HTMLInputElement).checked;
-    const currentUI = this.pendingChanges().ui || this.settings()?.ui || {};
-    this.updatePendingChanges({
-      ui: { ...currentUI, [key]: value }
-    });
+    const currentUI = (this.pendingChanges().ui || this.settings()?.ui || {}) as Partial<SettingsData['ui']>;
+    this.updatePendingChanges({ ui: { ...currentUI, [key]: value } as Partial<SettingsData['ui']> });
   }
 
   /**
@@ -718,8 +819,9 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
   getNotificationSetting(key: string): boolean {
     const pendingNotifications = this.pendingChanges().notifications;
     const currentNotifications = this.settings()?.notifications;
-    return pendingNotifications?.[key as keyof typeof pendingNotifications] ?? 
-           currentNotifications?.[key as keyof typeof currentNotifications] ?? false;
+    const pendingVal = pendingNotifications?.[key as keyof typeof pendingNotifications];
+    const currentVal = currentNotifications?.[key as keyof typeof currentNotifications];
+    return (typeof pendingVal === 'boolean' ? pendingVal : typeof currentVal === 'boolean' ? currentVal : false) as boolean;
   }
 
   /**
@@ -727,9 +829,9 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
    */
   updateNotificationSetting(key: string, event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
-    const currentNotifications = this.pendingChanges().notifications || this.settings()?.notifications || {};
+    const currentNotifications = (this.pendingChanges().notifications || this.settings()?.notifications || {}) as Partial<SettingsData['notifications']>;
     this.updatePendingChanges({
-      notifications: { ...currentNotifications, [key]: value }
+      notifications: { ...currentNotifications, [key]: value } as Partial<SettingsData['notifications']>
     });
   }
 
@@ -738,10 +840,8 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
    */
   updateNotificationToggle(key: string, event: Event): void {
     const value = (event.target as HTMLInputElement).checked;
-    const currentNotifications = this.pendingChanges().notifications || this.settings()?.notifications || {};
-    this.updatePendingChanges({
-      notifications: { ...currentNotifications, [key]: value }
-    });
+    const currentNotifications = (this.pendingChanges().notifications || this.settings()?.notifications || {}) as Partial<SettingsData['notifications']>;
+    this.updatePendingChanges({ notifications: { ...currentNotifications, [key]: value } as Partial<SettingsData['notifications']> });
   }
 
   /**
@@ -809,16 +909,19 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
-    input.onchange = (event: any) => {
-      const file = event.target.files[0];
+    input.onchange = (event: Event) => {
+      const target = event.target as HTMLInputElement | null;
+      const file = target?.files?.[0] ?? null;
       if (file) {
         const reader = new FileReader();
-        reader.onload = (e: any) => {
+        reader.onload = (e: ProgressEvent<FileReader>) => {
           try {
-            const importData = JSON.parse(e.target.result) as SettingsExportData;
-            
+            const text = e.target?.result as string | null;
+            if (!text) throw new Error('Empty file');
+            const importData = JSON.parse(text) as SettingsExportData;
+
             // Validate import data
-            if (!importData.settings) {
+            if (!importData || !importData.settings) {
               throw new Error('Invalid settings file format');
             }
 
@@ -887,9 +990,9 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Update pending changes
+   * Update pending changes (accept any partial shape to allow incremental edits)
    */
-  private updatePendingChanges(changes: Partial<SettingsData>): void {
+  private updatePendingChanges(changes: DeepPartial<SettingsData>): void {
     const current = this.pendingChanges();
     this.pendingChanges.set({ ...current, ...changes });
   }
@@ -897,15 +1000,9 @@ export class SettingsModalComponent implements OnInit, OnDestroy {
   /**
    * Merge settings with pending changes
    */
-  private mergeSettings(current: SettingsData, pending: Partial<SettingsData>): SettingsData {
-    return {
-      azureDevOps: { ...current.azureDevOps, ...pending.azureDevOps },
-      languageModel: { ...current.languageModel, ...pending.languageModel },
-      processing: { ...current.processing, ...pending.processing },
-      features: { ...current.features, ...pending.features },
-      ui: { ...current.ui, ...pending.ui },
-      notifications: { ...current.notifications, ...pending.notifications }
-    };
+  private mergeSettings(current: SettingsData, pending: DeepPartial<SettingsData>): SettingsData {
+    // Use the validator to coerce and fill defaults for any missing values.
+    return this.validateAndFill(current, pending);
   }
 
   /**

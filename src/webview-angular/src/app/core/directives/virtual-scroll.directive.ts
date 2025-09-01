@@ -7,7 +7,7 @@ import { Subject, takeUntil } from 'rxjs';
 export interface VirtualScrollItem {
   id: string | number;
   height?: number;
-  data: any;
+  data: unknown;
 }
 
 /**

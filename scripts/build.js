@@ -144,6 +144,9 @@ async function main() {
   ensureDirectory(distDir);
   
   // 6. Build extension (webpack will copy webview assets)
+  // Prevent duplicate Angular builds: webpack.config.js can also trigger the webview build.
+  // We already built the webview above, so instruct webpack to skip it.
+  process.env.SKIP_WEBVIEW_BUILD = '1';
   const localWebpack = path.resolve(rootDir, 'node_modules', '.bin', 'webpack');
   const extensionBuildCmd = isProduction ? `${localWebpack} --mode production` : `${localWebpack} --mode development`;
   runCommand(extensionBuildCmd, rootDir, `Building VS Code extension (${mode})`);

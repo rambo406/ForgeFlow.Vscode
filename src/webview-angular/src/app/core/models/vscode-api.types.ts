@@ -6,17 +6,17 @@ export interface VsCodeApi {
   /**
    * Post a message to the extension host
    */
-  postMessage(message: any): void;
+  postMessage(message: unknown): void;
   
   /**
    * Get the webview state
    */
-  getState(): any;
+  getState(): unknown;
   
   /**
    * Set the webview state
    */
-  setState(state: any): void;
+  setState(state: unknown): void;
 }
 
 /**

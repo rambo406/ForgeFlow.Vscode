@@ -1,12 +1,11 @@
 import { Component, inject, OnInit, OnDestroy, ChangeDetectionStrategy, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, takeUntil } from 'rxjs';
-import { DashboardStore, DashboardView } from '../store/dashboard.store';
-import { DashboardHeaderComponent } from './dashboard-header.component';
-import { ConfigurationViewComponent } from './configuration-view.component';
-import { PullRequestListComponent } from './pull-request-list.component';
-import { PullRequestDetailComponent } from './pull-request-detail.component';
+import { DashboardStore, DashboardView } from '@features/dashboard';
+import { DashboardHeaderComponent } from '@features/dashboard';
+import { ConfigurationViewComponent } from '@features/dashboard';
+import { PullRequestListComponent } from '@features/dashboard';
+import { PullRequestDetailComponent } from '@features/dashboard';
 import { AppAlertComponent, AppButtonComponent } from '@shared/components';
 import { MessageService, MessageType } from '../../../core/services/message.service';
 import type { ConfigurationData, DashboardFilters } from '@core/models';
@@ -23,172 +22,7 @@ import type { ConfigurationData, DashboardFilters } from '@core/models';
     AppAlertComponent,
     AppButtonComponent
   ],
-  template: `
-    <div class="h-screen flex flex-col bg-background text-foreground">
-      <!-- Header -->
-      <div class="flex-shrink-0 border-b border-border">
-        <app-dashboard-header 
-          [activeView]="activeView"
-          [isLoading]="store.isLoading()"
-          [hasValidConfiguration]="store.hasValidConfiguration()"
-          [stats]="store.dashboardStats()"
-          (viewChange)="onViewChange($event)"
-          (refresh)="onRefresh()"
-        />
-      </div>
-
-      <!-- Error Alert -->
-      @if (errorMessage) {
-        <div class="flex-shrink-0">
-          <app-alert 
-            variant="destructive" 
-            title="Error" 
-            [dismissible]="true"
-            (dismiss)="onDismissError()"
-            additionalClasses="m-4"
-          >
-            {{ errorMessage }}
-          </app-alert>
-        </div>
-      }
-
-      <!-- Main Content - Enhanced Responsive Layout -->
-      <div class="flex-1 overflow-hidden">
-        <div class="h-full dashboard-main-grid">
-          @switch (activeView) {
-            @case (DashboardView.CONFIGURATION) {
-              <!-- Configuration View - Full Width Container -->
-              <div class="col-span-full overflow-auto">
-                <div class="container-vscode py-vscode-xl">
-                  <app-configuration-view 
-                    [configuration]="store.configuration()"
-                    [isLoading]="store.isLoading()"
-                    [errors]="store.configurationErrors()"
-                    (save)="onSaveConfiguration($event)"
-                    (test)="onTestConnection()"
-                  />
-                </div>
-              </div>
-            }
-            @case (DashboardView.PULL_REQUEST_LIST) {
-              <!-- Pull Request List - Enhanced Responsive Grid -->
-              <div class="col-span-full overflow-auto">
-                <div class="h-full flex flex-col">
-                  <!-- Filters and Search Bar - Mobile-First Responsive -->
-                  <div class="flex-shrink-0 border-b border-border bg-card">
-                    <div class="p-vscode-lg">
-                      <div class="flex-responsive gap-vscode-lg">
-                        <div class="w-full vscode-sm:w-auto vscode-sm:flex-1">
-                          <!-- Search and filters will be part of the list component -->
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- Pull Request Grid - Optimized Layout -->
-                  <div class="flex-1 overflow-auto p-vscode-lg">
-                    <div class="dashboard-grid">
-                      <div class="col-span-full">
-                        <app-pull-request-list 
-                          [pullRequests]="store.sortedPullRequests()"
-                          [isLoading]="store.isLoading()"
-                          [filters]="store.filters()"
-                          [searchTerm]="searchTerm"
-                          [sortBy]="sortBy"
-                          [sortDirection]="sortDirection"
-                          (select)="onSelectPullRequest($event)"
-                          (search)="onSearch($event)"
-                          (filter)="onFilter($event)"
-                          (sort)="onSort($event)"
-                          (analyze)="onAnalyzePullRequest($event)"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
-            @case (DashboardView.PULL_REQUEST_DETAIL) {
-              <!-- Pull Request Detail - Enhanced Two Column Layout -->
-              <div class="col-span-full overflow-hidden">
-                <div class="h-full grid grid-cols-1 vscode-lg:grid-cols-5 gap-0">
-                  <!-- Navigation/Summary Sidebar - Responsive Design -->
-                  <div class="hidden vscode-lg:block border-r border-vscode-panel-border bg-vscode-panel-background overflow-auto">
-                    <div class="p-vscode-lg space-y-vscode-lg">
-                      <app-button 
-                        variant="secondary"
-                        size="sm"
-                        additionalClasses="w-full text-vscode-sm"
-                        (onClick)="onBackToPullRequestList()"
-                      >
-                        ← Back to List
-                      </app-button>
-                      
-                      <!-- PR Quick Info - Enhanced Layout -->
-                      @if (selectedPR) {
-                        <div class="space-y-vscode-md">
-                          <div class="card-vscode">
-                            <h3 class="font-medium text-vscode-sm text-vscode-foreground line-clamp-2">
-                              {{ selectedPR.title }}
-                            </h3>
-                            <p class="text-vscode-xs text-vscode-muted mt-vscode-xs">
-                              #{{ selectedPR.id }}
-                            </p>
-                          </div>
-                          
-                          <div class="space-y-vscode-sm text-vscode-xs">
-                            <div class="flex justify-between">
-                              <span class="text-vscode-muted">Author:</span>
-                              <span class="text-vscode-foreground font-medium">{{ selectedPR.author }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                              <span class="text-vscode-muted">Status:</span>
-                              <span class="text-vscode-foreground font-medium">{{ selectedPR.status }}</span>
-                            </div>
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  </div>
-                  
-                  <!-- Main Detail Content - Enhanced Responsive Layout -->
-                  <div class="col-span-full vscode-lg:col-span-4 flex flex-col overflow-hidden">
-                    <!-- Mobile Back Button - Touch-Friendly -->
-                    <div class="vscode-lg:hidden border-b border-vscode-panel-border bg-vscode-panel-background">
-                      <div class="p-vscode-lg">
-                        <app-button 
-                          variant="secondary"
-                          size="sm"
-                          additionalClasses="w-full vscode-sm:w-auto text-vscode-sm"
-                          (onClick)="onBackToPullRequestList()"
-                        >
-                          ← Back to List
-                        </app-button>
-                      </div>
-                    </div>
-                    
-                    <!-- Detail Content - Responsive Padding -->
-                    <div class="flex-1 overflow-auto p-vscode-lg vscode-lg:p-vscode-xl">
-                      <app-pull-request-detail 
-                        [pullRequest]="selectedPR"
-                        [isLoading]="store.isLoading()"
-                        [analysisResults]="analysisResults"
-                        [analysisProgress]="analysisProgress"
-                        [isAnalysisRunning]="store.isAnalysisRunning()"
-                        (back)="onBackToPullRequestList()"
-                        (startAnalysis)="onStartAnalysis()"
-                        (cancelAnalysis)="onCancelAnalysis()"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
-          }
-        </div>
-      </div>
-    </div>
-  `,
+  templateUrl: './dashboard.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardComponent implements OnInit, OnDestroy {

@@ -6,7 +6,7 @@ import { NotificationService } from './notification.service';
 declare global {
   interface Window {
     vscode?: {
-      postMessage(message: any): void;
+      postMessage(message: unknown): void;
     };
   }
 }
@@ -20,16 +20,18 @@ export class GlobalErrorHandler implements ErrorHandler {
   private errorHandlerService = inject(ErrorHandlerService);
   private notificationService = inject(NotificationService);
 
-  handleError(error: any): void {
+  handleError(error: unknown): void {
     // Extract the actual error
     let actualError: Error;
     
-    if (error?.rejection) {
+    if ((error as { rejection?: unknown })?.rejection) {
       // Promise rejection
-      actualError = error.rejection instanceof Error ? error.rejection : new Error(error.rejection);
-    } else if (error?.error) {
+      const rej = (error as { rejection: unknown }).rejection;
+      actualError = rej instanceof Error ? rej : new Error(String(rej));
+    } else if ((error as { error?: unknown })?.error) {
       // HTTP error response
-      actualError = error.error instanceof Error ? error.error : new Error(error.error);
+      const inner = (error as { error: unknown }).error;
+      actualError = inner instanceof Error ? inner : new Error(String(inner));
     } else if (error instanceof Error) {
       actualError = error;
     } else {
@@ -52,7 +54,7 @@ export class GlobalErrorHandler implements ErrorHandler {
   /**
    * Categorize error and determine appropriate recovery actions
    */
-  private categorizeError(originalError: any, actualError: Error): ErrorInfo {
+  private categorizeError(originalError: unknown, actualError: Error): ErrorInfo {
     let context = 'Angular Application';
     let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
     let recoveryActions: RecoveryAction[] = [];
@@ -96,10 +98,10 @@ export class GlobalErrorHandler implements ErrorHandler {
     // Network/HTTP errors
     else if (actualError.message.includes('Http failure') || 
              actualError.message.includes('NetworkError') ||
-             originalError?.status) {
+             (originalError as { status?: number } | undefined)?.status) {
       severity = 'high';
       context = 'Network Error';
-      const status = originalError?.status;
+      const status = (originalError as { status?: number } | undefined)?.status;
       
       if (status === 401 || status === 403) {
         userMessage = 'Authentication failed. Please check your credentials.';

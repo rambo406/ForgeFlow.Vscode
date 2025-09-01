@@ -292,7 +292,7 @@ export class ErrorHandlerService {
   handleValidationError(
     field: string,
     message: string,
-    value?: any
+    value?: unknown
   ): string {
     const error = new Error(`Validation failed for ${field}: ${message}`);
     return this.handleError(error, 'Form Validation', 'low');

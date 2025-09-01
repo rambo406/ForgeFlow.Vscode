@@ -876,12 +876,20 @@ export class PRDashboardController {
      * Handle view updates
      */
     private async handleUpdateView(message: WebviewMessage): Promise<void> {
+        // Update current view based on message
         this.currentView = message.payload?.view || DashboardView.PULL_REQUEST_LIST;
-        this.sendMessage({
-            type: MessageType.UPDATE_VIEW,
-            payload: { view: this.currentView },
-            requestId: message.requestId
-        });
+
+        // If the message originated from the webview (it included a requestId),
+        // avoid echoing the same UPDATE_VIEW back — the webview will treat that
+        // echo as a new command and may re-send, causing a loop. Only broadcast
+        // UPDATE_VIEW messages when the extension initiates the view change
+        // (i.e., no requestId was provided).
+        if (!message.requestId) {
+            this.sendMessage({
+                type: MessageType.UPDATE_VIEW,
+                payload: { view: this.currentView }
+            });
+        }
     }
 
     /**
@@ -1053,40 +1061,78 @@ export class PRDashboardController {
         if (!this.panel) {
             throw new Error('Webview panel not initialized');
         }
+        // Keep implementation simple and explicit: compute URIs, then return either a clear
+        // fallback page (when the build is a placeholder) or the normal Angular webview HTML.
+        // Path to the Angular build output (copied by webpack to dist/webview)
+        const webviewPath = path.join(this.context.extensionPath, 'dist', 'webview');
 
-        try {
-            // Path to the Angular build output (copied by webpack to dist/webview)
-            const webviewPath = path.join(this.context.extensionPath, 'dist', 'webview');
-
-            // Detect available build files in the webview output and get URIs for those that exist
-            const resolveIfExists = (fileName: string): vscode.Uri | undefined => {
-                const fullPath = path.join(webviewPath, fileName);
-                try {
-                    if (fs.existsSync(fullPath)) {
-                        return this.panel!.webview.asWebviewUri(vscode.Uri.file(fullPath));
-                    }
-                } catch (e) {
-                    // ignore filesystem errors and treat file as missing
+        // Detect available build files in the webview output and get URIs for those that exist
+        const resolveIfExists = (fileName: string): vscode.Uri | undefined => {
+            const fullPath = path.join(webviewPath, fileName);
+            try {
+                if (fs.existsSync(fullPath)) {
+                    return this.panel!.webview.asWebviewUri(vscode.Uri.file(fullPath));
                 }
-                return undefined;
-            };
-
-            const runtimeJsUri = resolveIfExists('runtime.js');
-            const polyfillsJsUri = resolveIfExists('polyfills.js');
-            const mainJsUri = resolveIfExists('main.js');
-            const vendorJsUri = resolveIfExists('vendor.js');
-            const stylesUri = resolveIfExists('styles.css');
-
-            // Generate CSP nonce for security
-            const nonce = this.generateNonce();
-            // Detect fallback bundle case: index.html/main.js from build fallback
-            const isFallback = !runtimeJsUri && !polyfillsJsUri && !!mainJsUri && fs.readFileSync(path.join(webviewPath, 'main.js'), 'utf8').includes('Fallback webview bundle');
-
-            if (isFallback) {
-                console.warn('[PRDashboard] Angular webview build failed; using fallback bundle. Check the build output for errors.');
+            } catch (e) {
+                // ignore filesystem errors and treat file as missing
             }
+            return undefined;
+        };
+
+        const runtimeJsUri = resolveIfExists('runtime.js');
+        const polyfillsJsUri = resolveIfExists('polyfills.js');
+        const mainJsUri = resolveIfExists('main.js');
+        const vendorJsUri = resolveIfExists('vendor.js');
+        const stylesUri = resolveIfExists('styles.css');
+
+        // Generate CSP nonce for security
+        const nonce = this.generateNonce();
+
+        // Detect fallback bundle case: placeholder main.js produced by the build fallback
+        let isFallback = false;
+        try {
+            isFallback = !runtimeJsUri && !polyfillsJsUri && !!mainJsUri && fs.readFileSync(path.join(webviewPath, 'main.js'), 'utf8').includes('Fallback webview bundle');
+        } catch (e) {
+            // Treat read errors as missing real build
+            isFallback = !runtimeJsUri && !polyfillsJsUri && !!mainJsUri;
+        }
+
+        if (isFallback) {
+            console.warn('[PRDashboard] Angular webview build failed; using fallback bundle. Check the build output for errors.');
+
+            const missingFiles: string[] = [];
+            if (!runtimeJsUri) missingFiles.push('runtime.js');
+            if (!polyfillsJsUri) missingFiles.push('polyfills.js');
+            if (!vendorJsUri) missingFiles.push('vendor.js');
+            if (!stylesUri) missingFiles.push('styles.css');
+
+            const missingListHtml = missingFiles.length
+                ? `<ul>${missingFiles.map(f => `<li>${f}</li>`).join('')}</ul>`
+                : '<p>Build produced an incomplete bundle.</p>';
 
             return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure DevOps PR Dashboard - Build Missing</title>
+    <style>
+        body { font-family: var(--vscode-font-family, 'Segoe UI'); margin: 24px; color: var(--vscode-foreground); }
+        code { background: rgba(0,0,0,0.06); padding: 2px 4px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Failed to load dashboard</h1>
+    <p>The Angular webview bundle appears to be a fallback placeholder instead of a real build. The extension could not find the full set of webview build artifacts required to boot the Angular application.</p>
+    <p>Missing or placeholder build files:</p>
+    ${missingListHtml}
+    <p>Please rebuild the webview and make sure the compiled files are copied to the extension <code>dist/webview</code> folder. For development, run the webview build (see the repo README or the webview-angular package).</p>
+</body>
+</html>`;
+        }
+
+        // Normal webview HTML (Angular app). The loading fallback remains while Angular boots.
+        return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1096,155 +1142,35 @@ export class PRDashboardController {
     <base href="${this.panel.webview.asWebviewUri(vscode.Uri.file(webviewPath))}/">
     ${stylesUri ? `<link rel="stylesheet" href="${stylesUri}">` : ''}
     <style nonce="${nonce}">
-        /* VS Code theme integration */
-        :root {
-            --vscode-foreground: var(--vscode-foreground);
-            --vscode-editor-background: var(--vscode-editor-background);
-            --vscode-button-background: var(--vscode-button-background);
-            --vscode-button-foreground: var(--vscode-button-foreground);
-            --vscode-button-hoverBackground: var(--vscode-button-hoverBackground);
-            --vscode-input-background: var(--vscode-input-background);
-            --vscode-input-foreground: var(--vscode-input-foreground);
-            --vscode-input-border: var(--vscode-input-border);
-            --vscode-panel-background: var(--vscode-panel-background);
-            --vscode-panel-border: var(--vscode-panel-border);
-            --vscode-sideBar-background: var(--vscode-sideBar-background);
-            --vscode-sideBar-foreground: var(--vscode-sideBar-foreground);
-            --vscode-errorForeground: var(--vscode-errorForeground);
-            --vscode-warningForeground: var(--vscode-warningForeground);
-            --vscode-infoForeground: var(--vscode-infoForeground);
-            --vscode-font-family: var(--vscode-font-family);
-            --vscode-font-size: var(--vscode-font-size);
-        }
-        
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
-            background-color: var(--vscode-editor-background);
-            color: var(--vscode-foreground);
-            overflow: hidden;
-        }
-        
-        /* Loading state while Angular initializes */
-        .angular-loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            flex-direction: column;
-            gap: 16px;
-        }
-        
-        .angular-loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--vscode-panel-border);
-            border-top: 3px solid var(--vscode-button-background);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .angular-loading-text {
-            color: var(--vscode-foreground);
-            opacity: 0.8;
-        }
+        :root { --vscode-font-family: var(--vscode-font-family); --vscode-font-size: var(--vscode-font-size); }
+        body { margin: 0; padding: 0; font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); background-color: var(--vscode-editor-background); color: var(--vscode-foreground); }
+        .angular-loading { display:flex; align-items:center; justify-content:center; height:100vh; flex-direction:column; gap:16px; }
+        .angular-loading-spinner { width:40px; height:40px; border:3px solid rgba(0,0,0,0.1); border-top:3px solid rgba(0,0,0,0.2); border-radius:50%; animation:spin 1s linear infinite; }
+        @keyframes spin { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+        .angular-loading-text { color: var(--vscode-foreground); opacity:0.8; }
     </style>
 </head>
 <body>
     <app-root>
-        <!-- Loading fallback while Angular bootstraps -->
         <div class="angular-loading">
             <div class="angular-loading-spinner"></div>
             <div class="angular-loading-text">Loading Azure DevOps PR Dashboard...</div>
         </div>
     </app-root>
-    
-    <!-- Angular runtime scripts -->
+
     ${runtimeJsUri ? `<script nonce="${nonce}" src="${runtimeJsUri}"></script>` : ''}
     ${polyfillsJsUri ? `<script nonce="${nonce}" src="${polyfillsJsUri}"></script>` : ''}
     ${vendorJsUri ? `<script nonce="${nonce}" src="${vendorJsUri}"></script>` : ''}
     ${mainJsUri ? `<script nonce="${nonce}" src="${mainJsUri}"></script>` : ''}
-    
-    <!-- Initialize webview API for Angular -->
+
     <script nonce="${nonce}">
-        // Make VS Code API available to Angular
         window.vscode = acquireVsCodeApi();
-        
-        // Restore webview state if available
-        const previousState = window.vscode.getState();
-        if (previousState) {
-            window.vsCodeState = previousState;
-        }
-        
-        // Set up error handling for Angular initialization
-        window.addEventListener('error', function(e) {
-            console.error('Angular application error:', e.error);
-            window.vscode.postMessage({
-                type: 'showError',
-                payload: { 
-                    message: 'Angular application failed to initialize: ' + e.error?.message 
-                }
-            });
-        });
-        
-        window.addEventListener('unhandledrejection', function(e) {
-            console.error('Unhandled promise rejection:', e.reason);
-            window.vscode.postMessage({
-                type: 'showError',
-                payload: { 
-                    message: 'Angular application error: ' + e.reason?.message 
-                }
-            });
-        });
+        const previousState = window.vscode.getState(); if (previousState) { window.vsCodeState = previousState; }
+        window.addEventListener('error', function(e){ console.error('Angular application error:', e.error); window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application failed to initialize: ' + (e.error?.message || e.message) } }); });
+        window.addEventListener('unhandledrejection', function(e){ console.error('Unhandled promise rejection:', e.reason); window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application error: ' + (e.reason?.message || e.reason) } }); });
     </script>
 </body>
 </html>`;
-        } catch (error) {
-            console.error('Failed to generate webview content:', error);
-            // Fallback to a simple error page
-            return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Azure DevOps PR Dashboard - Error</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: var(--vscode-editor-background);
-            color: var(--vscode-foreground);
-        }
-        .error-container {
-            max-width: 600px;
-            margin: 0 auto;
-            text-align: center;
-        }
-        .error-message {
-            color: var(--vscode-errorForeground);
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="error-container">
-        <h1>Failed to Load Dashboard</h1>
-        <div class="error-message">
-            The Angular webview failed to initialize. Please ensure the extension is properly built.
-        </div>
-        <p>Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
-    </div>
-</body>
-</html>`;
-        }
     }
 
     /**

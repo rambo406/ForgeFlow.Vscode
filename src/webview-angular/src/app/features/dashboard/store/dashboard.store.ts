@@ -10,7 +10,8 @@ import {
   AnalysisProgress,
   DashboardFilters
 } from '../../../core/models/interfaces';
-import { PullRequestStatus } from '../../../core/models/enums';
+import { PullRequestStatus, LanguageModel, AnalysisStage } from '../../../core/models/enums';
+import { AnalysisResult } from '../../../core/models/interfaces';
 
 /**
  * Dashboard view enum - matches legacy DashboardView constants
@@ -32,7 +33,7 @@ const initialState: DashboardState = {
     organizationUrl: '',
     personalAccessToken: '',
     defaultProject: '',
-    selectedModel: 'gpt-4' as any,
+    selectedModel: LanguageModel.GPT_4,
     batchSize: 10,
     enableTelemetry: false,
     theme: 'auto',
@@ -131,24 +132,24 @@ export const DashboardStore = signalStore(
       
       // Matches legacy sorting functionality from dashboard.js
       return [...filtered].sort((a, b) => {
-        let aValue: any = a[sortBy as keyof PullRequest];
-        let bValue: any = b[sortBy as keyof PullRequest];
+        let aValue: unknown = a[sortBy as keyof PullRequest];
+        let bValue: unknown = b[sortBy as keyof PullRequest];
         
         // Handle date sorting
         if (sortBy === 'createdDate' || sortBy === 'lastMergeCommitDate') {
-          aValue = new Date(aValue);
-          bValue = new Date(bValue);
+          aValue = new Date(String(aValue));
+          bValue = new Date(String(bValue));
         }
         
         // Handle string sorting
-        if (typeof aValue === 'string') {
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
           aValue = aValue.toLowerCase();
           bValue = bValue.toLowerCase();
         }
         
         let comparison = 0;
-        if (aValue < bValue) {comparison = -1;}
-        if (aValue > bValue) {comparison = 1;}
+        if ((aValue as any) < (bValue as any)) {comparison = -1;}
+        if ((aValue as any) > (bValue as any)) {comparison = 1;}
         
         return sortDirection === 'desc' ? -comparison : comparison;
       });
@@ -278,17 +279,18 @@ export const DashboardStore = signalStore(
       switchMap((filters?: Partial<DashboardFilters>) => 
         from(messageService.loadPullRequests()).pipe(
           tap({
-            next: (response: any) => {
+            next: (response: unknown) => {
+              const resp = response as { pullRequests?: PullRequest[] };
               patchState(store, { 
-                pullRequests: response.pullRequests || [],
+                pullRequests: resp.pullRequests || [],
                 isLoading: false
               });
-              console.log('Pull requests loaded:', response.pullRequests?.length || 0);
+              console.log('Pull requests loaded:', resp.pullRequests?.length || 0);
               if (filters) {
                 patchState(store, { filters: { ...store.filters(), ...filters } });
               }
             },
-            error: (error: any) => {
+            error: (error: unknown) => {
               const errorMessage = error instanceof Error ? error.message : 'Failed to load pull requests';
               console.error('Pull requests load error:', error);
               patchState(store, { 
@@ -297,7 +299,7 @@ export const DashboardStore = signalStore(
               });
             }
           }),
-          catchError((error: any) => {
+          catchError((error: unknown) => {
             const errorMessage = error instanceof Error ? error.message : 'Failed to load pull requests';
             console.error('Pull requests load error:', error);
             patchState(store, { 
@@ -348,14 +350,15 @@ export const DashboardStore = signalStore(
       switchMap((prId: number) => 
         from(messageService.selectPullRequest(prId)).pipe(
           tap({
-            next: (response: any) => {
+            next: (response: unknown) => {
+              const resp = response as { pullRequest: PullRequest };
               patchState(store, { 
-                selectedPR: response.pullRequest,
+                selectedPR: resp.pullRequest,
                 isLoading: false
               });
               console.log('Pull request details loaded successfully');
             },
-            error: (error: any) => {
+            error: (error: unknown) => {
               const errorMessage = error instanceof Error ? error.message : 'Failed to load pull request details';
               console.error('Pull request details load error:', error);
               patchState(store, { 
@@ -364,7 +367,7 @@ export const DashboardStore = signalStore(
               });
             }
           }),
-          catchError((error: any) => {
+          catchError((error: unknown) => {
             const errorMessage = error instanceof Error ? error.message : 'Failed to load pull request details';
             console.error('Pull request details load error:', error);
             patchState(store, { 
@@ -411,7 +414,7 @@ export const DashboardStore = signalStore(
               patchState(store, { isLoading: false });
               console.log('Configuration saved successfully');
             },
-            error: (error: any) => {
+            error: (error: unknown) => {
               // Revert optimistic update on failure
               const errorMessage = error instanceof Error ? error.message : 'Failed to save configuration';
               console.error('Configuration save error:', error);
@@ -422,7 +425,7 @@ export const DashboardStore = signalStore(
               });
             }
           }),
-          catchError((error: any) => {
+          catchError((error: unknown) => {
             const errorMessage = error instanceof Error ? error.message : 'Failed to save configuration';
             console.error('Configuration save error:', error);
             patchState(store, { 
@@ -449,14 +452,15 @@ export const DashboardStore = signalStore(
       switchMap(() => 
         from(messageService.loadConfiguration()).pipe(
           tap({
-            next: (response: any) => {
+            next: (response: unknown) => {
+              const resp = response as { config?: any };
               patchState(store, { 
-                configuration: response.config || store.configuration(),
+                configuration: (resp?.config as any) || store.configuration(),
                 isLoading: false
               });
               console.log('Configuration loaded');
             },
-            error: (error: any) => {
+            error: (error: unknown) => {
               const errorMessage = error instanceof Error ? error.message : 'Failed to load configuration';
               console.error('Configuration load error:', error);
               patchState(store, { 
@@ -465,7 +469,7 @@ export const DashboardStore = signalStore(
               });
             }
           }),
-          catchError((error: any) => {
+          catchError((error: unknown) => {
             const errorMessage = error instanceof Error ? error.message : 'Failed to load configuration';
             console.error('Configuration load error:', error);
             patchState(store, { 
@@ -492,18 +496,19 @@ export const DashboardStore = signalStore(
         
         return from(messageService.testConnection(config)).pipe(
           tap({
-            next: (response: any) => {
+            next: (response: unknown) => {
+              const resp = response as { success: boolean; message?: string };
               patchState(store, { isLoading: false });
               
-              if (response.success) {
+              if (resp.success) {
                 console.log('Connection test successful');
                 messageService.showSuccess('Connection test successful');
               } else {
-                console.warn('Connection test failed:', response.message);
-                messageService.showError('Connection test failed', response.message);
+                console.warn('Connection test failed:', resp.message);
+                messageService.showError('Connection test failed', resp.message);
               }
             },
-            error: (error: any) => {
+            error: (error: unknown) => {
               const errorMessage = error instanceof Error ? error.message : 'Connection test failed';
               console.error('Connection test error:', error);
               patchState(store, { 
@@ -513,7 +518,7 @@ export const DashboardStore = signalStore(
               messageService.showError('Connection test failed', errorMessage);
             }
           }),
-          catchError((error: any) => {
+          catchError((error: unknown) => {
             const errorMessage = error instanceof Error ? error.message : 'Connection test failed';
             console.error('Connection test error:', error);
             patchState(store, { 
@@ -551,7 +556,7 @@ export const DashboardStore = signalStore(
       console.log('Starting AI analysis for PR:', selectedPR.id);
       const progress: AnalysisProgress = {
         prId: selectedPR.id,
-        stage: 'initializing' as any,
+        stage: AnalysisStage.INITIALIZING,
         completed: 0,
         total: 100,
         percentage: 0,
@@ -593,7 +598,7 @@ export const DashboardStore = signalStore(
      * Complete analysis and store results
      * Called when analysis finishes
      */
-    completeAnalysis(results: any) {
+    completeAnalysis(results: AnalysisResult) {
       console.log('Analysis completed');
       patchState(store, { 
         currentAnalysis: undefined,
@@ -686,8 +691,9 @@ export const DashboardStore = signalStore(
             // Trigger loadConfiguration rxMethod
             return from(messageService.loadConfiguration()).pipe(
               tap(response => {
+                const cfg = response as ConfigurationData;
                 patchState(store, { 
-                  configuration: response,
+                  configuration: cfg,
                   isLoading: false
                 });
               })
@@ -695,8 +701,9 @@ export const DashboardStore = signalStore(
           case DashboardView.PULL_REQUEST_LIST:
             return from(messageService.loadPullRequests()).pipe(
               tap(response => {
+                const resp = response as { pullRequests?: PullRequest[] };
                 patchState(store, { 
-                  pullRequests: response.pullRequests || [],
+                  pullRequests: resp.pullRequests || [],
                   isLoading: false
                 });
               })
@@ -706,8 +713,9 @@ export const DashboardStore = signalStore(
             if (selectedPR) {
               return from(messageService.selectPullRequest(selectedPR.id)).pipe(
                 tap(response => {
+                  const pr = response as PullRequest;
                   patchState(store, { 
-                    selectedPR: response,
+                    selectedPR: pr,
                     isLoading: false
                   });
                 })
@@ -721,7 +729,7 @@ export const DashboardStore = signalStore(
             return EMPTY;
         }
       }),
-      catchError((error: any) => {
+      catchError((error: unknown) => {
         const errorMessage = error instanceof Error ? error.message : 'Failed to refresh view';
         console.error('Refresh error:', error);
         patchState(store, { 

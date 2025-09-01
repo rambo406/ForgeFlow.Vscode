@@ -1,4 +1,4 @@
-import { patchState } from '@ngrx/signals';
+import { patchState, WritableStateSource } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { 
   pipe, 
@@ -20,14 +20,14 @@ import {
  */
 function tapResponse<T>(config: { 
   next: (value: T) => void; 
-  error: (error: any) => void; 
+  error: (error: unknown) => void; 
 }) {
   return pipe(
     tap({
       next: config.next,
       error: config.error
     }),
-    catchError((error: any) => {
+    catchError((error: unknown) => {
       config.error(error);
       return EMPTY;
     })
@@ -69,10 +69,10 @@ export interface RxMethodResult<T> {
  * ```
  */
 export function createLoadingStatePattern<TInput, TOutput>(
-  store: any,
+  store: WritableStateSource<Record<string, unknown>>,
   asyncOperation: (input: TInput) => Promise<TOutput> | Observable<TOutput>,
   options: AsyncMethodOptions = {}
-): any {
+): RxMethodResult<TInput> {
   const {
     strategy = 'switch',
     loadingKey = 'isLoading',
@@ -85,7 +85,7 @@ export function createLoadingStatePattern<TInput, TOutput>(
     tap(() => patchState(store, { 
       [loadingKey]: true, 
       [errorKey]: undefined 
-    } as any)),
+    } as Partial<Record<string, unknown>>)),
     mapOperator((input: TInput) => {
       const result = asyncOperation(input);
       const observable = result instanceof Promise ? from(result) : result;
@@ -96,15 +96,15 @@ export function createLoadingStatePattern<TInput, TOutput>(
             // The next callback will be handled by the specific implementation
             return data;
           },
-          error: (error: any) => {
+          error: (error: unknown) => {
             const errorMessage = error instanceof Error ? error.message : 'Operation failed';
-            patchState(store, { [errorKey]: errorMessage } as any);
+            patchState(store, { [errorKey]: errorMessage } as Partial<Record<string, unknown>>);
           }
         }),
         catchError(() => EMPTY)
       );
     }),
-    finalize(() => patchState(store, { [loadingKey]: false } as any))
+    finalize(() => patchState(store, { [loadingKey]: false } as Partial<Record<string, unknown>>))
   ));
 }
 
@@ -183,11 +183,11 @@ export function createCompatibilityWrapper<TInput, TOutput>(
  * ```
  */
 export function createOptimisticUpdatePattern<TInput>(
-  store: any,
+  store: WritableStateSource<Record<string, unknown>>,
   optimisticUpdate: (input: TInput) => void,
-  asyncOperation: (input: TInput) => Promise<any> | Observable<any>,
+  asyncOperation: (input: TInput) => Promise<unknown> | Observable<unknown>,
   rollbackUpdate: (input: TInput) => void
-): any {
+): RxMethodResult<TInput> {
   return rxMethod<TInput>(pipe(
     tap((input: TInput) => {
       // Apply optimistic update
@@ -202,7 +202,7 @@ export function createOptimisticUpdatePattern<TInput>(
           next: () => {
             // Success - optimistic update stands
           },
-          error: (error: any) => {
+          error: (error: unknown) => {
             // Error - rollback optimistic update
             rollbackUpdate(input);
             const errorMessage = error instanceof Error ? error.message : 'Update failed';
@@ -236,11 +236,11 @@ export function createOptimisticUpdatePattern<TInput>(
  * )
  * ```
  */
-export function createBulkOperationPattern<TInput extends any[]>(
-  store: any,
-  bulkOperation: (items: TInput) => Promise<any> | Observable<any>,
+export function createBulkOperationPattern<TInput extends unknown[]>(
+  store: WritableStateSource<Record<string, unknown>>,
+  bulkOperation: (items: TInput) => Promise<unknown> | Observable<unknown>,
   progressCallback?: (completed: number, total: number) => void
-): any {
+): RxMethodResult<TInput> {
   return rxMethod<TInput>(pipe(
     tap(() => patchState(store, { isLoading: true, error: undefined })),
     switchMap((items: TInput) => {
@@ -257,7 +257,7 @@ export function createBulkOperationPattern<TInput extends any[]>(
           next: () => {
             // Bulk operation completed successfully
           },
-          error: (error: any) => {
+          error: (error: unknown) => {
             const errorMessage = error instanceof Error ? error.message : 'Bulk operation failed';
             patchState(store, { error: errorMessage });
           }

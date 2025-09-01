@@ -171,23 +171,11 @@ module.exports = {
     {
       pattern: /btn-vscode-(primary|secondary|outline|ghost|link)/,
     },
-    {
-      pattern: /text-(vscode-xs|vscode-sm|vscode|vscode-lg|vscode-xl)/,
-    },
-    {
-      pattern: /space-(vscode-xs|vscode-sm|vscode-md|vscode-lg|vscode-xl)/,
-    },
-    {
-      pattern: /gap-(vscode-xs|vscode-sm|vscode-md|vscode-lg|vscode-xl)/,
-    },
-    
-    // Responsive utilities
-    {
-      pattern: /(vscode-sm|vscode-md|vscode-lg|vscode-xl):(flex|grid|hidden|block)/,
-    },
-    {
-      pattern: /(vscode-sm|vscode-md|vscode-lg|vscode-xl):grid-cols-[1-6]/,
-    },
+    // Simplified responsive/text patterns to avoid false positives in safelist warnings
+    { pattern: /text-vscode-(xs|sm|base|lg|xl|2xl)/ },
+    { pattern: /space-vscode-(xs|sm|md|lg|xl)/ },
+    { pattern: /gap-vscode-(xs|sm|md|lg|xl)/ },
+    { pattern: /(vscode-(sm|md|lg|xl)):(flex|grid|hidden|block)/ },
     
     // Animation classes
     'animate-vscode-fade-in',

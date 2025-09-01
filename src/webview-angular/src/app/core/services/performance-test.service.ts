@@ -7,7 +7,7 @@ export interface PerformanceTestResult {
   duration: number;
   passed: boolean;
   threshold: number;
-  details?: any;
+  details?: unknown;
 }
 
 export interface PerformanceTestSuite {
@@ -435,7 +435,7 @@ export class PerformanceTestService {
   /**
    * Generate performance report
    */
-  generatePerformanceReport(): any {
+  generatePerformanceReport(): unknown {
     const metrics = this.performanceOptimization.getMetrics();
     const monitoring = this.performanceMonitor.generateReport();
     

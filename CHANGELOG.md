@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Webview Content Security Policy blockage when loading the Angular webview due to runtime code generation (unsafe-eval). The Angular build is now produced with AOT for production which avoids `new Function`/eval usage in the bundle, making the webview compatible with VS Code's CSP.
+
 ### Planned Features
 - Multi-language support for review comments
 - Integration with GitHub for cross-platform support

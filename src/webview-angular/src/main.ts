@@ -1,5 +1,5 @@
 import { bootstrapApplication } from '@angular/platform-browser';
-import { NgZone, ɵNoopNgZone as NoopNgZone } from '@angular/core';
+import { NgZone, NoopNgZone } from '@angular/core';
 import { AppComponent } from './app/app.component';
 import { appConfig } from './app/app.config';
 

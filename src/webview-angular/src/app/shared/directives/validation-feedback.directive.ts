@@ -1,5 +1,5 @@
 import { Directive, Input, OnInit, OnDestroy, ElementRef, Renderer2, inject } from '@angular/core';
-import { AbstractControl, NgControl } from '@angular/forms';
+import { AbstractControl, NgControl, ValidationErrors } from '@angular/forms';
 import { Subject, takeUntil, startWith, distinctUntilChanged } from 'rxjs';
 import { FormValidationService } from '../../core/services/form-validation.service';
 
@@ -183,16 +183,17 @@ export class ValidationFeedbackDirective implements OnInit, OnDestroy {
   /**
    * Extract suggestions from validation errors
    */
-  private extractSuggestions(errors: any): string[] {
+  private extractSuggestions(errors: ValidationErrors | null): string[] {
     if (!errors) return [];
-    
     const suggestions: string[] = [];
-    Object.values(errors).forEach((error: any) => {
-      if (error && typeof error === 'object' && error.suggestions) {
-        suggestions.push(...error.suggestions);
+    Object.values(errors).forEach((error: unknown) => {
+      if (error && typeof error === 'object' && 'suggestions' in (error as object)) {
+        const s = (error as { suggestions?: unknown }).suggestions;
+        if (Array.isArray(s)) {
+          suggestions.push(...(s.filter((x): x is string => typeof x === 'string')));
+        }
       }
     });
-    
     return suggestions;
   }
 }

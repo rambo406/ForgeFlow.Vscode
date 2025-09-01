@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectionStrategy, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { trigger, state, style, transition, animate } from '@angular/animations';
+import { trigger, state, style, transition, animate, AnimationEvent } from '@angular/animations';
 
 @Component({
   selector: 'app-toast',
@@ -242,7 +242,7 @@ export class AppToastComponent implements OnInit, OnDestroy {
     this.animationState.set('out');
   }
 
-  onAnimationDone(event: any): void {
+  onAnimationDone(event: AnimationEvent): void {
     if (event.toState === 'out') {
       this.dismiss.emit();
     }

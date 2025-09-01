@@ -455,7 +455,7 @@ export class FormValidationService {
    */
   validateField(
     fieldName: string,
-    value: any,
+    value: unknown,
     validators: ValidatorFn[],
     asyncValidators?: AsyncValidatorFn[]
   ): void {
@@ -475,9 +475,12 @@ export class FormValidationService {
         errors = errors ? Object.assign({}, errors, result) : result;
         
         // Extract suggestions from error objects
-        Object.values(result).forEach((error: any) => {
-          if (error.suggestions) {
-            suggestions.push(...error.suggestions);
+        Object.values(result).forEach((error: unknown) => {
+          if (error && typeof error === 'object' && 'suggestions' in (error as object)) {
+            const s = (error as { suggestions?: unknown }).suggestions;
+            if (Array.isArray(s)) {
+              suggestions.push(...(s.filter((x): x is string => typeof x === 'string')));
+            }
           }
         });
       }
@@ -528,9 +531,12 @@ export class FormValidationService {
   private extractSuggestions(errors: ValidationErrors): string[] {
     const suggestions: string[] = [];
     
-    Object.values(errors).forEach((error: any) => {
-      if (error.suggestions) {
-        suggestions.push(...error.suggestions);
+    Object.values(errors).forEach((error: unknown) => {
+      if (error && typeof error === 'object' && 'suggestions' in (error as object)) {
+        const s = (error as { suggestions?: unknown }).suggestions;
+        if (Array.isArray(s)) {
+          suggestions.push(...(s.filter((x): x is string => typeof x === 'string')));
+        }
       }
     });
     
@@ -551,8 +557,9 @@ export class FormValidationService {
     const state = this.getFieldState(fieldName);
     if (!state || !state.errors) return null;
     
-    const firstError = Object.values(state.errors)[0] as any;
-    return firstError?.message || 'Validation error';
+    const first = Object.values(state.errors)[0] as { message?: unknown } | undefined;
+    const msg = first?.message;
+    return typeof msg === 'string' ? msg : 'Validation error';
   }
 
   /**
