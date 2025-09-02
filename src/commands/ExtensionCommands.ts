@@ -4,7 +4,7 @@ import { AzureDevOpsClient } from '../services/AzureDevOpsClient';
 import { LanguageModelService } from '../services/LanguageModelService';
 import { CommentManager, CommentManagerOptions } from '../services/CommentManager';
 import { PullRequest } from '../models/AzureDevOpsModels';
-import { PRDashboardController } from '../controllers/PRDashboardController';
+import { DashboardController } from '../controllers/DashboardController';
 
 /**
  * Information about pull request selection
@@ -90,7 +90,7 @@ export class ExtensionCommands implements vscode.Disposable {
     private languageModelService?: LanguageModelService;
     private commentManager?: CommentManager;
     private statusBarManager: StatusBarManager;
-    private dashboardController?: PRDashboardController;
+    private dashboardController?: DashboardController;
     // Overview is now an Angular route; use PRDashboardController
 
     constructor(
@@ -157,7 +157,7 @@ export class ExtensionCommands implements vscode.Disposable {
             await this.initializeServices();
 
             if (!this.dashboardController) {
-                this.dashboardController = new PRDashboardController(
+                this.dashboardController = new DashboardController(
                     this.context,
                     this.configurationManager,
                     this.azureDevOpsClient
@@ -678,7 +678,7 @@ export class ExtensionCommands implements vscode.Disposable {
 
             // Initialize dashboard controller if not already done
             if (!this.dashboardController) {
-                this.dashboardController = new PRDashboardController(
+                this.dashboardController = new DashboardController(
                     this.context,
                     this.configurationManager,
                     this.azureDevOpsClient
@@ -704,7 +704,7 @@ export class ExtensionCommands implements vscode.Disposable {
             await this.initializeServices();
 
             if (!this.dashboardController) {
-                this.dashboardController = new PRDashboardController(
+                this.dashboardController = new DashboardController(
                     this.context,
                     this.configurationManager,
                     this.azureDevOpsClient
