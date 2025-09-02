@@ -119,6 +119,28 @@ export class ConfigHandler implements MessageHandler {
                 requestId: message.requestId
             });
 
+            // Proactively broadcast the latest configuration so the dashboard
+            // can immediately pick up changes (PAT updates don't trigger
+            // onDidChangeConfiguration events).
+            try {
+                const latestConfig = {
+                    organizationUrl: ctx.configurationManager.getOrganizationUrl() || '',
+                    personalAccessToken: (await ctx.configurationManager.getPatToken()) || '',
+                    defaultProject: ctx.configurationManager.getDefaultProject() || '',
+                    selectedModel: ctx.configurationManager.getSelectedModel(),
+                    customInstructions: ctx.configurationManager.getCustomInstructions(),
+                    batchSize: ctx.configurationManager.getBatchSize(),
+                    enableTelemetry: ctx.configurationManager.isTelemetryEnabled()
+                };
+                ctx.sendMessage({
+                    type: MessageType.LOAD_CONFIG,
+                    payload: { config: latestConfig }
+                });
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.warn('Failed to broadcast updated configuration:', e);
+            }
+
         } catch (error) {
             // eslint-disable-next-line no-console
             console.error('Failed to save configuration:', error);
@@ -234,4 +256,3 @@ export class ConfigHandler implements MessageHandler {
         });
     }
 }
-

@@ -126,34 +126,37 @@ export class SettingsValidationService {
         }
 
         try {
-            const profileUrl = `${organizationUrl}/_apis/profile/profiles/me?api-version=7.1-preview.3`;
-            
-            const response = await axios.get(profileUrl, {
+            // The profile API is hosted on a different Azure DevOps service endpoint and
+            // can return 404 when called under the organization host (dev.azure.com/<org>).
+            // Use the Projects API on the organization host to verify that the PAT can
+            // access organization-level resources. A successful 200 indicates a valid token.
+            const projectsUrl = `${organizationUrl}/_apis/projects?api-version=7.1-preview.4`;
+
+            const response = await axios.get(projectsUrl, {
                 headers: {
                     'Authorization': `Basic ${Buffer.from(`:${token}`).toString('base64')}`,
                     'Content-Type': 'application/json'
                 },
-                timeout: 10000
+                timeout: 10000,
+                validateStatus: (s) => s < 500 // let 4xx be handled by our logic
             });
 
             if (response.status === 200 && response.data) {
+                const count = Array.isArray(response.data.value) ? response.data.value.length : undefined;
                 const result: ValidationResult = {
                     isValid: true,
-                    details: `Token validated successfully for user: ${response.data.displayName}`,
+                    details: `Token validated successfully${count !== undefined ? ` — ${count} projects visible` : ''}`,
                     category: 'azureDevOps'
                 };
                 this.cacheResult(cacheKey, result);
                 return result;
             }
 
-            const result: ValidationResult = {
-                isValid: false,
-                error: 'Invalid response',
-                details: 'Received unexpected response from Azure DevOps API',
-                category: 'azureDevOps'
-            };
-            this.cacheResult(cacheKey, result);
-            return result;
+            // Map common 4xx responses to clearer errors
+            const axiosError = { response } as AxiosError;
+            const mapped = this.handlePatTokenError(axiosError);
+            this.cacheResult(cacheKey, mapped);
+            return mapped;
 
         } catch (error) {
             const result = this.handlePatTokenError(error as AxiosError);

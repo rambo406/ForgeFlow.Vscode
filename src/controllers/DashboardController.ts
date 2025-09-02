@@ -21,6 +21,8 @@ export class DashboardController {
     private readonly settingsValidationService: SettingsValidationService;
     private readonly handlers: MessageHandler[];
     private readonly ctx: HandlerContext;
+    // Settings change subscription
+    private configChangeSub: vscode.Disposable | undefined;
 
     constructor(
         private readonly context: vscode.ExtensionContext,
@@ -47,6 +49,12 @@ export class DashboardController {
             new SettingsHandler(),
             new NavigationHandler()
         ];
+
+        // Listen for VS Code configuration changes and broadcast current config
+        this.configChangeSub = this.configurationManager.onConfigurationChanged(() => {
+            this.broadcastCurrentConfig().catch(() => { /* noop */ });
+        });
+        this.disposables.push(this.configChangeSub);
     }
 
     public async createOrShow(initialRoute?: string): Promise<void> {
@@ -128,6 +136,23 @@ export class DashboardController {
                 console.log('[Dashboard] Sending message to webview', { type: message?.type, requestId: message?.requestId });
             } catch { /* noop */ }
             this.panel.webview.postMessage(message);
+        }
+    }
+
+    private async broadcastCurrentConfig(): Promise<void> {
+        try {
+            const cfg = {
+                organizationUrl: this.configurationManager.getOrganizationUrl() || '',
+                personalAccessToken: (await this.configurationManager.getPatToken()) || '',
+                defaultProject: this.configurationManager.getDefaultProject() || '',
+                selectedModel: this.configurationManager.getSelectedModel(),
+                customInstructions: this.configurationManager.getCustomInstructions(),
+                batchSize: this.configurationManager.getBatchSize(),
+                enableTelemetry: this.configurationManager.isTelemetryEnabled()
+            };
+            this.sendMessage({ type: MessageType.LOAD_CONFIG, payload: { config: cfg } });
+        } catch {
+            // ignore broadcast errors
         }
     }
 
