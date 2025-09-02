@@ -89,7 +89,7 @@ function removeDirectory(dirPath, description) {
 
 async function main() {
   const rootDir = path.resolve(__dirname, '..');
-  const webviewDir = path.resolve(rootDir, 'src/webview-angular-v2');
+  const webviewDir = path.resolve(rootDir, 'src/webview-angular-v3');
   const distDir = path.resolve(rootDir, 'dist');
   
   console.log(`\n📁 Project structure:`);

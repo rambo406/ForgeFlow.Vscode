@@ -152,7 +152,19 @@ export class ExtensionCommands implements vscode.Disposable {
      */
     private async handleConfigureCommand(): Promise<void> {
         try {
-            await this.showConfigurationWizard();
+            // Open v3 webview at configuration route (no legacy wizard)
+            // Ensure services are initialized so controller can serve data if needed
+            await this.initializeServices();
+
+            if (!this.dashboardController) {
+                this.dashboardController = new PRDashboardController(
+                    this.context,
+                    this.configurationManager,
+                    this.azureDevOpsClient
+                );
+            }
+
+            await this.dashboardController.createOrShow('configuration');
         } catch (error) {
             console.error('Configuration command failed:', error);
             vscode.window.showErrorMessage('Failed to open configuration. Please try again.');
@@ -279,74 +291,7 @@ export class ExtensionCommands implements vscode.Disposable {
         }
     }
 
-    /**
-     * Show configuration wizard
-     */
-    private async showConfigurationWizard(): Promise<void> {
-        // Organization URL configuration
-        const organizationUrl = await vscode.window.showInputBox({
-            prompt: 'Enter your Azure DevOps organization URL',
-            placeHolder: 'https://dev.azure.com/myorganization',
-            value: this.configurationManager.getOrganizationUrl() || '',
-            validateInput: (value) => {
-                if (!value) {
-                    return 'Organization URL is required';
-                }
-                if (!/^https:\/\/dev\.azure\.com\/[^/]+\/?$/.test(value)) {
-                    return 'Please enter a valid Azure DevOps organization URL (e.g., https://dev.azure.com/myorg)';
-                }
-                return null;
-            }
-        });
-
-        if (!organizationUrl) {
-            return;
-        }
-
-        // PAT Token configuration
-        const patToken = await vscode.window.showInputBox({
-            prompt: 'Enter your Azure DevOps Personal Access Token',
-            placeHolder: 'Personal Access Token with Code (read) and Pull Request (read/write) permissions',
-            password: true,
-            validateInput: (value) => {
-                if (!value) {
-                    return 'Personal Access Token is required';
-                }
-                if (value.length < 20) {
-                    return 'Personal Access Token seems too short';
-                }
-                return null;
-            }
-        });
-
-        if (!patToken) {
-            return;
-        }
-
-        // Default project configuration (optional)
-        const defaultProject = await vscode.window.showInputBox({
-            prompt: 'Enter default project name (optional)',
-            placeHolder: 'Leave empty to select project each time',
-            value: this.configurationManager.getDefaultProject() || ''
-        });
-
-        try {
-            // Save configuration
-            const config = vscode.workspace.getConfiguration('azdo-pr-reviewer');
-            await config.update('organizationUrl', organizationUrl, vscode.ConfigurationTarget.Global);
-            
-            if (defaultProject) {
-                await config.update('defaultProject', defaultProject, vscode.ConfigurationTarget.Global);
-            }
-
-            await this.configurationManager.setPatToken(patToken);
-
-            vscode.window.showInformationMessage('Azure DevOps PR Code Reviewer configured successfully!');
-        } catch (error) {
-            console.error('Failed to save configuration:', error);
-            vscode.window.showErrorMessage('Failed to save configuration. Please try again.');
-        }
-    }
+    // Legacy configuration wizard removed in v3. Configuration is handled in webview.
 
     /**
      * Initialize services with current configuration
@@ -766,7 +711,8 @@ export class ExtensionCommands implements vscode.Disposable {
                 );
             }
 
-            await this.dashboardController.createOrShow('overview');
+            // Default route is now 'dashboard' (Angular v3)
+            await this.dashboardController.createOrShow('dashboard');
         } catch (error) {
             console.error('Show overview command failed:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';

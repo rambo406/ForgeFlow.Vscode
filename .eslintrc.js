@@ -30,6 +30,7 @@ module.exports = {
     'dist',
     '**/*.d.ts',
     'src/webview-angular-v2/**/*',
+    'src/webview-angular-v3/**/*',
     'src/webview-angular-old-backup/**/*',
     'src/test/**/*'
   ]

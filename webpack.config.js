@@ -39,9 +39,9 @@ module.exports = {
     // Copy Angular webview build into dist
     new CopyWebpackPlugin({
       patterns: [
-        // Copy webview-angular-v2 build to main webview location
+        // Copy webview-angular-v3 build to main webview location
         {
-          from: path.resolve(__dirname, 'src/webview-angular-v2/dist'),
+          from: path.resolve(__dirname, 'src/webview-angular-v3/dist'),
           to: path.resolve(__dirname, 'dist/webview'),
           noErrorOnMissing: true,
           globOptions: {

@@ -1,0 +1,11 @@
+/* Minimal styles; rely on VS Code theme variables */
+:root {
+  --vscode-ffg-fg: var(--vscode-foreground);
+  --vscode-ffg-bg: var(--vscode-editor-background);
+}
+
+html, body { height: 100%; }
+body { background: var(--vscode-ffg-bg); color: var(--vscode-ffg-fg); }
+
+a { color: var(--vscode-textLink-foreground, #4ea6ea); }
+

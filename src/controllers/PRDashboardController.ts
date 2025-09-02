@@ -448,9 +448,12 @@ export class PRDashboardController {
                     await this.handleTestModel(message, testParams);
                     break;
                 default:
-                    // Legacy connection test
-                    await this.handleLegacyTestConnection(message);
-                    break;
+                    this.sendMessage({
+                        type: MessageType.SHOW_ERROR,
+                        payload: { message: 'Invalid test type' },
+                        requestId: message.requestId
+                    });
+                    return;
             }
 
         } catch (error) {
@@ -463,52 +466,7 @@ export class PRDashboardController {
         }
     }
 
-    /**
-     * Handle legacy connection test (backward compatibility)
-     */
-    private async handleLegacyTestConnection(message: WebviewMessage): Promise<void> {
-        const config = message.payload?.config;
-        if (!config || !config.organizationUrl || !config.personalAccessToken) {
-            this.sendMessage({
-                type: MessageType.SHOW_ERROR,
-                payload: { message: 'Organization URL and Personal Access Token are required for testing' },
-                requestId: message.requestId
-            });
-            return;
-        }
-
-        // Test the connection using the configuration manager
-        const validationResult = await this.configurationManager.validatePatToken(
-            config.personalAccessToken,
-            config.organizationUrl
-        );
-
-        if (validationResult.isValid) {
-            this.sendMessage({
-                type: MessageType.TEST_CONNECTION,
-                payload: { success: true, message: validationResult.details },
-                requestId: message.requestId
-            });
-
-            this.sendMessage({
-                type: MessageType.SHOW_SUCCESS,
-                payload: { message: 'Connection test successful: ' + validationResult.details },
-                requestId: message.requestId
-            });
-        } else {
-            this.sendMessage({
-                type: MessageType.TEST_CONNECTION,
-                payload: { success: false, error: validationResult.error },
-                requestId: message.requestId
-            });
-
-            this.sendMessage({
-                type: MessageType.SHOW_ERROR,
-                payload: { message: 'Connection test failed: ' + validationResult.error },
-                requestId: message.requestId
-            });
-        }
-    }
+    // Legacy connection test removed in v3
 
     /**
      * Handle organization URL test
@@ -1113,10 +1071,10 @@ export class PRDashboardController {
         // Detect fallback bundle case: placeholder main.js produced by the build fallback
         let isFallback = false;
         try {
-            isFallback = !runtimeJsUri && !polyfillsJsUri && !!mainJsUri && fs.readFileSync(path.join(webviewPath, 'main.js'), 'utf8').includes('Fallback webview bundle');
+            isFallback = !runtimeJsUri && !!mainJsUri && fs.readFileSync(path.join(webviewPath, 'main.js'), 'utf8').includes('Fallback webview bundle');
         } catch (e) {
             // Treat read errors as missing real build
-            isFallback = !runtimeJsUri && !polyfillsJsUri && !!mainJsUri;
+            isFallback = !runtimeJsUri && !!mainJsUri;
         }
 
         if (isFallback) {
@@ -1124,7 +1082,6 @@ export class PRDashboardController {
 
             const missingFiles: string[] = [];
             if (!runtimeJsUri) missingFiles.push('runtime.js');
-            if (!polyfillsJsUri) missingFiles.push('polyfills.js');
             if (!vendorJsUri) missingFiles.push('vendor.js');
             if (!stylesUri) missingFiles.push('styles.css');
 
@@ -1148,7 +1105,7 @@ export class PRDashboardController {
     <p>The Angular webview bundle appears to be a fallback placeholder instead of a real build. The extension could not find the full set of webview build artifacts required to boot the Angular application.</p>
     <p>Missing or placeholder build files:</p>
     ${missingListHtml}
-    <p>Please rebuild the webview and make sure the compiled files are copied to the extension <code>dist/webview</code> folder. For development, run the webview build (see the repo README or the webview-angular-v2 package).</p>
+    <p>Please rebuild the webview and make sure the compiled files are copied to the extension <code>dist/webview</code> folder. For development, run the webview build (see the repo README or the webview-angular-v3 package).</p>
 </body>
 </html>`;
         }
@@ -1181,7 +1138,6 @@ export class PRDashboardController {
 
     <script nonce="${nonce}">(function(){ if (typeof ngDevMode === 'undefined') { try { window['ngDevMode'] = false; } catch(e) { /* ignore */ } } })();</script>
     ${runtimeJsUri ? `<script nonce="${nonce}" src="${runtimeJsUri}" type="module"></script>` : ''}
-    ${polyfillsJsUri ? `<script nonce="${nonce}" src="${polyfillsJsUri}" type="module"></script>` : ''}
     ${vendorJsUri ? `<script nonce="${nonce}" src="${vendorJsUri}" type="module"></script>` : ''}
     ${mainJsUri ? `<script nonce="${nonce}" src="${mainJsUri}" type="module"></script>` : ''}
 

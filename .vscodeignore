@@ -7,6 +7,7 @@ src/**
 
 # Webview source (only include built artifacts)
 src/webview-angular-v2/**
+src/webview-angular-v3/**
 !dist/webview/**
 
 # Development and build files
@@ -20,9 +21,11 @@ scripts/**
 # Node modules
 node_modules/
 src/webview-angular-v2/node_modules/
+src/webview-angular-v3/node_modules/
 
 # Build artifacts to exclude
 src/webview-angular-v2/dist/**
+src/webview-angular-v3/dist/**
 *.map
 *.log
 *.tsbuildinfo
@@ -60,6 +63,10 @@ src/webview-angular-v2/components.json
 src/webview-angular-v2/package*.json
 src/webview-angular-v2/tsconfig*.json
 src/webview-angular-v2/jest.config.js
+src/webview-angular-v3/.angular/
+src/webview-angular-v3/angular.json
+src/webview-angular-v3/package*.json
+src/webview-angular-v3/tsconfig*.json
 
 # Testing files
 **/*.spec.ts

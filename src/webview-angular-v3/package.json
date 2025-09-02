@@ -1,0 +1,38 @@
+{
+  "name": "azdo-pr-reviewer-webview-v3",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Angular webview v3 for Azure DevOps PR Reviewer",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19 <21 || >=22.12 <23"
+  },
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "build:prod": "ng build --configuration production",
+    "watch": "ng build --watch --configuration development",
+    "test": "echo 'No tests yet for webview v3' && exit 0",
+    "lint": "echo 'No lint configured for webview v3' && exit 0"
+  },
+  "dependencies": {
+    "@angular/animations": "^20.2.0",
+    "@angular/common": "^20.2.0",
+    "@angular/compiler": "^20.2.0",
+    "@angular/core": "^20.2.0",
+    "@angular/forms": "^20.2.0",
+    "@angular/platform-browser": "^20.2.0",
+    "@angular/router": "^20.2.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^20.2.0",
+    "@angular/cli": "^20.2.0",
+    "@angular/compiler-cli": "^20.2.0",
+    "@types/node": "^18.18.0",
+    "typescript": "^5.5.0"
+  }
+}
+

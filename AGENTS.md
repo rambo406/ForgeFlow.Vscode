@@ -4,8 +4,8 @@
 - Root extension code: `src/` (entry: `src/extension.ts`)
 - Core modules: `src/commands/`, `src/services/`, `src/utils/`, `src/controllers/`
 - Tests: `src/test/suite/` (unit) and `src/test/integration/`
-- Webview (Angular 20): `src/webview-angular-v2/` with its own `package.json`
-- Build outputs: `dist/` (extension bundle), `src/webview-angular-v2/dist/` (webview)
+- Webview (Angular 20): `src/webview-angular-v3/` with its own `package.json`
+- Build outputs: `dist/` (extension bundle), `src/webview-angular-v3/dist/` (webview)
 
 ## Build, Test, and Development Commands
 - Build (dev): `npm run build` — builds webview then bundles the extension via webpack.
@@ -21,8 +21,8 @@
 - Naming: PascalCase for classes/files in services/utils (e.g., `ConfigurationManager.ts`), camelCase for functions/variables, UPPER_SNAKE_CASE for constants. Entry file: `extension.ts`.
 
 ## Testing Guidelines
-- Frameworks: Mocha for extension (`src/test/**/**.test.ts`), Jest for webview (`*.spec.ts` under `src/webview-angular-v2/src/`).
-- Run extension tests: `npm test`. Run webview tests: `cd src/webview-angular-v2 && npm test`.
+- Frameworks: Mocha for extension (`src/test/**/**.test.ts`).
+- Run extension tests: `npm test`.
 - Add tests for new logic and error paths; prefer fast, deterministic tests. No strict coverage threshold enforced, but cover critical paths.
 
 ## Commit & Pull Request Guidelines

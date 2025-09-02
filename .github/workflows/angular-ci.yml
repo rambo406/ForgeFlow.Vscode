@@ -4,16 +4,16 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'src/webview-angular-v2/**'
+      - 'src/webview-angular-v3/**'
       - '.github/workflows/angular-ci.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'src/webview-angular-v2/**'
+      - 'src/webview-angular-v3/**'
 
 env:
-  NODE_VERSION: '18'
-  WEBVIEW_PATH: 'src/webview-angular-v2'
+  NODE_VERSION: '20'
+  WEBVIEW_PATH: 'src/webview-angular-v3'
 
 jobs:
   # Install Dependencies and Setup
