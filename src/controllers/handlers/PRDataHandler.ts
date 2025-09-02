@@ -7,6 +7,7 @@ export class PRDataHandler implements MessageHandler {
         MessageType.LOAD_REPOSITORIES,
         MessageType.LOAD_PROJECTS,
         MessageType.SELECT_PULL_REQUEST,
+        MessageType.LOAD_FILE_DIFF,
         MessageType.SEARCH_PULL_REQUESTS,
         MessageType.FILTER_PULL_REQUESTS,
         MessageType.REFRESH_PULL_REQUESTS
@@ -26,6 +27,8 @@ export class PRDataHandler implements MessageHandler {
                 return this.handleLoadProjects(message, ctx);
             case MessageType.SELECT_PULL_REQUEST:
                 return this.handleSelectPullRequest(message, ctx);
+            case MessageType.LOAD_FILE_DIFF:
+                return this.handleLoadFileDiff(message, ctx);
             case MessageType.SEARCH_PULL_REQUESTS:
                 return this.handleSearchPullRequests(message, ctx);
             case MessageType.FILTER_PULL_REQUESTS:
@@ -34,6 +37,44 @@ export class PRDataHandler implements MessageHandler {
                 return this.handleRefreshPullRequests(message, ctx);
             default:
                 return; // unreachable
+        }
+    }
+
+    private async handleLoadFileDiff(message: WebviewMessage, ctx: HandlerContext): Promise<void> {
+        try {
+            const client = await ctx.ensureAzureClient();
+            const prId = message.payload?.prId;
+            const filePath = message.payload?.filePath as string | undefined;
+            const oldFilePath = message.payload?.oldFilePath as string | undefined;
+            if (!prId || !filePath) {
+                ctx.sendMessage({ type: MessageType.SHOW_ERROR, payload: { message: 'PR id and file path are required' }, requestId: message.requestId });
+                return;
+            }
+            const projectName = ctx.configurationManager.getDefaultProject();
+            if (!projectName) {
+                ctx.sendMessage({ type: MessageType.SHOW_ERROR, payload: { message: 'Project name is required' }, requestId: message.requestId });
+                return;
+            }
+
+            const pr = await client.getPullRequest(projectName, prId);
+            const repoId = pr.repository.id;
+            const diff = await client.getFileDiffContents(projectName, repoId, prId, filePath, oldFilePath);
+
+            ctx.sendMessage({
+                type: MessageType.LOAD_FILE_DIFF,
+                payload: {
+                    filePath,
+                    leftPath: diff.originalPath || oldFilePath || filePath,
+                    rightPath: diff.modifiedPath || filePath,
+                    leftContent: diff.originalContent ?? '',
+                    rightContent: diff.modifiedContent ?? ''
+                },
+                requestId: message.requestId
+            });
+        } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to load file diff content:', error);
+            ctx.sendMessage({ type: MessageType.SHOW_ERROR, payload: { message: 'Failed to load file diff content' + (error instanceof Error ? `: ${error.message}` : '') }, requestId: message.requestId });
         }
     }
 
@@ -248,4 +289,3 @@ export class PRDataHandler implements MessageHandler {
         }
     }
 }
-

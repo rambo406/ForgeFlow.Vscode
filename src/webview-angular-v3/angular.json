@@ -16,7 +16,13 @@
             "polyfills": [],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
-            "assets": [],
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "./node_modules/monaco-editor/min/vs",
+                "output": "assets/monaco/vs"
+              }
+            ],
             "styles": ["src/styles.scss"],
             "scripts": [],
             "baseHref": "/",

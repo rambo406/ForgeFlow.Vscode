@@ -18,6 +18,16 @@
   <body>
     <app-root></app-root>
   </body>
+  <!-- Load Monaco editor assets from runtime assets copied to assets/monaco/vs -->
+  <link rel="stylesheet" href="assets/monaco/vs/editor/editor.main.css">
+  <script>
+    // Ensure Monaco loads workers from the copied assets path inside the webview bundle
+    window.MonacoEnvironment = window.MonacoEnvironment || {};
+    window.MonacoEnvironment.getWorkerUrl = function(moduleId, label) {
+      // All workers are under assets/monaco/vs/base/worker/workerMain.js in the monaco package
+      return 'assets/monaco/vs/base/worker/workerMain.js';
+    };
+  </script>
   <!-- Angular scripts injected by builder -->
 </html>
 

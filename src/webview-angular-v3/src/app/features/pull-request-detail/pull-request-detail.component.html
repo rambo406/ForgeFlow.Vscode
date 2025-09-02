@@ -44,11 +44,55 @@
 
         <h4 style="margin:0;">Changed Files</h4>
         <div *ngIf="fileChanges().length === 0" style="color: var(--vscode-descriptionForeground);">No file changes.</div>
-        <div style="display:flex; flex-direction:column; gap:4px; max-height:320px; overflow:auto;">
-          <div *ngFor="let fc of fileChanges()" style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--vscode-panel-border,#333); border-radius:4px;">
-            <vscode-badge appearance="secondary">{{ fc.changeType }}</vscode-badge>
-            <code style="font-size:12px;">{{ fc.filePath }}</code>
-            <span style="margin-left:auto; color: var(--vscode-descriptionForeground); font-size:12px;">+{{ fc.addedLines }} / -{{ fc.deletedLines }}</span>
+
+        <div style="display:flex; gap:12px;">
+          <!-- File list -->
+          <div style="flex: 0 0 380px; display:flex; flex-direction:column; gap:6px; max-height:420px; overflow:auto;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <input type="checkbox" id="selectAll" (change)="selectAll($event.target.checked)"/>
+              <label for="selectAll" style="font-size:12px; color: var(--vscode-descriptionForeground);">Select all</label>
+              <vscode-button style="margin-left:auto;" (click)="analyzeSelected()">Analyze Selected with Copilot</vscode-button>
+            </div>
+
+            <div *ngFor="let fc of fileChanges()" 
+                 style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--vscode-panel-border,#333); border-radius:4px; cursor:pointer; background: var(--vscode-editor-background);"
+                 (click)="showDiff(fc)">
+              <input type="checkbox" [checked]="isSelected(fc)" (click)="$event.stopPropagation()" (change)="toggleFileSelection(fc)"/>
+              <vscode-badge appearance="secondary">{{ fc.changeType }}</vscode-badge>
+              <code style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ fc.filePath }}</code>
+              <span style="margin-left:auto; color: var(--vscode-descriptionForeground); font-size:12px;">+{{ fc.addedLines }} / -{{ fc.deletedLines }}</span>
+            </div>
+          </div>
+
+          <!-- Diff viewer -->
+          <div style="flex: 1 1 auto; min-height: 420px; max-height: 420px; overflow:hidden; border:1px solid var(--vscode-panel-border,#333); border-radius:4px; background: var(--vscode-editor-background); display:flex; flex-direction:column;">
+            <ng-container *ngIf="activeFile(); else noActive">
+              <div style="padding:8px; border-bottom:1px solid var(--vscode-panel-border,#333); display:flex; align-items:center; gap:8px;">
+                <code style="font-size:12px;">{{ activeFile()?.filePath }}</code>
+                <vscode-badge appearance="secondary">{{ activeFile()?.changeType }}</vscode-badge>
+                <span style="margin-left:auto; color: var(--vscode-descriptionForeground); font-size:12px;">+{{ activeFile()?.addedLines }} / -{{ activeFile()?.deletedLines }}</span>
+              </div>
+              <div style="flex: 1; min-height: 0;">
+                <ng-container *ngIf="fileText()[activeFile()!.filePath] as content; else loadingContent">
+                  <ff-monaco-diff-viewer
+                    [leftText]="content.left"
+                    [rightText]="content.right"
+                    [leftLabel]="content.leftPath || 'Original'"
+                    [rightLabel]="content.rightPath || 'Modified'"
+                    [filePath]="activeFile()!.filePath">
+                  </ff-monaco-diff-viewer>
+                </ng-container>
+                <ng-template #loadingContent>
+                  <div style="height:100%; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <vscode-progress-ring></vscode-progress-ring>
+                    <span>Loading file content…</span>
+                  </div>
+                </ng-template>
+              </div>
+            </ng-container>
+            <ng-template #noActive>
+              <div style="padding:16px; color: var(--vscode-descriptionForeground);">Select a file to view its changes.</div>
+            </ng-template>
           </div>
         </div>
       </div>
@@ -59,4 +103,3 @@
     <div style="color: var(--vscode-descriptionForeground);">Select a pull request from the dashboard to view details.</div>
   </ng-template>
 </section>
-

@@ -29,6 +29,9 @@ export class AIAnalysisHandler implements MessageHandler {
         try {
             const client = await ctx.ensureAzureClient();
             const prId = message.payload?.prId;
+            const selectedFiles: string[] | undefined = Array.isArray(message.payload?.selectedFiles)
+                ? message.payload.selectedFiles as string[]
+                : undefined;
             if (!prId) {
                 ctx.sendMessage({ type: MessageType.SHOW_ERROR, payload: { message: 'Pull request ID is required' }, requestId: message.requestId });
                 return;
@@ -47,7 +50,17 @@ export class AIAnalysisHandler implements MessageHandler {
             ctx.currentAnalysis = { cancellationTokenSource, prId };
 
             const pullRequest = await client.getPullRequest(projectName, prId);
-            const fileChanges = await client.getDetailedFileChanges(projectName, pullRequest.repository.id, prId);
+            let fileChanges = await client.getDetailedFileChanges(projectName, pullRequest.repository.id, prId);
+
+            // If a subset of files was requested, filter to those
+            if (selectedFiles && selectedFiles.length > 0) {
+                const selectedSet = new Set(selectedFiles);
+                fileChanges = fileChanges.filter(fc => selectedSet.has(fc.filePath));
+                if (fileChanges.length === 0) {
+                    ctx.sendMessage({ type: MessageType.SHOW_ERROR, payload: { message: 'No matching files found for analysis' }, requestId: message.requestId });
+                    return;
+                }
+            }
             if (fileChanges.length === 0) {
                 ctx.sendMessage({ type: MessageType.SHOW_ERROR, payload: { message: 'No file changes found to analyze' }, requestId: message.requestId });
                 return;
@@ -108,4 +121,3 @@ export class AIAnalysisHandler implements MessageHandler {
         }
     }
 }
-

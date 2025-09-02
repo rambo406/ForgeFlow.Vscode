@@ -176,6 +176,11 @@ export class DashboardController {
         const mainJsUri = resolveIfExists('main.js');
         const vendorJsUri = resolveIfExists('vendor.js');
         const stylesUri = resolveIfExists('styles.css');
+        // Monaco assets (optional)
+        // Load Monaco using AMD loader to avoid globalDefine issues
+        const monacoLoaderUri = resolveIfExists(path.join('assets', 'monaco', 'vs', 'loader.js'));
+        const monacoWorkerUri = resolveIfExists(path.join('assets', 'monaco', 'vs', 'base', 'worker', 'workerMain.js'));
+        const monacoCssUri = resolveIfExists(path.join('assets', 'monaco', 'vs', 'editor', 'editor.main.css'));
         const nonce = this.generateNonce();
 
         let isFallback = false;
@@ -216,10 +221,12 @@ export class DashboardController {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${cspSource} https: data:; script-src 'nonce-${nonce}'; style-src ${cspSource} 'unsafe-inline'; font-src ${cspSource}; connect-src ${cspSource} https: http:; frame-src ${cspSource} https:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${cspSource} https: data:; script-src 'nonce-${nonce}' ${cspSource}; style-src ${cspSource} 'unsafe-inline'; font-src ${cspSource}; connect-src ${cspSource} https: http:; frame-src ${cspSource} https:; worker-src ${cspSource} blob:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Azure DevOps PR Dashboard</title>
+  <meta name="csp-nonce" content="${nonce}">
   ${stylesUri ? `<link rel="stylesheet" href="${stylesUri}">` : ''}
+  ${monacoCssUri ? `<link rel="stylesheet" href="${monacoCssUri}">` : ''}
 </head>
 <body>
   <app-root>Loading PR Dashboard...</app-root>
@@ -232,6 +239,12 @@ export class DashboardController {
         if (typeof g.ngI18nClosureMode === 'undefined') { g.ngI18nClosureMode = false; }
       } catch (e) { /* noop */ }
     })(typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : {}));
+  </script>
+  <script nonce="${nonce}">
+    window.__webviewCspNonce='${nonce}';
+    ${monacoLoaderUri ? `window.__monacoLoaderUrl='${monacoLoaderUri}';` : ''}
+    ${monacoWorkerUri ? `window.__monacoWorkerUrl='${monacoWorkerUri}';` : ''}
+    ${monacoLoaderUri ? `window.__monacoBaseUrl=(function(u){try{var i=u.lastIndexOf('/');return i>=0?u.substring(0,i+1):u;}catch(e){return '';}})('${monacoLoaderUri}');` : ''}
   </script>
   ${runtimeJsUri ? `<script nonce="${nonce}" src="${runtimeJsUri}"></script>` : ''}
   ${polyfillsJsUri ? `<script nonce="${nonce}" src="${polyfillsJsUri}"></script>` : ''}

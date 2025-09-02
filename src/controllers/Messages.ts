@@ -18,6 +18,7 @@ export enum MessageType {
     LOAD_PROJECTS = 'loadProjects',
     SELECT_PULL_REQUEST = 'selectPullRequest',
     LOAD_PR_DETAILS = 'loadPRDetails',
+    LOAD_FILE_DIFF = 'loadFileDiff',
 
     // AI Analysis
     START_AI_ANALYSIS = 'startAIAnalysis',
@@ -72,4 +73,3 @@ export interface CurrentAnalysisState {
     cancellationTokenSource: vscode.CancellationTokenSource;
     prId: number;
 }
-

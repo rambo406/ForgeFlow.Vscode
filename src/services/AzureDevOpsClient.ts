@@ -69,6 +69,78 @@ export class AzureDevOpsClient {
     }
 
     /**
+     * Get raw file content at a specific commit
+     */
+    private async getItemContentAtCommit(
+        project: string,
+        repositoryId: string,
+        filePath: string,
+        commitId: string
+    ): Promise<string> {
+        try {
+            const url = `/${encodeURIComponent(project)}/_apis/git/repositories/${encodeURIComponent(repositoryId)}/items`;
+            const response = await this.makeRequestWithRetry<string>({
+                method: 'GET',
+                url,
+                params: {
+                    'api-version': '7.1',
+                    'path': filePath,
+                    'includeContent': true,
+                    'versionDescriptor.versionType': 'commit',
+                    'versionDescriptor.version': commitId
+                },
+                headers: { 'Accept': 'text/plain' },
+                responseType: 'text'
+            });
+            return response.data || '';
+        } catch (error: any) {
+            // If file not found in this commit (e.g., added/deleted), return empty content
+            const status = error?.response?.status;
+            if (status === 404) { return ''; }
+            console.error(`Failed to fetch item content for ${filePath} at ${commitId}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get left/right file contents for Monaco diff for a PR file
+     */
+    async getFileDiffContents(
+        project: string,
+        repositoryId: string,
+        pullRequestId: number,
+        filePath: string,
+        originalPath?: string,
+        iterationId?: number
+    ): Promise<{ originalContent: string; modifiedContent: string; originalPath?: string; modifiedPath?: string; }>
+    {
+        const iteration = iterationId || await this.getLatestIterationId(project, repositoryId, pullRequestId);
+        const iterations = await this.getPullRequestIterations(project, repositoryId, pullRequestId);
+        const targetIteration = iterations.find(i => i.id === iteration);
+        if (!targetIteration) {
+            throw new Error(`Iteration ${iteration} not found`);
+        }
+        const baseCommit = targetIteration.commonRefCommit.commitId;
+        const targetCommit = targetIteration.sourceRefCommit.commitId;
+
+        // Use originalPath if provided (for renames); otherwise filePath
+        const leftPath = originalPath || filePath;
+        const rightPath = filePath;
+
+        const [left, right] = await Promise.all([
+            this.getItemContentAtCommit(project, repositoryId, leftPath, baseCommit).catch(() => ''),
+            this.getItemContentAtCommit(project, repositoryId, rightPath, targetCommit).catch(() => '')
+        ]);
+
+        return {
+            originalContent: left || '',
+            modifiedContent: right || '',
+            originalPath: leftPath,
+            modifiedPath: rightPath
+        };
+    }
+
+    /**
      * Sanitize and format the base URL
      */
     private sanitizeBaseUrl(url: string): string {

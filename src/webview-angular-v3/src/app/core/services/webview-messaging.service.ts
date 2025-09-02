@@ -16,7 +16,11 @@ export type MessageType =
   | 'searchPullRequests'
   | 'filterPullRequests'
   | 'refreshPullRequests'
-  | 'selectPullRequest';
+  | 'selectPullRequest'
+  | 'loadFileDiff'
+  | 'startAIAnalysis'
+  | 'aiAnalysisProgress'
+  | 'aiAnalysisComplete';
 
 export interface WebviewMessage<TPayload = any> { // eslint-disable-line @typescript-eslint/no-explicit-any
   type: MessageType;
@@ -53,4 +57,3 @@ export class WebviewMessagingService implements OnDestroy {
     this.message$.complete();
   }
 }
-
