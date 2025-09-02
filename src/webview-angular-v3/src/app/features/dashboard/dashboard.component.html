@@ -1,5 +1,44 @@
-﻿<section style="padding:16px;">
-  <h1 style="margin:0 0 8px 0;">Dashboard</h1>
-  <p>Welcome to the v3 dashboard.</p>
-  <a routerLink="/configuration">Go to Configuration</a>
+<section style="padding:16px; display:flex; flex-direction:column; gap:16px;">
+  <header style="display:flex; align-items:center; justify-content:space-between;">
+    <div>
+      <h2 style="margin:0; font-weight:600;">PR Dashboard</h2>
+      <p style="margin:4px 0 0 0; color: var(--vscode-descriptionForeground);">
+        View and analyze your active Azure DevOps pull requests.
+      </p>
+    </div>
+    <nav>
+      <a routerLink="/configuration" style="text-decoration:none;">
+        <vscode-button appearance="secondary">Configuration</vscode-button>
+      </a>
+    </nav>
+  </header>
+
+  <vscode-divider></vscode-divider>
+
+  <div style="display:flex; flex-direction:column; gap:12px; max-width:720px;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <ng-container *ngIf="isConfigured(); else notConfigured">
+        <vscode-badge appearance="success">Connected</vscode-badge>
+        <span style="color: var(--vscode-descriptionForeground);">{{ organizationUrl() }}</span>
+      </ng-container>
+      <ng-template #notConfigured>
+        <vscode-badge appearance="error">Not Configured</vscode-badge>
+        <span style="color: var(--vscode-descriptionForeground);">Configure your Azure DevOps connection</span>
+      </ng-template>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:8px;">
+      <vscode-button (click)="loadActivePRs()" [disabled]="!isConfigured() || loadingPRs()">
+        {{ loadingPRs() ? 'Loading…' : 'Load Active PRs' }}
+      </vscode-button>
+      <ng-container *ngIf="loadingPRs()">
+        <vscode-progress-ring></vscode-progress-ring>
+      </ng-container>
+      <ng-container *ngIf="prCount() !== null">
+        <vscode-badge appearance="secondary">{{ prCount() }} PRs</vscode-badge>
+        <span *ngIf="lastProject()" style="color: var(--vscode-descriptionForeground);">in {{ lastProject() }}</span>
+      </ng-container>
+    </div>
+  </div>
 </section>
+

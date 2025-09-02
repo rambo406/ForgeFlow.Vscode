@@ -1,5 +1,82 @@
-﻿<section style="padding:16px;">
-  <h1 style="margin:0 0 8px 0;">Configuration</h1>
-  <p>Manage your settings here. (Stub)</p>
-  <a routerLink="/dashboard">Back to Dashboard</a>
+<section style="padding:16px; display:flex; flex-direction:column; gap:16px;">
+  <header style="display:flex; align-items:center; justify-content:space-between;">
+    <div>
+      <h2 style="margin:0; font-weight:600;">Azure DevOps Connection</h2>
+      <p style="margin:4px 0 0 0; color: var(--vscode-descriptionForeground);">
+        Configure your organization URL and Personal Access Token. The token is stored securely using VS Code Secret Storage.
+      </p>
+    </div>
+    <nav>
+      <a routerLink="/dashboard" style="text-decoration:none;">
+        <vscode-button appearance="secondary">Back to Dashboard</vscode-button>
+      </a>
+    </nav>
+  </header>
+
+  <vscode-divider></vscode-divider>
+
+  <div style="display:grid; grid-template-columns:1fr; gap:12px; max-width:720px;">
+    <label style="font-weight:600;">Organization URL</label>
+    <vscode-text-field
+      placeholder="https://dev.azure.com/your-org"
+      value="{{ organizationUrl() }}"
+      (input)="organizationUrl.set($any($event.target).value)"
+    ></vscode-text-field>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <vscode-button appearance="secondary" (click)="testOrg()" [disabled]="!organizationUrl() || testingOrg()">
+        {{ testingOrg() ? 'Testing…' : 'Test URL' }}
+      </vscode-button>
+      <ng-container *ngIf="orgResult() as r">
+        <vscode-badge appearance="{{ r.success ? 'success' : 'error' }}">{{ r.success ? 'OK' : 'Error' }}</vscode-badge>
+        <span style="color: var(--vscode-descriptionForeground);">{{ r.message || r.error }}</span>
+      </ng-container>
+      <ng-container *ngIf="testingOrg()">
+        <vscode-progress-ring></vscode-progress-ring>
+      </ng-container>
+    </div>
+
+    <label style="font-weight:600; margin-top:12px;">Personal Access Token (PAT)</label>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <vscode-text-field
+        style="flex:1;"
+        [attr.type]="showPat() ? 'text' : 'password'"
+        placeholder="Azure DevOps PAT"
+        value="{{ personalAccessToken() }}"
+        (input)="personalAccessToken.set($any($event.target).value)"
+      ></vscode-text-field>
+      <vscode-button appearance="secondary" (click)="showPat.set(!showPat())">{{ showPat() ? 'Hide' : 'Show' }}</vscode-button>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <vscode-button appearance="secondary" (click)="testPat()" [disabled]="!organizationUrl() || !personalAccessToken() || testingPat()">
+        {{ testingPat() ? 'Validating…' : 'Validate PAT' }}
+      </vscode-button>
+      <ng-container *ngIf="patResult() as r">
+        <vscode-badge appearance="{{ r.success ? 'success' : 'error' }}">{{ r.success ? 'Valid' : 'Invalid' }}</vscode-badge>
+        <span style="color: var(--vscode-descriptionForeground);">{{ r.message || r.error }}</span>
+      </ng-container>
+      <ng-container *ngIf="testingPat()">
+        <vscode-progress-ring></vscode-progress-ring>
+      </ng-container>
+    </div>
+
+    <div style="color: var(--vscode-descriptionForeground); font-size: 12px;">
+      <vscode-link href="https://learn.microsoft.com/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate">How to create a PAT</vscode-link>
+    </div>
+
+    <label style="font-weight:600; margin-top:12px;">Default Project (optional)</label>
+    <vscode-text-field
+      placeholder="Project name"
+      value="{{ defaultProject() }}"
+      (input)="defaultProject.set($any($event.target).value)"
+    ></vscode-text-field>
+  </div>
+
+  <div style="display:flex; gap:8px; margin-top:8px;">
+    <vscode-button appearance="primary" (click)="save()" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save Configuration' }}</vscode-button>
+  </div>
+
+  <div *ngIf="toast() as t" style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+    <vscode-badge appearance="{{ t.kind === 'success' ? 'success' : 'error' }}">{{ t.kind === 'success' ? 'Success' : 'Error' }}</vscode-badge>
+    <span>{{ t.message }}</span>
+  </div>
 </section>

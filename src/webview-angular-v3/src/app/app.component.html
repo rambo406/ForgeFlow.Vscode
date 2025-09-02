@@ -1,5 +1,9 @@
-﻿<nav style="display:flex; gap:12px; padding:8px 12px; border-bottom: 1px solid var(--vscode-panel-border, #333);">
-  <a routerLink="/dashboard">Dashboard</a>
-  <a routerLink="/configuration">Configuration</a>
+<nav style="display:flex; gap:8px; padding:8px 12px; border-bottom: 1px solid var(--vscode-panel-border, #333);">
+  <a routerLink="/dashboard" style="text-decoration:none;"><vscode-button appearance="secondary">Dashboard</vscode-button></a>
+  <a routerLink="/configuration" style="text-decoration:none;"><vscode-button appearance="secondary">Configuration</vscode-button></a>
+  <div style="flex:1"></div>
+  <span style="align-self:center; color: var(--vscode-descriptionForeground); font-size:12px;">Azure DevOps PR Reviewer</span>
+  
 </nav>
 <router-outlet></router-outlet>
+
