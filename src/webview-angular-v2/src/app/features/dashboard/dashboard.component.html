@@ -1,93 +1,192 @@
 <section class="mb-6">
-    <h1 class="text-2xl font-bold mb-1 text-white">ForgeFlow Dashboard</h1>
-    <p class="text-gray-400 mb-3">Browse and analyze Azure DevOps pull requests.</p>
+  <h1 class="text-2xl font-bold mb-1 text-white">ForgeFlow Dashboard</h1>
+  <p class="text-gray-400 mb-3">
+    Browse and analyze Azure DevOps pull requests.
+  </p>
+  <a
+    routerLink="/connections"
+    class="px-3 py-2 rounded border border-gray-600 text-gray-300 hover:bg-gray-700"
+    >Connections & Settings</a
+  >
 
-    <!-- Alerts -->
-    <div *ngIf="error()" class="mb-3 text-red-400">{{ error() }}</div>
-    <div *ngIf="success()" class="mb-3 text-green-400">{{ success() }}</div>
+  <!-- Alerts -->
+  @if (error()) {
+  <div class="mb-3 text-red-400">{{ error() }}</div>
+  } @if (success()) {
+  <div class="mb-3 text-green-400">{{ success() }}</div>
+  }
 
-    <!-- Configuration Panel -->
-    <div class="p-4 rounded-md border border-gray-600 mb-4" *ngIf="!configured()">
-        <p class="font-medium mb-3">Configuration</p>
-        <form [formGroup]="configForm" class="grid gap-3" (ngSubmit)="saveConfig()">
-            <label class="grid gap-1">
-                <span class="text-sm text-gray-300">Organization URL</span>
-                <input formControlName="organizationUrl" type="text" class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded" placeholder="https://dev.azure.com/your-org">
-            </label>
-            <label class="grid gap-1">
-                <span class="text-sm text-gray-300">Personal Access Token</span>
-                <input formControlName="personalAccessToken" type="password" class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded" placeholder="Enter PAT (stored securely)">
-            </label>
-            <label class="grid gap-1">
-                <span class="text-sm text-gray-300">Default Project</span>
-                <input formControlName="defaultProject" type="text" class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded" placeholder="Project name">
-            </label>
-            <div class="flex gap-2 mt-2">
-                <button type="button" (click)="testOrganization()" class="px-3 py-2 rounded border border-gray-600 text-gray-300 hover:bg-gray-700">Test Org URL</button>
-                <button type="button" (click)="testPat()" class="px-3 py-2 rounded border border-gray-600 text-gray-300 hover:bg-gray-700">Test PAT</button>
-                <button type="submit" hlmBtn variant="default">Save</button>
-            </div>
-        </form>
-    </div>
+  <!-- Configuration Panel -->
+  @if (!configured()) {
+  <div class="p-4 rounded-md border border-gray-600 mb-4">
+    <p class="font-medium mb-3">Configuration</p>
+    <form [formGroup]="configForm" class="grid gap-3" (ngSubmit)="saveConfig()">
+      <label class="grid gap-1">
+        <span class="text-sm text-gray-300">Organization URL</span>
+        <input
+          formControlName="organizationUrl"
+          type="text"
+          class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded"
+          placeholder="https://dev.azure.com/your-org"
+        />
+      </label>
+      <label class="grid gap-1">
+        <span class="text-sm text-gray-300">Personal Access Token</span>
+        <input
+          formControlName="personalAccessToken"
+          type="password"
+          class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded"
+          placeholder="Enter PAT (stored securely)"
+        />
+      </label>
+      <label class="grid gap-1">
+        <span class="text-sm text-gray-300">Default Project</span>
+        <input
+          formControlName="defaultProject"
+          type="text"
+          class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded"
+          placeholder="Project name"
+        />
+      </label>
+      <div class="flex gap-2 mt-2">
+        <button
+          type="button"
+          (click)="testOrganization()"
+          class="px-3 py-2 rounded border border-gray-600 text-gray-300 hover:bg-gray-700"
+        >
+          Test Org URL
+        </button>
+        <button
+          type="button"
+          (click)="testPat()"
+          class="px-3 py-2 rounded border border-gray-600 text-gray-300 hover:bg-gray-700"
+        >
+          Test PAT
+        </button>
+        <button type="submit" hlmBtn variant="default">Save</button>
+      </div>
+    </form>
+  </div>
+  }
 
-    <!-- Filters + Actions -->
-    <div class="p-3 rounded-md border border-gray-600 mb-4" *ngIf="configured()">
-        <form [formGroup]="filterForm" class="grid gap-3" (ngSubmit)="applySearch()">
-            <div class="grid md:grid-cols-2 gap-3">
-                <label class="grid gap-1">
-                    <span class="text-sm text-gray-300">Search</span>
-                    <input formControlName="query" type="text" class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded" placeholder="Title, description, author...">
-                </label>
-                <label class="grid gap-1">
-                    <span class="text-sm text-gray-300">Repository</span>
-                    <select formControlName="repositoryId" class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded" (change)="selectRepository($any($event.target).value)">
-                        <option value="">All repositories</option>
-                        <option *ngFor="let r of repositories()" [value]="r.id">{{ r.name }}</option>
-                    </select>
-                </label>
-                <label class="grid gap-1">
-                    <span class="text-sm text-gray-300">Author</span>
-                    <input formControlName="author" type="text" class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded" placeholder="e.g. Jane Doe">
-                </label>
-                <label class="grid gap-1">
-                    <span class="text-sm text-gray-300">Status</span>
-                    <select formControlName="status" class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded">
-                        <option value="active">Active</option>
-                        <option value="completed">Completed</option>
-                        <option value="abandoned">Abandoned</option>
-                    </select>
-                </label>
-            </div>
-            <div class="flex gap-2 mt-2">
-                <button type="submit" hlmBtn>Apply Filters</button>
-                <button type="button" class="px-3 py-2 rounded border border-gray-600 text-gray-300 hover:bg-gray-700" (click)="loadPullRequests()">Reload</button>
-            </div>
-        </form>
-    </div>
+  <!-- Filters + Actions -->
+  @if (configured()) {
+  <div class="p-3 rounded-md border border-gray-600 mb-4">
+    <form
+      [formGroup]="filterForm"
+      class="grid gap-3"
+      (ngSubmit)="applySearch()"
+    >
+      <div class="grid md:grid-cols-2 gap-3">
+        <label class="grid gap-1">
+          <span class="text-sm text-gray-300">Search</span>
+          <input
+            formControlName="query"
+            type="text"
+            class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded"
+            placeholder="Title, description, author..."
+          />
+        </label>
+        <label class="grid gap-1">
+          <span class="text-sm text-gray-300">Repository</span>
+          <select
+            formControlName="repositoryId"
+            class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded"
+            (change)="selectRepository($any($event.target).value)"
+          >
+            <option value="">All repositories</option>
+            @for (r of repositories(); track r.id) {
+            <option [value]="r.id">{{ r.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="grid gap-1">
+          <span class="text-sm text-gray-300">Author</span>
+          <input
+            formControlName="author"
+            type="text"
+            class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded"
+            placeholder="e.g. Jane Doe"
+          />
+        </label>
+        <label class="grid gap-1">
+          <span class="text-sm text-gray-300">Status</span>
+          <select
+            formControlName="status"
+            class="w-full px-2 py-1 bg-transparent border border-gray-600 rounded"
+          >
+            <option value="active">Active</option>
+            <option value="completed">Completed</option>
+            <option value="abandoned">Abandoned</option>
+          </select>
+        </label>
+      </div>
+      <div class="flex gap-2 mt-2">
+        <button type="submit" hlmBtn>Apply Filters</button>
+        <button
+          type="button"
+          class="px-3 py-2 rounded border border-gray-600 text-gray-300 hover:bg-gray-700"
+          (click)="loadPullRequests()"
+        >
+          Reload
+        </button>
+      </div>
+    </form>
+  </div>
+  }
 
-    <!-- Progress -->
-    <div *ngIf="analysis().inProgress" class="mb-3 text-blue-300">
-        Reviewing... {{ analysis().message }} ({{ analysis().progress }}%)
-    </div>
+  <!-- Progress -->
+  @if (analysis().inProgress) {
+  <div class="mb-3 text-blue-300">
+    Reviewing... {{ analysis().message }} ({{ analysis().progress }}%)
+  </div>
+  }
 
-    <!-- PR List -->
-    <div *ngIf="configured()" class="grid gap-3">
-        <div class="text-sm text-gray-400">Total: {{ totalCount() }}</div>
-        <div *ngIf="loading()" class="text-gray-400">Loading pull requests...</div>
-        <div *ngIf="!loading() && pullRequests().length === 0" class="text-gray-400">No pull requests found.</div>
-        <div *ngFor="let pr of pullRequests()" class="p-3 rounded-md border border-gray-600">
-            <div class="flex items-start justify-between gap-4">
-                <div>
-                    <div class="font-medium text-white">{{ pr.title }}</div>
-                    <div class="text-xs text-gray-400">#{{ pr.id }} • {{ pr.author }} • {{ pr.repository }} • {{ pr.createdDate | date:'medium' }}</div>
-                    <div class="text-xs mt-1 text-gray-400">{{ pr.sourceRefName }} → {{ pr.targetRefName }} <span *ngIf="pr.isDraft" class="ml-2 px-1 py-0.5 text-xxs rounded bg-yellow-500/20 text-yellow-300">Draft</span></div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <a [href]="pr.url" target="_blank" class="px-3 py-2 rounded border border-gray-600 text-gray-300 hover:bg-gray-700">Open</a>
-                    <button (click)="reviewPR(pr.id)" hlmBtn variant="default">Review with Copilot</button>
-                </div>
-            </div>
+  <!-- PR List -->
+  @if (configured()) {
+  <div class="grid gap-3">
+    <div class="text-sm text-gray-400">Total: {{ totalCount() }}</div>
+    @if (loading()) {
+    <div class="text-gray-400">Loading pull requests...</div>
+    } @if (!loading() && pullRequests().length === 0) {
+    <div class="text-gray-400">No pull requests found.</div>
+    } @for (pr of pullRequests(); track pr.id) {
+    <div class="p-3 rounded-md border border-gray-600">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="font-medium text-white">{{ pr.title }}</div>
+          <div class="text-xs text-gray-400">
+            #{{ pr.id }} • {{ pr.author }} • {{ pr.repository }} •
+            {{ pr.createdDate | date : "medium" }}
+          </div>
+          @if (pr.isDraft) {
+          <div class="text-xs mt-1 text-gray-400">
+            {{ pr.sourceRefName }} → {{ pr.targetRefName }}
+            <span
+              class="ml-2 px-1 py-0.5 text-xxs rounded bg-yellow-500/20 text-yellow-300"
+              >Draft</span
+            >
+          </div>
+          } @else {
+          <div class="text-xs mt-1 text-gray-400">
+            {{ pr.sourceRefName }} → {{ pr.targetRefName }}
+          </div>
+          }
         </div>
+        <div class="flex items-center gap-2">
+          <a
+            [href]="pr.url"
+            target="_blank"
+            class="px-3 py-2 rounded border border-gray-600 text-gray-300 hover:bg-gray-700"
+            >Open</a
+          >
+          <button (click)="reviewPR(pr.id)" hlmBtn variant="default">
+            Review with Copilot
+          </button>
+        </div>
+      </div>
     </div>
+    }
+  </div>
+  }
 </section>
-

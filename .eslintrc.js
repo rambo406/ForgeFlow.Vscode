@@ -1,11 +1,10 @@
 module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint', '@angular-eslint'],
+  plugins: ['@typescript-eslint'],
   extends: [
     'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:@angular-eslint/recommended'
+    'plugin:@typescript-eslint/recommended'
   ],
   env: {
     node: true,
@@ -26,34 +25,12 @@ module.exports = {
     'no-throw-literal': 'warn',
     'semi': ['warn', 'always']
   },
-  overrides: [
-    {
-      files: ['*.ts'],
-      parser: '@typescript-eslint/parser',
-      parserOptions: {
-        project: ['./tsconfig.json'],
-        tsconfigRootDir: __dirname
-      },
-      plugins: ['@angular-eslint'],
-      extends: [
-        'plugin:@angular-eslint/recommended',
-        'plugin:@angular-eslint/template/process-inline-templates'
-      ],
-      rules: {
-        // Place Angular/TypeScript specific rule overrides here if needed
-      }
-    },
-    {
-      files: ['*.html'],
-      extends: ['plugin:@angular-eslint/template/recommended'],
-      rules: {
-        // Template-specific rule overrides
-      }
-    }
-  ],
   ignorePatterns: [
     'out',
     'dist',
-    '**/*.d.ts'
+    '**/*.d.ts',
+    'src/webview-angular-v2/**/*',
+    'src/webview-angular-old-backup/**/*',
+    'src/test/**/*'
   ]
 };

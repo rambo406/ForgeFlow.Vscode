@@ -93,9 +93,9 @@ export class PRDashboardController {
     private settingsPanelOpen = false;
 
     constructor(
-            private context: vscode.ExtensionContext,
-            private configurationManager: ConfigurationManager,
-            private azureDevOpsClient: AzureDevOpsClient | undefined
+        private context: vscode.ExtensionContext,
+        private configurationManager: ConfigurationManager,
+        private azureDevOpsClient: AzureDevOpsClient | undefined
     ) {
         this.languageModelService = new LanguageModelService();
         this.settingsValidationService = new SettingsValidationService(this.languageModelService);
@@ -106,8 +106,8 @@ export class PRDashboardController {
      */
     public async createOrShow(initialRoute?: string): Promise<void> {
         const column = vscode.window.activeTextEditor
-                ? vscode.window.activeTextEditor.viewColumn
-                : undefined;
+            ? vscode.window.activeTextEditor.viewColumn
+            : undefined;
 
         if (this.panel) {
             this.panel.reveal(column);
@@ -115,17 +115,17 @@ export class PRDashboardController {
         }
 
         this.panel = vscode.window.createWebviewPanel(
-                'prDashboard',
-                'Azure DevOps PR Dashboard',
-                column || vscode.ViewColumn.One,
-                {
-                    enableScripts: true,
-                    retainContextWhenHidden: true,
-                    localResourceRoots: [
-                        // Angular webview build output
-                        vscode.Uri.file(path.join(this.context.extensionPath, 'dist', 'webview'))
-                    ]
-                }
+            'prDashboard',
+            'Azure DevOps PR Dashboard',
+            column || vscode.ViewColumn.One,
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+                localResourceRoots: [
+                    // Angular webview build output
+                    vscode.Uri.file(path.join(this.context.extensionPath, 'dist', 'webview'))
+                ]
+            }
         );
 
         this.panel.webview.html = this.getWebviewContent();
@@ -182,25 +182,25 @@ export class PRDashboardController {
         }
 
         this.panel.webview.onDidReceiveMessage(
-                async (message: WebviewMessage) => {
-                    // Log incoming message for debugging request/response flow
-                    try {
-                        console.log('[PRDashboard] Received message from webview', {
-                            type: message?.type,
-                            requestId: message?.requestId
-                        });
-                        await this.handleMessage(message);
-                    } catch (error) {
-                        console.error('Error handling webview message:', error);
-                        this.sendMessage({
-                            type: MessageType.SHOW_ERROR,
-                            payload: { message: 'An error occurred processing your request' },
-                            requestId: message.requestId
-                        });
-                    }
-                },
-                null,
-                this.disposables
+            async (message: WebviewMessage) => {
+                // Log incoming message for debugging request/response flow
+                try {
+                    console.log('[PRDashboard] Received message from webview', {
+                        type: message?.type,
+                        requestId: message?.requestId
+                    });
+                    await this.handleMessage(message);
+                } catch (error) {
+                    console.error('Error handling webview message:', error);
+                    this.sendMessage({
+                        type: MessageType.SHOW_ERROR,
+                        payload: { message: 'An error occurred processing your request' },
+                        requestId: message.requestId
+                    });
+                }
+            },
+            null,
+            this.disposables
         );
     }
 
@@ -260,7 +260,7 @@ export class PRDashboardController {
             case MessageType.EXPORT_COMMENTS:
                 await this.handleExportComments(message);
                 break;
-                // Settings-related handlers
+            // Settings-related handlers
             case MessageType.OPEN_SETTINGS:
                 await this.handleOpenSettings(message);
                 break;
@@ -284,6 +284,14 @@ export class PRDashboardController {
                 break;
             case MessageType.LOAD_AVAILABLE_MODELS:
                 await this.handleLoadAvailableModels(message);
+                break;
+            case MessageType.SHOW_ERROR:
+                // Handle error messages from webview (for logging purposes)
+                console.error('[PRDashboard] Error from webview:', message.payload?.message || 'Unknown error');
+                break;
+            case MessageType.SHOW_SUCCESS:
+                // Handle success messages from webview (for logging purposes)
+                console.log('[PRDashboard] Success from webview:', message.payload?.message || 'Success');
                 break;
             default:
                 console.warn('Unknown message type:', message.type);
@@ -312,7 +320,7 @@ export class PRDashboardController {
      * Handle configuration loading
      */
     private async handleLoadConfig(message: WebviewMessage): Promise<void> {
-    try {
+        try {
             const config = {
                 organizationUrl: this.configurationManager.getOrganizationUrl() || '',
                 personalAccessToken: await this.configurationManager.getPatToken() || '',
@@ -471,8 +479,8 @@ export class PRDashboardController {
 
         // Test the connection using the configuration manager
         const validationResult = await this.configurationManager.validatePatToken(
-                config.personalAccessToken,
-                config.organizationUrl
+            config.personalAccessToken,
+            config.organizationUrl
         );
 
         if (validationResult.isValid) {
@@ -664,9 +672,9 @@ export class PRDashboardController {
 
             // Fetch pull requests
             const pullRequests = await this.azureDevOpsClient.getOpenPullRequests(
-                    projectName,
-                    filters.repository,
-                    filters.maxResults || 50
+                projectName,
+                filters.repository,
+                filters.maxResults || 50
             );
 
             // Transform the data for the webview
@@ -823,9 +831,9 @@ export class PRDashboardController {
 
             // Get file changes for this PR
             const fileChanges = await this.azureDevOpsClient.getDetailedFileChanges(
-                    projectName,
-                    pullRequest.repository.id,
-                    prId
+                projectName,
+                pullRequest.repository.id,
+                prId
             );
 
             // Transform the PR data for the webview
@@ -957,9 +965,9 @@ export class PRDashboardController {
 
             // Get file changes for this PR
             const fileChanges = await this.azureDevOpsClient.getDetailedFileChanges(
-                    projectName,
-                    pullRequest.repository.id,
-                    prId
+                projectName,
+                pullRequest.repository.id,
+                prId
             );
 
             if (fileChanges.length === 0) {
@@ -1002,9 +1010,9 @@ export class PRDashboardController {
 
             // Run the analysis
             const analysisResult = await analysisEngine.analyzeChanges(
-                    fileChanges,
-                    progressCallback,
-                    cancellationTokenSource.token
+                fileChanges,
+                progressCallback,
+                cancellationTokenSource.token
             );
 
             // Clear current analysis
@@ -1151,7 +1159,6 @@ export class PRDashboardController {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel.webview.cspSource} 'unsafe-inline'; script-src ${this.panel.webview.cspSource} 'nonce-${nonce}'; font-src ${this.panel.webview.cspSource}; img-src ${this.panel.webview.cspSource} data:;">
     <title>Azure DevOps PR Dashboard</title>
     <base href="${this.panel.webview.asWebviewUri(vscode.Uri.file(webviewPath))}/">
     ${stylesUri ? `<link rel="stylesheet" href="${stylesUri}">` : ''}
@@ -1173,48 +1180,79 @@ export class PRDashboardController {
     </app-root>
 
     <script nonce="${nonce}">(function(){ if (typeof ngDevMode === 'undefined') { try { window['ngDevMode'] = false; } catch(e) { /* ignore */ } } })();</script>
-    ${runtimeJsUri ? `<script nonce="${nonce}" src="${runtimeJsUri}"></script>` : ''}
-    ${polyfillsJsUri ? `<script nonce="${nonce}" src="${polyfillsJsUri}"></script>` : ''}
-    ${vendorJsUri ? `<script nonce="${nonce}" src="${vendorJsUri}"></script>` : ''}
-    ${mainJsUri ? `<script nonce="${nonce}" src="${mainJsUri}"></script>` : ''}
+    ${runtimeJsUri ? `<script nonce="${nonce}" src="${runtimeJsUri}" type="module"></script>` : ''}
+    ${polyfillsJsUri ? `<script nonce="${nonce}" src="${polyfillsJsUri}" type="module"></script>` : ''}
+    ${vendorJsUri ? `<script nonce="${nonce}" src="${vendorJsUri}" type="module"></script>` : ''}
+    ${mainJsUri ? `<script nonce="${nonce}" src="${mainJsUri}" type="module"></script>` : ''}
 
     <script nonce="${nonce}">
-        window.vscode = acquireVsCodeApi();
-        const previousState = window.vscode.getState(); if (previousState) { window.vsCodeState = previousState; }
-                window.addEventListener('error', function(e){
-                    try {
-                        const err = e && (e.error || new Error(e.message));
-                        console.error('Angular application error (detailed):', {
-                            name: err && err.name,
-                            message: err && err.message || e.message,
-                            stack: err && err.stack,
-                            ngErrorCode: err && err.ngErrorCode,
-                            code: err && err.code,
-                            originalEvent: e
-                        });
-                        window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application failed to initialize: ' + (err && err.message || e.message), details: (err && err.stack) || String(err) } });
-                    } catch (ex) {
-                        console.error('Angular application error:', e && (e.error || e.message));
-                        window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application failed to initialize: ' + (e && (e.error && e.error.message) || e && e.message) } });
-                    }
+        // Initialize VS Code API only if not already available (prevent duplicate acquisition)
+        if (!window.vscode) {
+            window.vscode = acquireVsCodeApi();
+            const previousState = window.vscode.getState(); 
+            if (previousState) { 
+                window.vsCodeState = previousState; 
+            }
+        }
+        
+        window.addEventListener('error', function(e){
+            try {
+                const err = e && (e.error || new Error(e.message));
+                console.error('Angular application error (detailed):', {
+                    name: err && err.name,
+                    message: err && err.message || e.message,
+                    stack: err && err.stack,
+                    ngErrorCode: err && err.ngErrorCode,
+                    code: err && err.code,
+                    originalEvent: e
                 });
-                window.addEventListener('unhandledrejection', function(e){
-                    try {
-                        const reason = e && (e.reason instanceof Error ? e.reason : new Error(String(e.reason)));
-                        console.error('Unhandled promise rejection (detailed):', {
-                            name: reason && reason.name,
-                            message: reason && reason.message,
-                            stack: reason && reason.stack,
-                            ngErrorCode: reason && reason.ngErrorCode,
-                            code: reason && reason.code,
-                            originalEvent: e
-                        });
-                        window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application error: ' + (reason && reason.message || String(e.reason)), details: (reason && reason.stack) || String(e.reason) } });
-                    } catch (ex) {
-                        console.error('Unhandled promise rejection:', e && e.reason);
-                        window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application error: ' + (e && (e.reason && e.reason.message) || e && e.reason) } });
-                    }
+                if (window.vscode && window.vscode.postMessage) {
+                    window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application failed to initialize: ' + (err && err.message || e.message), details: (err && err.stack) || String(err) } });
+                }
+            } catch (ex) {
+                console.error('Angular application error:', e && (e.error || e.message));
+                if (window.vscode && window.vscode.postMessage) {
+                    window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application failed to initialize: ' + (e && (e.error && e.error.message) || e && e.message) } });
+                }
+            }
+        });
+        
+        window.addEventListener('unhandledrejection', function(e){
+            try {
+                const reason = e && (e.reason instanceof Error ? e.reason : new Error(String(e.reason)));
+                console.error('Unhandled promise rejection (detailed):', {
+                    name: reason && reason.name,
+                    message: reason && reason.message,
+                    stack: reason && reason.stack,
+                    ngErrorCode: reason && reason.ngErrorCode,
+                    code: reason && reason.code,
+                    originalEvent: e
                 });
+                if (window.vscode && window.vscode.postMessage) {
+                    window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application error: ' + (reason && reason.message || String(e.reason)), details: (reason && reason.stack) || String(e.reason) } });
+                }
+            } catch (ex) {
+                console.error('Unhandled promise rejection:', e && e.reason);
+                if (window.vscode && window.vscode.postMessage) {
+                    window.vscode.postMessage({ type: 'showError', payload: { message: 'Angular application error: ' + (e && (e.reason && e.reason.message) || e && e.reason) } });
+                }
+            }
+        });
+    </script>
+    <script nonce="${nonce}">
+        // Diagnostic logging to help identify where a restrictive CSP originates
+        try {
+            const meta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+            console.log('[PRDashboard][CSP Debug] meta CSP content:', meta ? meta.getAttribute('content') : '<none>');
+            console.log('[PRDashboard][CSP Debug] webview.cspSource (passed by extension):', '${this.panel.webview.cspSource}');
+            const iframes = Array.from(document.getElementsByTagName('iframe'));
+            iframes.forEach((f, i) => {
+                console.log('[PRDashboard][CSP Debug] iframe[' + i + '] src=', f.src);
+                try { console.log('[PRDashboard][CSP Debug] iframe[' + i + '] sandbox=', f.getAttribute('sandbox')); } catch(e) {}
+            });
+        } catch (e) {
+            console.warn('[PRDashboard][CSP Debug] error while logging CSP info', e);
+        }
     </script>
 </body>
 </html>`;
@@ -1373,7 +1411,7 @@ export class PRDashboardController {
             if (format === 'csv') {
                 const csvHeader = 'File,Line,Severity,Comment,Status\n';
                 const csvRows = approved.map(c =>
-                        `"${c.filePath}","${c.lineNumber}","${c.severity}","${c.content.replace(/"/g, '""')}","${c.status}"`
+                    `"${c.filePath}","${c.lineNumber}","${c.severity}","${c.content.replace(/"/g, '""')}","${c.status}"`
                 ).join('\n');
                 exportData = csvHeader + csvRows;
                 filename = `pr-review-comments-${Date.now()}.csv`;
@@ -1456,10 +1494,10 @@ export class PRDashboardController {
             if (query && query.trim()) {
                 const searchTerm = query.trim().toLowerCase();
                 pullRequests = pullRequests.filter(pr =>
-                        pr.title.toLowerCase().includes(searchTerm) ||
-                        pr.description?.toLowerCase().includes(searchTerm) ||
-                        pr.createdBy?.displayName?.toLowerCase().includes(searchTerm) ||
-                        pr.repository.name.toLowerCase().includes(searchTerm)
+                    pr.title.toLowerCase().includes(searchTerm) ||
+                    pr.description?.toLowerCase().includes(searchTerm) ||
+                    pr.createdBy?.displayName?.toLowerCase().includes(searchTerm) ||
+                    pr.repository.name.toLowerCase().includes(searchTerm)
                 );
             }
 
@@ -1520,7 +1558,7 @@ export class PRDashboardController {
 
                 if (filters.author) {
                     pullRequests = pullRequests.filter(pr =>
-                            pr.createdBy?.displayName?.toLowerCase().includes(filters.author.toLowerCase())
+                        pr.createdBy?.displayName?.toLowerCase().includes(filters.author.toLowerCase())
                     );
                 }
 

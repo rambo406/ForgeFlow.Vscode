@@ -8,7 +8,21 @@ export class VsCodeApiService {
     private readonly api: any;
 
     constructor() {
-        this.api = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+        // Check if VS Code API is already available on window (set by controller)
+        // If not, try to acquire it, but handle the case where it might already be acquired
+        if ((window as any).vscode) {
+            this.api = (window as any).vscode;
+        } else if (typeof acquireVsCodeApi === 'function') {
+            try {
+                this.api = acquireVsCodeApi();
+                (window as any).vscode = this.api; // Store for future use
+            } catch (error) {
+                console.warn('Failed to acquire VS Code API:', error);
+                this.api = null;
+            }
+        } else {
+            this.api = null;
+        }
     }
 
     postMessage(message: unknown): void {

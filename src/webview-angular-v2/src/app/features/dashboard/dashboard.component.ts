@@ -2,12 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, OnInit } 
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HlmButton } from "@spartan-ng/helm/button";
+import { RouterLink } from '@angular/router';
 import { DashboardStore } from '../../core/state/dashboard.store';
 
 @Component({
 	selector: 'dashboard-root',
 	standalone: true,
-	imports: [CommonModule, HlmButton, FormsModule, ReactiveFormsModule],
+    imports: [CommonModule, HlmButton, FormsModule, ReactiveFormsModule, RouterLink],
 	templateUrl: './dashboard.component.html',
 	changeDetection: ChangeDetectionStrategy.OnPush
 })

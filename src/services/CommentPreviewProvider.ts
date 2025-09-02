@@ -154,133 +154,63 @@ export class CommentPreviewProvider {
     private generateHtmlContent(webview: vscode.Webview): string {
         // Path to the Angular build output (copied by webpack to dist/webview)
         const webviewPath = path.join(this.context.extensionPath, 'dist', 'webview');
-        
-        // Get URIs for Angular build files
-        const mainJsUri = webview.asWebviewUri(
-            vscode.Uri.file(path.join(webviewPath, 'main.js'))
-        );
-        const polyfillsJsUri = webview.asWebviewUri(
-            vscode.Uri.file(path.join(webviewPath, 'polyfills.js'))
-        );
-        const stylesUri = webview.asWebviewUri(
-            vscode.Uri.file(path.join(webviewPath, 'styles.css'))
-        );
-        
+
+        // Get URIs for Angular build files (if present)
+        const mainJsPath = path.join(webviewPath, 'main.js');
+        const polyfillsJsPath = path.join(webviewPath, 'polyfills.js');
+        const stylesPath = path.join(webviewPath, 'styles.css');
+
+        const mainJsUri = fsExists(mainJsPath) ? webview.asWebviewUri(vscode.Uri.file(mainJsPath)) : undefined;
+        const polyfillsJsUri = fsExists(polyfillsJsPath) ? webview.asWebviewUri(vscode.Uri.file(polyfillsJsPath)) : undefined;
+        const stylesUri = fsExists(stylesPath) ? webview.asWebviewUri(vscode.Uri.file(stylesPath)) : undefined;
+
         // Generate CSP nonce for security
         const nonce = this.generateNonce();
 
+        // Helper to safely check file existence without throwing
+        function fsExists(p: string): boolean {
+            try { return require('fs').existsSync(p); } catch { return false; }
+        }
+
+        const baseHref = webview.asWebviewUri(vscode.Uri.file(webviewPath)) + '/';
+
+        // Render a minimal HTML wrapper that sets initialComments and optionally loads Angular assets
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; font-src ${webview.cspSource}; img-src ${webview.cspSource} data:;">
-    <title>Review Comments</title>
-    <base href="${webview.asWebviewUri(vscode.Uri.file(webviewPath))}/">
-    <link rel="stylesheet" href="${stylesUri}">
-    <style nonce="${nonce}">
-        /* VS Code theme integration */
-        :root {
-            --vscode-foreground: var(--vscode-foreground);
-            --vscode-editor-background: var(--vscode-editor-background);
-            --vscode-button-background: var(--vscode-button-background);
-            --vscode-button-foreground: var(--vscode-button-foreground);
-            --vscode-font-family: var(--vscode-font-family);
-            --vscode-font-size: var(--vscode-font-size);
-        }
-        
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
-            background-color: var(--vscode-editor-background);
-            color: var(--vscode-foreground);
-            overflow: hidden;
-        }
-        
-        /* Loading state while Angular initializes */
-        .angular-loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            flex-direction: column;
-            gap: 16px;
-        }
-        
-        .angular-loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--vscode-panel-border);
-            border-top: 3px solid var(--vscode-button-background);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .angular-loading-text {
-            color: var(--vscode-foreground);
-            opacity: 0.8;
-        }
-    </style>
+    <title>Comment Preview</title>
+    <base href="${baseHref}">
+    ${stylesUri ? `<link rel="stylesheet" href="${stylesUri}">` : ''}
+    <style nonce="${nonce}">body{font-family:var(--vscode-font-family, 'Segoe UI');margin:12px;color:var(--vscode-foreground);}</style>
 </head>
 <body>
-    <app-comment-preview>
-        <!-- Loading fallback while Angular bootstraps -->
-        <div class="angular-loading">
-            <div class="angular-loading-spinner"></div>
-            <div class="angular-loading-text">Loading Comment Preview...</div>
-        </div>
-    </app-comment-preview>
-    
-    <!-- Angular runtime scripts -->
-    <script nonce="${nonce}" src="${polyfillsJsUri}"></script>
-    <script nonce="${nonce}" src="${mainJsUri}"></script>
-    
-    <!-- Initialize webview API for Angular -->
+    <div id="preview-root"></div>
+
     <script nonce="${nonce}">
-        // Make VS Code API available to Angular if not already set
-        try {
-            if (typeof window.vscode === 'undefined' && typeof acquireVsCodeApi !== 'undefined') {
-                window.vscode = acquireVsCodeApi();
-            }
-        } catch (e) {
-            // If acquireVsCodeApi throws, we continue without vscode API. Angular will detect absence.
-            console.warn('acquireVsCodeApi unavailable or error during initialization', e);
-        }
-
-        // Pass initial comments data to Angular
+        // expose vscode API placeholder and initial comments
+        try { window.vscode = acquireVsCodeApi(); } catch (e) { window.vscode = window.vscode || undefined; }
         window.initialComments = ${JSON.stringify(this.comments)};
+    </script>
 
-        // Restore webview state if available
+    ${polyfillsJsUri ? `<script nonce="${nonce}" src="${polyfillsJsUri}"></script>` : ''}
+    ${mainJsUri ? `<script nonce="${nonce}" src="${mainJsUri}"></script>` : ''}
+
+    <script nonce="${nonce}">
+        // Diagnostic logging to help identify where a restrictive CSP originates
         try {
-            const previousState = window.vscode?.getState && window.vscode.getState();
-            if (previousState) {
-                window.vsCodeState = previousState;
-            }
+            const meta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+            console.log('[CommentPreview][CSP Debug] meta CSP content:', meta ? meta.getAttribute('content') : '<none>');
+            console.log('[CommentPreview][CSP Debug] webview.cspSource (passed by extension):', '${webview.cspSource}');
+            const iframes = Array.from(document.getElementsByTagName('iframe'));
+            iframes.forEach((f, i) => {
+                console.log('[CommentPreview][CSP Debug] iframe[' + i + '] src=', f.src);
+                try { console.log('[CommentPreview][CSP Debug] iframe[' + i + '] sandbox=', f.getAttribute('sandbox')); } catch(e) {}
+            });
         } catch (e) {
-            // Ignore state restore errors
+            console.warn('[CommentPreview][CSP Debug] error while logging CSP info', e);
         }
-
-        // Set up error handling for Angular initialization
-        window.addEventListener('error', function(e) {
-            console.error('Angular application error:', e.error);
-            try {
-                window.vscode?.postMessage({
-                    type: 'showError',
-                    data: { 
-                        message: 'Angular application failed to initialize: ' + e.error?.message 
-                    }
-                });
-            } catch (postError) {
-                // ignore
-            }
-        });
     </script>
 </body>
 </html>`;

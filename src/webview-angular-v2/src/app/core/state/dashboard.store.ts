@@ -1,4 +1,5 @@
 import { computed, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { signalStore, withComputed, withMethods, withState, patchState } from '@ngrx/signals';
 import { MessageBusService } from '../services/message-bus.service';
 import {
@@ -7,7 +8,8 @@ import {
     MessageType,
     PullRequestItem,
     RepositoryInfo,
-    WebviewMessage
+    WebviewMessage,
+    LanguageModelInfo
 } from '../models/messages';
 
 type ConfigState = {
@@ -31,6 +33,7 @@ type DashboardState = {
     error?: string;
     success?: string;
     analysis: AnalysisState;
+    availableModels: LanguageModelInfo[];
 };
 
 const initialState: DashboardState = {
@@ -42,7 +45,8 @@ const initialState: DashboardState = {
     loading: false,
     error: undefined,
     success: undefined,
-    analysis: { inProgress: false, progress: 0 }
+    analysis: { inProgress: false, progress: 0 },
+    availableModels: []
 };
 
 export const DashboardStore = signalStore(
@@ -66,6 +70,12 @@ export const DashboardStore = signalStore(
                 testPat(personalAccessToken: string) {
                     bus.post(MessageType.TEST_CONNECTION, { testType: 'patToken', personalAccessToken });
                 },
+                testProject(projectName: string, organizationUrl: string, personalAccessToken: string) {
+                    bus.post(MessageType.TEST_CONNECTION, { testType: 'project', projectName, organizationUrl, patToken: personalAccessToken });
+                },
+                testModel(modelName: string) {
+                    bus.post(MessageType.TEST_CONNECTION, { testType: 'model', modelName });
+                },
                 loadRepositories(project?: string) {
                     bus.post(MessageType.LOAD_REPOSITORIES, { project });
                 },
@@ -82,6 +92,9 @@ export const DashboardStore = signalStore(
                     };
                     bus.post(MessageType.SEARCH_PULL_REQUESTS, payload);
                 },
+                loadAvailableModels() {
+                    bus.post(MessageType.LOAD_AVAILABLE_MODELS);
+                },
                 startAIAnalysis(prId: number) {
                     patchState(store, {
                         analysis: { inProgress: true, progress: 0, message: 'Starting' },
@@ -94,6 +107,30 @@ export const DashboardStore = signalStore(
 
             // Initialize message subscription
             bus.onMessage().subscribe((msg) => handleMessage(msg));
+
+            // Also handle NAVIGATE messages explicitly to perform router navigation
+            // (this keeps navigation logic in the webview and protects against missing payloads)
+            bus.onMessage().subscribe((msg) => {
+                if (msg && msg.type === MessageType.NAVIGATE) {
+                    const path = (msg.payload && (msg.payload as any).path) || '';
+                    if (path) {
+                        try {
+                            // Router is injected lazily to avoid circular deps during store creation
+                            const router = inject(Router, { optional: true });
+                            if (router && typeof router.navigateByUrl === 'function') {
+                                // navigate without adding history entry if desired — but initial navigation should be fine
+                                router.navigateByUrl(path).catch((e) => {
+                                    // swallow navigation errors to avoid surfacing during boot
+                                    // eslint-disable-next-line no-console
+                                    console.warn('Navigation failed:', e);
+                                });
+                            }
+                        } catch (e) {
+                            // ignore errors; navigation is best-effort
+                        }
+                    }
+                }
+            });
 
             function handleMessage(message: WebviewMessage<any>) {
                 switch (message.type) {
@@ -151,6 +188,11 @@ export const DashboardStore = signalStore(
                     case MessageType.LOAD_REPOSITORIES: {
                         const repos = (message.payload as any)?.repositories as RepositoryInfo[] || [];
                         patchState(store, { repositories: repos });
+                        break;
+                    }
+                    case MessageType.LOAD_AVAILABLE_MODELS: {
+                        const models = (message.payload as any)?.models as LanguageModelInfo[] || [];
+                        patchState(store, { availableModels: models });
                         break;
                     }
                     case MessageType.LOAD_PULL_REQUESTS:

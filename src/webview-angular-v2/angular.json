@@ -1,5 +1,5 @@
 {
-  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "$schema": "/node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "projects": {
     "webview-angular-v2": {
@@ -19,8 +19,8 @@
             "assets": [],
             "styles": ["src/styles.scss"],
             "scripts": [],
-            "baseHref": "./",
-            "deployUrl": "./"
+            "baseHref": "/",
+            "deployUrl": "/"
           },
           "configurations": {
             "production": {
@@ -39,8 +39,8 @@
               "extractLicenses": true,
               "vendorChunk": true,
               "outputHashing": "none",
-              "baseHref": "./",
-              "deployUrl": "./"
+              "baseHref": "/",
+              "deployUrl": "/"
             },
             "development": {
               "buildOptimizer": false,
@@ -50,8 +50,8 @@
               "sourceMap": true,
               "namedChunks": true,
               "outputHashing": "none",
-              "baseHref": "./",
-              "deployUrl": "./"
+              "baseHref": "/",
+              "deployUrl": "/"
             }
           },
           "defaultConfiguration": "production"

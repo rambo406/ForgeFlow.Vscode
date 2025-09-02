@@ -80,3 +80,13 @@ export interface FilterParams {
     status?: 'active' | 'abandoned' | 'completed';
 }
 
+// Language model info as returned by the extension
+export interface LanguageModelInfo {
+    id: string;
+    vendor: string;
+    family: string;
+    name: string;
+    maxTokens?: number;
+    version?: string;
+}
+
