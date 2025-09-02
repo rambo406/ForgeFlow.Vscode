@@ -15,7 +15,7 @@
 
   <vscode-divider></vscode-divider>
 
-  <div style="display:flex; flex-direction:column; gap:12px; max-width:720px;">
+  <div style="display:flex; flex-direction:column; gap:12px; max-width:1000px;">
     <div style="display:flex; align-items:center; gap:8px;">
       <ng-container *ngIf="isConfigured(); else notConfigured">
         <vscode-badge appearance="success">Connected</vscode-badge>
@@ -29,7 +29,7 @@
 
     <div style="display:flex; align-items:center; gap:8px;">
       <vscode-button (click)="loadActivePRs()" [disabled]="!isConfigured() || loadingPRs()">
-        {{ loadingPRs() ? 'Loading…' : 'Load Active PRs' }}
+        {{ loadingPRs() ? 'Loading.' : 'Load Active PRs' }}
       </vscode-button>
       <ng-container *ngIf="loadingPRs()">
         <vscode-progress-ring></vscode-progress-ring>
@@ -39,6 +39,73 @@
         <span *ngIf="lastProject()" style="color: var(--vscode-descriptionForeground);">in {{ lastProject() }}</span>
       </ng-container>
     </div>
+
+    <!-- Filters Row -->
+    <div style="display:grid; grid-template-columns: 1fr 160px 200px 1fr 1fr auto auto; gap:8px; align-items:end;">
+      <div>
+        <label style="display:block; font-size:12px; color: var(--vscode-descriptionForeground);">Search</label>
+        <input type="text" placeholder="Title, description, author…" (input)="onSearchInput($any($event.target).value)" style="width:100%; padding:6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border:1px solid var(--vscode-input-border); border-radius:4px;" />
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; color: var(--vscode-descriptionForeground);">Status</label>
+        <select [value]="filters().status" (change)="updateStatus($any($event.target).value)" style="width:100%; padding:6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border:1px solid var(--vscode-input-border); border-radius:4px;">
+          <option value="all">All</option>
+          <option value="active">Active</option>
+          <option value="completed">Completed</option>
+          <option value="abandoned">Abandoned</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; color: var(--vscode-descriptionForeground);">Repository</label>
+        <select [value]="filters().repositoryId || ''" (change)="updateRepository($any($event.target).value)" style="width:100%; padding:6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border:1px solid var(--vscode-input-border); border-radius:4px;">
+          <option value="">All</option>
+          <option *ngFor="let r of repositories()" [value]="r.id">{{ r.name }}</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; color: var(--vscode-descriptionForeground);">Author</label>
+        <input type="text" [value]="filters().author || ''" (input)="updateAuthor($any($event.target).value)" placeholder="Name or email" style="width:100%; padding:6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border:1px solid var(--vscode-input-border); border-radius:4px;" />
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; color: var(--vscode-descriptionForeground);">From</label>
+        <input type="date" [value]="filters().startDate || ''" (change)="updateStartDate($any($event.target).value)" style="width:100%; padding:6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border:1px solid var(--vscode-input-border); border-radius:4px;" />
+      </div>
+      <div>
+        <label style="display:block; font-size:12px; color: var(--vscode-descriptionForeground);">To</label>
+        <input type="date" [value]="filters().endDate || ''" (change)="updateEndDate($any($event.target).value)" style="width:100%; padding:6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border:1px solid var(--vscode-input-border); border-radius:4px;" />
+      </div>
+      <div style="display:flex; gap:6px;">
+        <vscode-button (click)="applyFilters()" [disabled]="applyingFilters()">Apply</vscode-button>
+        <vscode-button appearance="secondary" (click)="clearFilters()">Clear</vscode-button>
+      </div>
+    </div>
+
+    <!-- PR List -->
+    <div *ngIf="pullRequests().length > 0" style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+      <div *ngFor="let pr of pullRequests()" (click)="selectPR(pr.id)" style="cursor:pointer; padding:12px; border:1px solid var(--vscode-panel-border,#333); border-radius:6px; background: var(--vscode-editor-background); display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-weight:600;">{{ pr.title }}</span>
+            <vscode-badge *ngIf="pr.isDraft" appearance="secondary">Draft</vscode-badge>
+            <vscode-badge>{{ pr.status }}</vscode-badge>
+          </div>
+          <div style="color: var(--vscode-descriptionForeground); font-size:12px; margin-top:2px; display:flex; gap:8px; flex-wrap:wrap;">
+            <span>{{ pr.repository }}</span>
+            <span>• {{ pr.sourceRefName.replace('refs/heads/', '') }} → {{ pr.targetRefName.replace('refs/heads/', '') }}</span>
+            <span>• {{ pr.author }}</span>
+            <span>• {{ pr.createdDate | date:'medium' }}</span>
+          </div>
+          <div style="margin-top:6px; color: var(--vscode-foreground); opacity:.9; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">
+            {{ pr.description || 'No description provided.' }}
+          </div>
+        </div>
+        <div style="justify-self:end;">
+          <vscode-button>View</vscode-button>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="!loadingPRs() && pullRequests().length === 0 && prCount() !== null" style="color: var(--vscode-descriptionForeground);">
+      No pull requests match the current criteria.
+    </div>
   </div>
 </section>
-

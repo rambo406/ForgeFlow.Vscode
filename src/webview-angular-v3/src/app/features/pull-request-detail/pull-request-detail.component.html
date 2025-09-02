@@ -1,0 +1,62 @@
+<section style="padding:16px; display:flex; flex-direction:column; gap:16px;">
+  <header style="display:flex; align-items:center; gap:12px;">
+    <vscode-button appearance="secondary" (click)="backToDashboard()">
+      ← Back
+    </vscode-button>
+    <h2 style="margin:0; font-weight:600;">Pull Request Detail</h2>
+  </header>
+
+  <ng-container *ngIf="loading(); else content">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <vscode-progress-ring></vscode-progress-ring>
+      <span>Loading pull request…</span>
+    </div>
+  </ng-container>
+
+  <ng-template #content>
+    <ng-container *ngIf="pr(); else noData">
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <h3 style="margin:0;">{{ pr()?.title }}</h3>
+          <vscode-badge *ngIf="pr()?.isDraft" appearance="secondary">Draft</vscode-badge>
+          <vscode-badge>{{ pr()?.status }}</vscode-badge>
+        </div>
+        <div style="color: var(--vscode-descriptionForeground); font-size:12px;">
+          <span>by {{ pr()?.author }}</span>
+          <span> • {{ pr()?.repository }}</span>
+          <span> • {{ branchSummary() }}</span>
+          <span> • {{ pr()?.createdDate | date:'medium' }}</span>
+        </div>
+        <div style="white-space:pre-wrap; border:1px solid var(--vscode-panel-border,#333); padding:8px; border-radius:4px; background: var(--vscode-editor-background);">
+          {{ pr()?.description || 'No description provided.' }}
+        </div>
+
+        <div *ngIf="stats()" style="display:flex; gap:8px; flex-wrap:wrap;">
+          <vscode-badge appearance="secondary">Files: {{ stats()?.totalFiles }}</vscode-badge>
+          <vscode-badge appearance="secondary">+{{ stats()?.totalAdditions }}</vscode-badge>
+          <vscode-badge appearance="secondary">-{{ stats()?.totalDeletions }}</vscode-badge>
+          <a *ngIf="pr()?.url" [href]="pr()?.url" target="_blank" style="margin-left:auto; text-decoration:none;">
+            <vscode-button appearance="secondary">Open in Azure DevOps</vscode-button>
+          </a>
+        </div>
+
+        <vscode-divider></vscode-divider>
+
+        <h4 style="margin:0;">Changed Files</h4>
+        <div *ngIf="fileChanges().length === 0" style="color: var(--vscode-descriptionForeground);">No file changes.</div>
+        <div style="display:flex; flex-direction:column; gap:4px; max-height:320px; overflow:auto;">
+          <div *ngFor="let fc of fileChanges()" style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--vscode-panel-border,#333); border-radius:4px;">
+            <vscode-badge appearance="secondary">{{ fc.changeType }}</vscode-badge>
+            <code style="font-size:12px;">{{ fc.filePath }}</code>
+            <span style="margin-left:auto; color: var(--vscode-descriptionForeground); font-size:12px;">+{{ fc.addedLines }} / -{{ fc.deletedLines }}</span>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </ng-template>
+
+  <ng-template #noData>
+    <div style="color: var(--vscode-descriptionForeground);">Select a pull request from the dashboard to view details.</div>
+  </ng-template>
+</section>
+
