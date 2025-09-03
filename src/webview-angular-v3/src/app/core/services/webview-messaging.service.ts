@@ -7,6 +7,7 @@ export type MessageType =
   | 'loadConfig'
   | 'saveConfig'
   | 'testConnection'
+  | 'loadAvailableModels'
   | 'showError'
   | 'showSuccess'
   | 'navigate'
@@ -20,7 +21,8 @@ export type MessageType =
   | 'loadFileDiff'
   | 'startAIAnalysis'
   | 'aiAnalysisProgress'
-  | 'aiAnalysisComplete';
+  | 'aiAnalysisComplete'
+  | 'postComments';
 
 export interface WebviewMessage<TPayload = any> { // eslint-disable-line @typescript-eslint/no-explicit-any
   type: MessageType;

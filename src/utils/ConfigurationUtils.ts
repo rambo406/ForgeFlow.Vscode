@@ -12,6 +12,7 @@ export const CONFIG_KEYS = {
 } as const;
 
 export const DEFAULT_VALUES = {
+    // Default model preference; actual resolution is dynamic via VS Code LM API
     SELECTED_MODEL: 'gpt-4',
     CUSTOM_INSTRUCTIONS: 'Focus on code quality, security vulnerabilities, performance issues, and maintainability. Provide specific suggestions for improvement.',
     BATCH_SIZE: 10,
@@ -22,16 +23,6 @@ export const VALIDATION_PATTERNS = {
     ORGANIZATION_URL: /^https:\/\/dev\.azure\.com\/[^\/]+\/?$/,
     PAT_TOKEN_LENGTH: { min: 52, max: 52 } // Azure DevOps PAT tokens are 52 characters
 } as const;
-
-export const SUPPORTED_MODELS = [
-    'gpt-4',
-    'gpt-4-turbo',
-    'gpt-3.5-turbo', 
-    'claude-3-opus',
-    'claude-3-sonnet'
-] as const;
-
-export type SupportedModel = typeof SUPPORTED_MODELS[number];
 
 /**
  * Configuration utility functions
@@ -50,13 +41,6 @@ export class ConfigurationUtils {
     static formatOrganizationUrl(url: string): string {
         const sanitized = this.sanitizeOrganizationUrl(url);
         return sanitized.replace('https://dev.azure.com/', '');
-    }
-
-    /**
-     * Check if a model is supported
-     */
-    static isSupportedModel(model: string): model is SupportedModel {
-        return SUPPORTED_MODELS.includes(model as SupportedModel);
     }
 
     /**

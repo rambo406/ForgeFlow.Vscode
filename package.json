@@ -172,14 +172,7 @@
         "azdo-pr-reviewer.selectedModel": {
           "type": "string",
           "default": "gpt-4",
-          "description": "Preferred language model for code analysis",
-          "enum": [
-            "gpt-4",
-            "gpt-4-turbo",
-            "gpt-3.5-turbo",
-            "claude-3-opus",
-            "claude-3-sonnet"
-          ]
+          "markdownDescription": "Preferred language model for code analysis. Use the extension's Configuration view to select an available model (e.g., a GitHub Copilot model) discovered via the VS Code Language Model API."
         },
         "azdo-pr-reviewer.customInstructions": {
           "type": "string",

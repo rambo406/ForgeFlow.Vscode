@@ -29,6 +29,16 @@ interface UIFileChange {
     lines?: Array<{ lineNumber: number; type: string; content: string; originalLineNumber?: number }>;
 }
 
+interface UIReviewComment {
+    id: string;
+    fileName: string;
+    lineNumber: number;
+    content: string;
+    severity: 'info' | 'warning' | 'error';
+    suggestion?: string;
+    isApproved?: boolean;
+}
+
 @Component({
     selector: 'ff-pull-request-detail',
     standalone: true,
@@ -52,6 +62,19 @@ export class PullRequestDetailComponent implements OnInit, OnDestroy {
         return only ? af.lines.filter(l => l.type !== 'context') : af.lines;
     });
     fileText = signal<Record<string, { left: string; right: string; leftPath?: string; rightPath?: string }>>({});
+    analysisInProgress = signal<boolean>(false);
+    aiCommentsByFile = signal<Record<string, UIReviewComment[]>>({});
+    focusedLine = signal<number | null>(null);
+    activeFileComments = computed(() => {
+        const af = this.activeFile();
+        if (!af) { return []; }
+        const map = this.aiCommentsByFile();
+        return map[af.filePath] ?? [];
+    });
+
+    // Config: selected model must be set to enable analyze
+    selectedModel = signal<string>('');
+    hasModel = computed(() => !!this.selectedModel());
 
     branchSummary = computed(() => {
         const v = this.pr();
@@ -73,6 +96,11 @@ export class PullRequestDetailComponent implements OnInit, OnDestroy {
         // Listen for PR details from extension
         this.sub = this.bus.onMessage().subscribe((msg: WebviewMessage) => {
             switch (msg.type) {
+                case 'loadConfig': {
+                    const cfg = (msg.payload as any)?.config || {}; // eslint-disable-line
+                    this.selectedModel.set(cfg.selectedModel || '');
+                    break;
+                }
                 case 'selectPullRequest': {
                     const p = (msg.payload as any) || {}; // eslint-disable-line
                     const pr = p.pullRequest as UIPullRequestDetail | undefined;
@@ -99,6 +127,25 @@ export class PullRequestDetailComponent implements OnInit, OnDestroy {
                     this.loading.set(false);
                     break;
                 }
+                case 'aiAnalysisProgress': {
+                    this.analysisInProgress.set(true);
+                    break;
+                }
+                case 'aiAnalysisComplete': {
+                    const p = (msg.payload as any) || {}; // eslint-disable-line
+                    const result = p.result || {};
+                    const comments = Array.isArray(result.comments) ? result.comments as UIReviewComment[] : [];
+                    const map = { ...this.aiCommentsByFile() };
+                    // Group by fileName
+                    for (const c of comments) {
+                        const file = c.fileName;
+                        if (!map[file]) { map[file] = []; }
+                        map[file] = [...map[file], c];
+                    }
+                    this.aiCommentsByFile.set(map);
+                    this.analysisInProgress.set(false);
+                    break;
+                }
                 case 'loadFileDiff': {
                     const p = (msg.payload as any) || {}; // eslint-disable-line
                     const map = { ...this.fileText() };
@@ -119,6 +166,9 @@ export class PullRequestDetailComponent implements OnInit, OnDestroy {
             this.loading.set(true);
             this.bus.postMessage({ type: 'selectPullRequest', payload: { prId: idParam } });
         }
+
+        // Ensure we have latest configuration to determine if model is set
+        this.bus.postMessage({ type: 'loadConfig' });
     }
 
     ngOnDestroy(): void {
@@ -154,6 +204,7 @@ export class PullRequestDetailComponent implements OnInit, OnDestroy {
 
     showDiff(fc: UIFileChange): void {
         this.activeFile.set(fc);
+        this.focusedLine.set(null);
         const cache = this.fileText();
         if (!cache[fc.filePath]) {
             const currentPr = this.pr();
@@ -174,5 +225,64 @@ export class PullRequestDetailComponent implements OnInit, OnDestroy {
                 selectedFiles: selected
             }
         });
+    }
+
+    analyzeActiveFile(): void {
+        const currentPr = this.pr();
+        const af = this.activeFile();
+        if (!currentPr || !af || !this.hasModel()) { return; }
+        this.analysisInProgress.set(true);
+        this.bus.postMessage({
+            type: 'startAIAnalysis',
+            payload: {
+                prId: currentPr.id,
+                selectedFiles: [af.filePath]
+            }
+        });
+    }
+
+    analyzeLine(evt: { lineNumber: number }): void {
+        const currentPr = this.pr();
+        const af = this.activeFile();
+        if (!currentPr || !af || !this.hasModel()) { return; }
+        this.analysisInProgress.set(true);
+        this.bus.postMessage({
+            type: 'startAIAnalysis',
+            payload: {
+                prId: currentPr.id,
+                selectedFiles: [af.filePath],
+                focusLine: evt.lineNumber
+            }
+        });
+    }
+
+    openComment(fc: UIFileChange, c: UIReviewComment): void {
+        this.activeFile.set(fc);
+        this.focusedLine.set(c.lineNumber);
+        const cache = this.fileText();
+        if (!cache[fc.filePath]) {
+            const currentPr = this.pr();
+            if (currentPr) {
+                this.bus.postMessage({ type: 'loadFileDiff', payload: { prId: currentPr.id, filePath: fc.filePath, oldFilePath: fc.oldFilePath } });
+            }
+        }
+    }
+
+    postSuggestedComment(c: UIReviewComment): void {
+        const currentPr = this.pr();
+        if (!currentPr) { return; }
+        const payload = {
+            prId: currentPr.id,
+            comments: [{
+                id: c.id,
+                fileName: c.fileName,
+                lineNumber: c.lineNumber,
+                content: c.content,
+                severity: c.severity,
+                suggestion: c.suggestion,
+                isApproved: true
+            }]
+        };
+        this.bus.postMessage({ type: 'postComments', payload });
     }
 }

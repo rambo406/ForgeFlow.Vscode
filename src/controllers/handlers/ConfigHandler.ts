@@ -6,7 +6,8 @@ export class ConfigHandler implements MessageHandler {
     private readonly types = new Set<MessageType>([
         MessageType.LOAD_CONFIG,
         MessageType.SAVE_CONFIG,
-        MessageType.TEST_CONNECTION
+        MessageType.TEST_CONNECTION,
+        MessageType.LOAD_AVAILABLE_MODELS
     ]);
 
     canHandle(type: MessageType): boolean {
@@ -21,6 +22,8 @@ export class ConfigHandler implements MessageHandler {
                 return this.handleSaveConfig(message, ctx);
             case MessageType.TEST_CONNECTION:
                 return this.handleTestConnection(message, ctx);
+            case MessageType.LOAD_AVAILABLE_MODELS:
+                return this.handleLoadAvailableModels(message, ctx);
             default:
                 return; // unreachable due to canHandle
         }
@@ -49,6 +52,25 @@ export class ConfigHandler implements MessageHandler {
             ctx.sendMessage({
                 type: MessageType.SHOW_ERROR,
                 payload: { message: 'Failed to load configuration' },
+                requestId: message.requestId
+            });
+        }
+    }
+
+    private async handleLoadAvailableModels(message: WebviewMessage, ctx: HandlerContext): Promise<void> {
+        try {
+            const models = await ctx.languageModelService.getAvailableModels();
+            ctx.sendMessage({
+                type: MessageType.LOAD_AVAILABLE_MODELS,
+                payload: { models },
+                requestId: message.requestId
+            });
+        } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to load available models:', error);
+            ctx.sendMessage({
+                type: MessageType.SHOW_ERROR,
+                payload: { message: 'Failed to load available models' },
                 requestId: message.requestId
             });
         }
