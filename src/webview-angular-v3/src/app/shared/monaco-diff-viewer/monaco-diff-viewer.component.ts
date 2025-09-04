@@ -15,7 +15,7 @@ export interface MonacoDiffCommentThread {
     selector: 'ff-monaco-diff-viewer',
     standalone: true,
     template: `
-      <div #container style="width:100%; height:100%;"></div>
+      <div #container class="w-full h-full"></div>
     `,
     styles: [
       `

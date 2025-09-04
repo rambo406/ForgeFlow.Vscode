@@ -1,13 +1,13 @@
-<section>
-  <header class="ff-config-header">
+<section class="p-4">
+  <header class="flex items-center justify-between">
     <div>
-      <h2 class="ff-config-title">Azure DevOps Connection</h2>
-      <p class="ff-config-description">
+      <h2 class="m-0 font-semibold">Azure DevOps Connection</h2>
+      <p class="mt-1 text-vs-desc">
         Configure your organization URL and Personal Access Token. The token is stored securely using VS Code Secret Storage.
       </p>
     </div>
     <nav>
-      <a routerLink="/dashboard" class="ff-link-no-underline">
+      <a routerLink="/dashboard" class="no-underline">
         <vscode-button appearance="secondary">Back to Dashboard</vscode-button>
       </a>
     </nav>
@@ -15,30 +15,30 @@
 
   <vscode-divider></vscode-divider>
 
-  <div class="ff-config-container">
-    <label class="ff-label">Organization URL</label>
+  <div class="grid grid-cols-1 gap-3 max-w-[720px]">
+    <label class="font-semibold">Organization URL</label>
     <vscode-text-field
       placeholder="https://dev.azure.com/your-org"
       value="{{ organizationUrl() }}"
       (input)="organizationUrl.set($any($event.target).value)"
     ></vscode-text-field>
-    <div class="ff-row">
+    <div class="flex items-center gap-2">
       <vscode-button appearance="secondary" (click)="testOrg()" [disabled]="!organizationUrl() || testingOrg()">
-        {{ testingOrg() ? 'Testing…' : 'Test URL' }}
+        {{ testingOrg() ? 'Testing.' : 'Test URL' }}
       </vscode-button>
       <ng-container *ngIf="orgResult() as r">
         <vscode-badge appearance="{{ r.success ? 'success' : 'error' }}">{{ r.success ? 'OK' : 'Error' }}</vscode-badge>
-        <span class="ff-small-muted">{{ r.message || r.error }}</span>
+        <span class="text-vs-desc text-xs">{{ r.message || r.error }}</span>
       </ng-container>
       <ng-container *ngIf="testingOrg()">
         <vscode-progress-ring></vscode-progress-ring>
       </ng-container>
     </div>
 
-    <label class="ff-label" style="margin-top:12px;">Personal Access Token (PAT)</label>
-    <div class="ff-flex">
+    <label class="font-semibold mt-3">Personal Access Token (PAT)</label>
+    <div class="flex items-center gap-2">
       <vscode-text-field
-        style="flex:1;"
+        class="flex-1"
         [attr.type]="showPat() ? 'text' : 'password'"
         placeholder="Azure DevOps PAT"
         value="{{ personalAccessToken() }}"
@@ -46,49 +46,49 @@
       ></vscode-text-field>
       <vscode-button appearance="secondary" (click)="showPat.set(!showPat())">{{ showPat() ? 'Hide' : 'Show' }}</vscode-button>
     </div>
-    <div class="ff-row">
+    <div class="flex items-center gap-2">
       <vscode-button appearance="secondary" (click)="testPat()" [disabled]="!organizationUrl() || !personalAccessToken() || testingPat()">
-        {{ testingPat() ? 'Validating…' : 'Validate PAT' }}
+        {{ testingPat() ? 'Validating.' : 'Validate PAT' }}
       </vscode-button>
       <ng-container *ngIf="patResult() as r">
         <vscode-badge appearance="{{ r.success ? 'success' : 'error' }}">{{ r.success ? 'Valid' : 'Invalid' }}</vscode-badge>
-        <span class="ff-small-muted">{{ r.message || r.error }}</span>
+        <span class="text-vs-desc text-xs">{{ r.message || r.error }}</span>
       </ng-container>
       <ng-container *ngIf="testingPat()">
         <vscode-progress-ring></vscode-progress-ring>
       </ng-container>
     </div>
 
-    <div class="ff-small-muted">
+    <div class="text-vs-desc text-xs">
       <vscode-link href="https://learn.microsoft.com/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate">How to create a PAT</vscode-link>
     </div>
 
-    <label class="ff-label" style="margin-top:12px;">Default Project (optional)</label>
+    <label class="font-semibold mt-3">Default Project (optional)</label>
     <vscode-text-field
       placeholder="Project name"
       value="{{ defaultProject() }}"
       (input)="defaultProject.set($any($event.target).value)"
     ></vscode-text-field>
 
-    <vscode-divider style="margin-top:16px;"></vscode-divider>
-    <label class="ff-section-title">AI Model (GitHub Copilot)</label>
-    <div class="ff-flex" style="flex-wrap:wrap;">
+    <div class="mt-4"></div>
+    <label class="font-semibold mt-1">AI Model (GitHub Copilot)</label>
+    <div class="flex items-center gap-2 flex-wrap">
       <vscode-dropdown
-        style="min-width:320px;"
+        class="min-w-[320px]"
         [disabled]="loadingModels()"
         [value]="selectedModel()"
         (change)="onModelChange($event)">
         <ng-container *ngFor="let m of availableModels()">
-          <vscode-option [value]="m.id">{{ m.name }} — {{ m.family }}</vscode-option>
+          <vscode-option [value]="m.id">{{ m.name }} - {{ m.family }}</vscode-option>
         </ng-container>
       </vscode-dropdown>
-      <vscode-button appearance="secondary" (click)="refreshModels()" [disabled]="loadingModels()">{{ loadingModels() ? 'Loading…' : 'Refresh Models' }}</vscode-button>
-      <vscode-button appearance="secondary" (click)="testModel()" [disabled]="!hasValidModel() || testingModel()">{{ testingModel() ? 'Testing…' : 'Test Model' }}</vscode-button>
+      <vscode-button appearance="secondary" (click)="refreshModels()" [disabled]="loadingModels()">{{ loadingModels() ? 'Loading.' : 'Refresh Models' }}</vscode-button>
+      <vscode-button appearance="secondary" (click)="testModel()" [disabled]="!hasValidModel() || testingModel()">{{ testingModel() ? 'Testing.' : 'Test Model' }}</vscode-button>
     </div>
-    <div class="ff-row">
+    <div class="flex items-center gap-2">
       <ng-container *ngIf="modelResult() as r">
         <vscode-badge appearance="{{ r.success ? 'success' : 'error' }}">{{ r.success ? 'Available' : 'Unavailable' }}</vscode-badge>
-        <span class="ff-small-muted">{{ r.message || r.error }}</span>
+        <span class="text-vs-desc text-xs">{{ r.message || r.error }}</span>
       </ng-container>
       <ng-container *ngIf="testingModel()">
         <vscode-progress-ring></vscode-progress-ring>
@@ -96,45 +96,45 @@
     </div>
   </div>
 
-  <div class="ff-stack">
-    <vscode-button appearance="primary" (click)="save()" [disabled]="saving() || !hasValidModel()">{{ saving() ? 'Saving…' : 'Save Configuration' }}</vscode-button>
+  <div class="flex gap-2 mt-2">
+    <vscode-button appearance="primary" (click)="save()" [disabled]="saving() || !hasValidModel()">{{ saving() ? 'Saving.' : 'Save Configuration' }}</vscode-button>
   </div>
 
-  <div *ngIf="toast() as t" style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+  <div *ngIf="toast() as t" class="mt-2 flex items-center gap-2">
     <vscode-badge appearance="{{ t.kind === 'success' ? 'success' : 'error' }}">{{ t.kind === 'success' ? 'Success' : 'Error' }}</vscode-badge>
     <span>{{ t.message }}</span>
   </div>
 
   <vscode-divider></vscode-divider>
 
-  <section style="display:grid; grid-template-columns:1fr; gap:12px; max-width:720px;">
-    <h3 style="margin:0; font-weight:600;">AI Review Settings</h3>
-    <p style="margin:0; color: var(--vscode-descriptionForeground);">
+  <section class="grid grid-cols-1 gap-3 max-w-[720px]">
+    <h3 class="m-0 font-semibold">AI Review Settings</h3>
+    <p class="m-0 text-vs-desc">
       Choose your GitHub Copilot model and provide custom review instructions.
     </p>
 
-    <label style="font-weight:600;">GitHub Copilot Model</label>
-    <div style="display:flex; align-items:center; gap:8px;">
-      <vscode-dropdown style="min-width:320px;" [disabled]="loadingModels()" (change)="selectedModel.set($any($event.target).value)">
+    <label class="font-semibold">GitHub Copilot Model</label>
+    <div class="flex items-center gap-2">
+      <vscode-dropdown class="min-w-[320px]" [disabled]="loadingModels()" (change)="selectedModel.set($any($event.target).value)">
         <vscode-option *ngFor="let m of availableModels()" [selected]="m.id === selectedModel()" [value]="m.id">
           {{ m.name || m.id }}
         </vscode-option>
       </vscode-dropdown>
       <vscode-button appearance="secondary" (click)="reloadModels()" [disabled]="loadingModels()">
-        {{ loadingModels() ? 'Loading…' : 'Reload Models' }}
+        {{ loadingModels() ? 'Loading.' : 'Reload Models' }}
       </vscode-button>
       <vscode-button appearance="secondary" (click)="testModel()" [disabled]="!selectedModel()">
         Test Model
       </vscode-button>
       <ng-container *ngIf="modelResult() as r">
         <vscode-badge appearance="{{ r.success ? 'success' : 'error' }}">{{ r.success ? 'Available' : 'Unavailable' }}</vscode-badge>
-        <span style="color: var(--vscode-descriptionForeground);">{{ r.message || r.error }}</span>
+        <span class="text-vs-desc">{{ r.message || r.error }}</span>
       </ng-container>
     </div>
 
-    <label style="font-weight:600; margin-top:12px;">Custom Instructions</label>
+    <label class="font-semibold mt-3">Custom Instructions</label>
     <vscode-text-area rows="5" placeholder="e.g., Focus on security best practices and performance impacts." (input)="customInstructions.set($any($event.target).value)">{{ customInstructions() }}</vscode-text-area>
-    <div style="color: var(--vscode-descriptionForeground); font-size: 12px;">
+    <div class="text-vs-desc text-xs">
       These instructions will be appended to the code review prompt.
     </div>
   </section>

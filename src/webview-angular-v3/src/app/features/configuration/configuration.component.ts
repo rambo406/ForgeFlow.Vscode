@@ -8,7 +8,6 @@ import { WebviewMessagingService, WebviewMessage } from '../../core/services/web
   standalone: true,
   imports: [CommonModule, RouterLink],
   templateUrl: './configuration.component.html',
-  styleUrls: ['./configuration.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })

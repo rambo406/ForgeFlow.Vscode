@@ -1,13 +1,13 @@
-<section style="padding:16px; display:flex; flex-direction:column; gap:16px;">
-  <header style="display:flex; align-items:center; justify-content:space-between;">
+<section class="p-4 flex flex-col gap-4">
+  <header class="flex items-center justify-between">
     <div>
-      <h2 style="margin:0; font-weight:600;">PR Dashboard</h2>
-      <p style="margin:4px 0 0 0; color: var(--vscode-descriptionForeground);">
+      <h2 class="m-0 font-semibold">PR Dashboard</h2>
+      <p class="mt-1 text-vs-desc">
         View and analyze your active Azure DevOps pull requests.
       </p>
     </div>
     <nav>
-      <a routerLink="/configuration" style="text-decoration:none;">
+      <a routerLink="/configuration" class="no-underline">
         <vscode-button appearance="secondary">Configuration</vscode-button>
       </a>
     </nav>
@@ -15,19 +15,19 @@
 
   <vscode-divider></vscode-divider>
 
-  <div style="display:flex; flex-direction:column; gap:12px; max-width:1000px;">
-    <div style="display:flex; align-items:center; gap:8px;">
+  <div class="flex flex-col gap-3 max-w-[1000px]">
+    <div class="flex items-center gap-2">
       <ng-container *ngIf="isConfigured(); else notConfigured">
         <vscode-badge appearance="success">Connected</vscode-badge>
-        <span style="color: var(--vscode-descriptionForeground);">{{ organizationUrl() }}</span>
+        <span class="text-vs-desc">{{ organizationUrl() }}</span>
       </ng-container>
       <ng-template #notConfigured>
         <vscode-badge appearance="error">Not Configured</vscode-badge>
-        <span style="color: var(--vscode-descriptionForeground);">Configure your Azure DevOps connection</span>
+        <span class="text-vs-desc">Configure your Azure DevOps connection</span>
       </ng-template>
     </div>
 
-    <div style="display:flex; align-items:center; gap:8px;">
+    <div class="flex items-center gap-2">
       <vscode-button (click)="loadActivePRs()" [disabled]="!isConfigured() || loadingPRs()">
         {{ loadingPRs() ? 'Loading.' : 'Load Active PRs' }}
       </vscode-button>
@@ -36,19 +36,19 @@
       </ng-container>
       <ng-container *ngIf="prCount() !== null">
         <vscode-badge appearance="secondary">{{ prCount() }} PRs</vscode-badge>
-        <span *ngIf="lastProject()" style="color: var(--vscode-descriptionForeground);">in {{ lastProject() }}</span>
+        <span *ngIf="lastProject()" class="text-vs-desc">in {{ lastProject() }}</span>
       </ng-container>
     </div>
 
     <!-- Filters Row -->
-    <div style="display:grid; grid-template-columns: 1fr 160px 200px 1fr 1fr auto auto; gap:8px; align-items:end;">
+    <div class="grid [grid-template-columns:1fr_160px_200px_1fr_1fr_auto_auto] gap-2 items-end">
       <div>
-        <label style="display:block; font-size:12px; color: var(--vscode-descriptionForeground);">Search</label>
-        <input type="text" placeholder="Title, description, author…" (input)="onSearchInput($any($event.target).value)" style="width:100%; padding:6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border:1px solid var(--vscode-input-border); border-radius:4px;" />
+        <label class="block text-xs text-vs-desc">Search</label>
+        <input type="text" placeholder="Title, description, author." (input)="onSearchInput($any($event.target).value)" class="w-full px-2 py-2 bg-vs-bg text-vs-fg border border-vs-panelBorder rounded" />
       </div>
       <div>
-        <label style="display:block; font-size:12px; color: var(--vscode-descriptionForeground);">Status</label>
-        <select [value]="filters().status" (change)="updateStatus($any($event.target).value)" style="width:100%; padding:6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border:1px solid var(--vscode-input-border); border-radius:4px;">
+        <label class="block text-xs text-vs-desc">Status</label>
+        <select [value]="filters().status" (change)="updateStatus($any($event.target).value)" class="w-full px-2 py-2 bg-vs-bg text-vs-fg border border-vs-panelBorder rounded">
           <option value="all">All</option>
           <option value="active">Active</option>
           <option value="completed">Completed</option>
@@ -56,55 +56,55 @@
         </select>
       </div>
       <div>
-        <label style="display:block; font-size:12px; color: var(--vscode-descriptionForeground);">Repository</label>
-        <select [value]="filters().repositoryId || ''" (change)="updateRepository($any($event.target).value)" style="width:100%; padding:6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border:1px solid var(--vscode-input-border); border-radius:4px;">
+        <label class="block text-xs text-vs-desc">Repository</label>
+        <select [value]="filters().repositoryId || ''" (change)="updateRepository($any($event.target).value)" class="w-full px-2 py-2 bg-vs-bg text-vs-fg border border-vs-panelBorder rounded">
           <option value="">All</option>
           <option *ngFor="let r of repositories()" [value]="r.id">{{ r.name }}</option>
         </select>
       </div>
       <div>
-        <label style="display:block; font-size:12px; color: var(--vscode-descriptionForeground);">Author</label>
-        <input type="text" [value]="filters().author || ''" (input)="updateAuthor($any($event.target).value)" placeholder="Name or email" style="width:100%; padding:6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border:1px solid var(--vscode-input-border); border-radius:4px;" />
+        <label class="block text-xs text-vs-desc">Author</label>
+        <input type="text" [value]="filters().author || ''" (input)="updateAuthor($any($event.target).value)" placeholder="Name or email" class="w-full px-2 py-2 bg-vs-bg text-vs-fg border border-vs-panelBorder rounded" />
       </div>
       <div>
-        <label style="display:block; font-size:12px; color: var(--vscode-descriptionForeground);">From</label>
-        <input type="date" [value]="filters().startDate || ''" (change)="updateStartDate($any($event.target).value)" style="width:100%; padding:6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border:1px solid var(--vscode-input-border); border-radius:4px;" />
+        <label class="block text-xs text-vs-desc">From</label>
+        <input type="date" [value]="filters().startDate || ''" (change)="updateStartDate($any($event.target).value)" class="w-full px-2 py-2 bg-vs-bg text-vs-fg border border-vs-panelBorder rounded" />
       </div>
       <div>
-        <label style="display:block; font-size:12px; color: var(--vscode-descriptionForeground);">To</label>
-        <input type="date" [value]="filters().endDate || ''" (change)="updateEndDate($any($event.target).value)" style="width:100%; padding:6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border:1px solid var(--vscode-input-border); border-radius:4px;" />
+        <label class="block text-xs text-vs-desc">To</label>
+        <input type="date" [value]="filters().endDate || ''" (change)="updateEndDate($any($event.target).value)" class="w-full px-2 py-2 bg-vs-bg text-vs-fg border border-vs-panelBorder rounded" />
       </div>
-      <div style="display:flex; gap:6px;">
+      <div class="flex gap-1.5">
         <vscode-button (click)="applyFilters()" [disabled]="applyingFilters()">Apply</vscode-button>
         <vscode-button appearance="secondary" (click)="clearFilters()">Clear</vscode-button>
       </div>
     </div>
 
     <!-- PR List -->
-    <div *ngIf="pullRequests().length > 0" style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
-      <div *ngFor="let pr of pullRequests()" (click)="selectPR(pr.id)" style="cursor:pointer; padding:12px; border:1px solid var(--vscode-panel-border,#333); border-radius:6px; background: var(--vscode-editor-background); display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center;">
+    <div *ngIf="pullRequests().length > 0" class="flex flex-col gap-2 mt-2">
+      <div *ngFor="let pr of pullRequests()" (click)="selectPR(pr.id)" class="cursor-pointer p-3 border border-vs-panelBorder rounded-md bg-vs-bg grid [grid-template-columns:1fr_auto] gap-2 items-center">
         <div>
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <span style="font-weight:600;">{{ pr.title }}</span>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-semibold">{{ pr.title }}</span>
             <vscode-badge *ngIf="pr.isDraft" appearance="secondary">Draft</vscode-badge>
             <vscode-badge>{{ pr.status }}</vscode-badge>
           </div>
-          <div style="color: var(--vscode-descriptionForeground); font-size:12px; margin-top:2px; display:flex; gap:8px; flex-wrap:wrap;">
+          <div class="text-vs-desc text-xs mt-0.5 flex gap-2 flex-wrap">
             <span>{{ pr.repository }}</span>
             <span>• {{ pr.sourceRefName.replace('refs/heads/', '') }} → {{ pr.targetRefName.replace('refs/heads/', '') }}</span>
             <span>• {{ pr.author }}</span>
             <span>• {{ pr.createdDate | date:'medium' }}</span>
           </div>
-          <div style="margin-top:6px; color: var(--vscode-foreground); opacity:.9; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">
+          <div class="mt-1 text-[var(--vscode-foreground)] opacity-90 overflow-hidden text-ellipsis line-clamp-2">
             {{ pr.description || 'No description provided.' }}
           </div>
         </div>
-        <div style="justify-self:end;">
+        <div class="justify-self-end">
           <vscode-button>View</vscode-button>
         </div>
       </div>
     </div>
-    <div *ngIf="!loadingPRs() && pullRequests().length === 0 && prCount() !== null" style="color: var(--vscode-descriptionForeground);">
+    <div *ngIf="!loadingPRs() && pullRequests().length === 0 && prCount() !== null" class="text-vs-desc">
       No pull requests match the current criteria.
     </div>
   </div>

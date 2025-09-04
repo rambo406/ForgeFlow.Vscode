@@ -1,13 +1,13 @@
-<section style="padding:16px; display:flex; flex-direction:column; gap:16px;">
-  <header style="display:flex; align-items:center; gap:12px;">
+<section class="p-4 flex flex-col gap-4">
+  <header class="flex items-center gap-3">
     <vscode-button appearance="secondary" (click)="backToDashboard()">
       ← Back
     </vscode-button>
-    <h2 style="margin:0; font-weight:600;">Pull Request Detail</h2>
+    <h2 class="m-0 font-semibold">Pull Request Detail</h2>
   </header>
 
   <ng-container *ngIf="loading(); else content">
-    <div style="display:flex; align-items:center; gap:8px;">
+    <div class="flex items-center gap-2">
       <vscode-progress-ring></vscode-progress-ring>
       <span>Loading pull request.</span>
     </div>
@@ -15,52 +15,52 @@
 
   <ng-template #content>
     <ng-container *ngIf="pr(); else noData">
-      <div style="display:flex; flex-direction:column; gap:8px;">
-        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <h3 style="margin:0;">{{ pr()?.title }}</h3>
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <h3 class="m-0">{{ pr()?.title }}</h3>
           <vscode-badge *ngIf="pr()?.isDraft" appearance="secondary">Draft</vscode-badge>
           <vscode-badge>{{ pr()?.status }}</vscode-badge>
         </div>
-        <div style="color: var(--vscode-descriptionForeground); font-size:12px;">
+        <div class="text-vs-desc text-xs">
           <span>by {{ pr()?.author }}</span>
           <span> • {{ pr()?.repository }}</span>
           <span> • {{ branchSummary() }}</span>
           <span> • {{ pr()?.createdDate | date:'medium' }}</span>
         </div>
-        <div style="white-space:pre-wrap; border:1px solid var(--vscode-panel-border,#333); padding:8px; border-radius:4px; background: var(--vscode-editor-background);">
+        <div class="whitespace-pre-wrap border border-vs-panelBorder p-2 rounded bg-vs-bg">
           {{ pr()?.description || 'No description provided.' }}
         </div>
 
-        <div *ngIf="stats()" style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div *ngIf="stats()" class="flex gap-2 flex-wrap">
           <vscode-badge appearance="secondary">Files: {{ stats()?.totalFiles }}</vscode-badge>
           <vscode-badge appearance="secondary">+{{ stats()?.totalAdditions }}</vscode-badge>
           <vscode-badge appearance="secondary">-{{ stats()?.totalDeletions }}</vscode-badge>
-          <a *ngIf="pr()?.url" [href]="pr()?.url" target="_blank" style="margin-left:auto; text-decoration:none;">
+          <a *ngIf="pr()?.url" [href]="pr()?.url" target="_blank" class="ml-auto no-underline">
             <vscode-button appearance="secondary">Open in Azure DevOps</vscode-button>
           </a>
         </div>
 
         <vscode-divider></vscode-divider>
 
-        <h4 style="margin:0;">Changed Files</h4>
-        <div *ngIf="fileChanges().length === 0" style="color: var(--vscode-descriptionForeground);">No file changes.</div>
+        <h4 class="m-0">Changed Files</h4>
+        <div *ngIf="fileChanges().length === 0" class="text-vs-desc">No file changes.</div>
 
-        <div style="display:flex; gap:12px;">
+        <div class="flex gap-3">
           <!-- File list -->
-          <div style="flex: 0 0 380px; display:flex; flex-direction:column; gap:6px; max-height:420px; overflow:auto;">
-            <div style="display:flex; align-items:center; gap:8px;">
+          <div class="basis-[380px] grow-0 shrink-0 flex flex-col gap-1.5 max-h-[420px] overflow-auto">
+            <div class="flex items-center gap-2">
               <input type="checkbox" id="selectAll" (change)="selectAll($event.target.checked)"/>
-              <label for="selectAll" style="font-size:12px; color: var(--vscode-descriptionForeground);">Select all</label>
+              <label for="selectAll" class="text-xs text-vs-desc">Select all</label>
             </div>
 
-            <div *ngFor="let fc of fileChanges()" style="display:flex; flex-direction:column; gap:4px;">
+            <div *ngFor="let fc of fileChanges()" class="flex flex-col gap-1">
               <div 
-                   style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--vscode-panel-border,#333); border-radius:4px; cursor:pointer; background: var(--vscode-editor-background);"
+                   class="flex items-center gap-2 px-2 py-1.5 border border-vs-panelBorder rounded cursor-pointer bg-vs-bg"
                    (click)="showDiff(fc)">
                 <input type="checkbox" [checked]="isSelected(fc)" (click)="$event.stopPropagation()" (change)="toggleFileSelection(fc)"/>
                 <vscode-badge appearance="secondary">{{ fc.changeType }}</vscode-badge>
-                <code style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ fc.filePath }}</code>
-                <span style="margin-left:auto; color: var(--vscode-descriptionForeground); font-size:12px;">+{{ fc.addedLines }} / -{{ fc.deletedLines }}</span>
+                <code class="text-xs whitespace-nowrap overflow-hidden text-ellipsis">{{ fc.filePath }}</code>
+                <span class="ml-auto text-vs-desc text-xs">+{{ fc.addedLines }} / -{{ fc.deletedLines }}</span>
               </div>
               <!-- AI comments under the file entry -->
               <ng-container *ngIf="aiCommentsByFile()[fc.filePath]?.length as count">
@@ -118,27 +118,27 @@
                 </ng-template>
               </div>
               <!-- AI Suggestions for active file -->
-              <div *ngIf="activeFileComments().length > 0" style="border-top:1px solid var(--vscode-panel-border,#333); padding:8px; max-height:220px; overflow:auto;">
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                  <h5 style="margin:0;">AI Suggestions</h5>
-                  <span style="color: var(--vscode-descriptionForeground); font-size:12px;">{{ activeFileComments().length }} suggestion(s)</span>
+              <div *ngIf="activeFileComments().length > 0" class="border-t border-vs-panelBorder p-2 max-h-[220px] overflow-auto">
+                <div class="flex items-center gap-2 mb-1.5">
+                  <h5 class="m-0">AI Suggestions</h5>
+                  <span class="text-vs-desc text-xs">{{ activeFileComments().length }} suggestion(s)</span>
                 </div>
-                <div *ngFor="let c of activeFileComments()" style="display:flex; flex-direction:column; gap:4px; padding:8px; border:1px solid var(--vscode-panel-border,#333); border-radius:4px; margin-bottom:6px; background: var(--vscode-editor-background);">
-                  <div style="display:flex; align-items:center; gap:8px;">
+                <div *ngFor="let c of activeFileComments()" class="flex flex-col gap-1 p-2 border border-vs-panelBorder rounded mb-1.5 bg-vs-bg">
+                  <div class="flex items-center gap-2">
                     <vscode-badge appearance="secondary">{{ c.severity }}</vscode-badge>
-                    <code style="font-size:12px;">Line {{ c.lineNumber }}</code>
-                    <span style="margin-left:auto;"></span>
+                    <code class="text-xs">Line {{ c.lineNumber }}</code>
+                    <span class="ml-auto"></span>
                     <vscode-button appearance="secondary" (click)="postSuggestedComment(c)">Comment</vscode-button>
                   </div>
-                  <div style="white-space:pre-wrap;">{{ c.content }}</div>
-                  <div *ngIf="c.suggestion" style="white-space:pre-wrap; font-family: var(--vscode-editor-font-family); font-size: 12px; background: var(--vscode-textBlockQuote-background); padding:6px; border-radius:4px;">
+                  <div class="whitespace-pre-wrap">{{ c.content }}</div>
+                  <div *ngIf="c.suggestion" class="whitespace-pre-wrap font-mono text-xs bg-vs-textBlockQuoteBg p-1.5 rounded">
                     {{ c.suggestion }}
                   </div>
                 </div>
               </div>
             </ng-container>
             <ng-template #noActive>
-              <div style="padding:16px; color: var(--vscode-descriptionForeground);">Select a file to view its changes.</div>
+              <div class="p-4 text-vs-desc">Select a file to view its changes.</div>
             </ng-template>
           </div>
         </div>
@@ -147,6 +147,6 @@
   </ng-template>
 
   <ng-template #noData>
-    <div style="color: var(--vscode-descriptionForeground);">Select a pull request from the dashboard to view details.</div>
+    <div class="text-vs-desc">Select a pull request from the dashboard to view details.</div>
   </ng-template>
 </section>

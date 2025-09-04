@@ -1,9 +1,7 @@
-<nav style="display:flex; gap:8px; padding:8px 12px; border-bottom: 1px solid var(--vscode-panel-border, #333);">
-  <a routerLink="/dashboard" style="text-decoration:none;"><vscode-button appearance="secondary">Dashboard</vscode-button></a>
-  <a routerLink="/configuration" style="text-decoration:none;"><vscode-button appearance="secondary">Configuration</vscode-button></a>
-  <div style="flex:1"></div>
-  <span style="align-self:center; color: var(--vscode-descriptionForeground); font-size:12px;">Azure DevOps PR Reviewer</span>
-  
+<nav class="flex gap-2 py-2 px-3 border-b border-vs-panelBorder bg-vs-bg text-vs-fg">
+  <a routerLink="/dashboard" class="no-underline"><vscode-button appearance="secondary">Dashboard</vscode-button></a>
+  <a routerLink="/configuration" class="no-underline"><vscode-button appearance="secondary">Configuration</vscode-button></a>
+  <div class="flex-1"></div>
+  <span class="self-center text-vs-desc text-xs">Azure DevOps PR Reviewer</span>
 </nav>
 <router-outlet></router-outlet>
-
