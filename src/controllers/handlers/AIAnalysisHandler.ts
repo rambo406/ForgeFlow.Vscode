@@ -32,6 +32,9 @@ export class AIAnalysisHandler implements MessageHandler {
             const selectedFiles: string[] | undefined = Array.isArray(message.payload?.selectedFiles)
                 ? message.payload.selectedFiles as string[]
                 : undefined;
+            const focusLine: number | undefined = typeof message.payload?.focusLine === 'number'
+                ? message.payload.focusLine as number
+                : undefined;
             if (!prId) {
                 ctx.sendMessage({ type: MessageType.SHOW_ERROR, payload: { message: 'Pull request ID is required' }, requestId: message.requestId });
                 return;
@@ -87,6 +90,13 @@ export class AIAnalysisHandler implements MessageHandler {
 
             progressCallback({ completed: 0, total: fileChanges.length, currentFileName: 'Initializing...', stage: 'initializing' });
 
+            // If focusLine is specified and exactly one file is targeted, narrow the diff to that line with context
+            if (focusLine && fileChanges.length === 1) {
+                const fd = fileChanges[0];
+                const filtered = this.filterFileDiffToLine(fd, focusLine, 4);
+                fileChanges = [filtered];
+            }
+
             const analysisResult = await analysisEngine.analyzeChanges(fileChanges, progressCallback, cancellationTokenSource.token);
 
             ctx.currentAnalysis = undefined;
@@ -118,6 +128,30 @@ export class AIAnalysisHandler implements MessageHandler {
             ctx.sendMessage({ type: MessageType.SHOW_SUCCESS, payload: { message: 'Analysis cancelled' }, requestId: message.requestId });
         } else {
             ctx.sendMessage({ type: MessageType.SHOW_ERROR, payload: { message: 'No analysis is currently running' }, requestId: message.requestId });
+        }
+    }
+
+    private filterFileDiffToLine(fileDiff: any, lineNumber: number, context: number) {
+        try {
+            const lines = Array.isArray(fileDiff.lines) ? fileDiff.lines as any[] : [];
+            // Keep lines within [lineNumber-context, lineNumber+context] on modified side
+            const start = Math.max(1, lineNumber - Math.max(0, context));
+            const end = lineNumber + Math.max(0, context);
+
+            const selected = lines.filter(l => typeof l.lineNumber === 'number' && l.lineNumber >= start && l.lineNumber <= end);
+
+            const addedLines = selected.filter(l => l.type === 'added').length;
+            const deletedLines = selected.filter(l => l.type === 'deleted').length;
+
+            return {
+                ...fileDiff,
+                lines: selected,
+                addedLines,
+                deletedLines,
+                isLargeFile: false
+            };
+        } catch {
+            return fileDiff;
         }
     }
 }

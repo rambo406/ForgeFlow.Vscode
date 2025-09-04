@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import axios, { AxiosError } from 'axios';
 import { ValidationResult, SettingsValidationResult } from '../models/AzureDevOpsModels';
-import { VALIDATION_PATTERNS, SUPPORTED_MODELS, ConfigurationUtils } from '../utils/ConfigurationUtils';
+import { VALIDATION_PATTERNS, ConfigurationUtils } from '../utils/ConfigurationUtils';
 import { LanguageModelService } from './LanguageModelService';
 
 /**
@@ -259,15 +259,6 @@ export class SettingsValidationService {
             };
         }
 
-        if (!SUPPORTED_MODELS.includes(modelName as any)) {
-            return {
-                isValid: false,
-                error: 'Unsupported model',
-                details: `Model '${modelName}' is not supported. Supported models: ${SUPPORTED_MODELS.join(', ')}`,
-                category: 'languageModel'
-            };
-        }
-
         const cacheKey = `model-${modelName}`;
         
         if (this.isCacheValid(cacheKey)) {
@@ -282,7 +273,7 @@ export class SettingsValidationService {
                 error: isAvailable ? undefined : 'Model not available',
                 details: isAvailable 
                     ? `Model '${ConfigurationUtils.getModelDisplayName(modelName)}' is available`
-                    : `Model '${modelName}' is not currently available. Please check your language model service configuration.`,
+                    : `Model '${modelName}' is not currently available. Please ensure the provider (e.g., GitHub Copilot) is installed and authenticated.`,
                 category: 'languageModel'
             };
             

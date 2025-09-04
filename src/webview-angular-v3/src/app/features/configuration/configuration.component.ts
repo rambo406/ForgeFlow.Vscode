@@ -8,6 +8,7 @@ import { WebviewMessagingService, WebviewMessage } from '../../core/services/web
   standalone: true,
   imports: [CommonModule, RouterLink],
   templateUrl: './configuration.component.html',
+  styleUrls: ['./configuration.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
@@ -17,13 +18,19 @@ export class ConfigurationComponent implements OnInit {
   personalAccessToken = signal<string>('');
   defaultProject = signal<string>('');
   selectedModel = signal<string>('');
+<<<<<<< HEAD
   customInstructions = signal<string>('');
   availableModels = signal<Array<{ id: string; vendor: string; family: string; name: string }>>([]);
+=======
+  availableModels = signal<Array<{ id: string; name: string; vendor: string; family: string; maxTokens?: number }>>([]);
+>>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
 
   // UI state
   saving = signal<boolean>(false);
   testingOrg = signal<boolean>(false);
   testingPat = signal<boolean>(false);
+  loadingModels = signal<boolean>(false);
+  testingModel = signal<boolean>(false);
   showPat = signal<boolean>(false);
   loadingModels = signal<boolean>(false);
   modelResult = signal<{ success: boolean; message?: string; error?: string } | null>(null);
@@ -31,6 +38,7 @@ export class ConfigurationComponent implements OnInit {
   // Feedback
   orgResult = signal<{ success: boolean; message?: string; error?: string } | null>(null);
   patResult = signal<{ success: boolean; message?: string; error?: string } | null>(null);
+  modelResult = signal<{ success: boolean; message?: string; error?: string } | null>(null);
   toast = signal<{ kind: 'success' | 'error'; message: string } | null>(null);
 
   constructor(private readonly bus: WebviewMessagingService) {}
@@ -45,6 +53,7 @@ export class ConfigurationComponent implements OnInit {
           this.personalAccessToken.set(cfg.personalAccessToken || '');
           this.defaultProject.set(cfg.defaultProject || '');
           this.selectedModel.set(cfg.selectedModel || '');
+<<<<<<< HEAD
           this.customInstructions.set(cfg.customInstructions || '');
           // Also request available models once config loads
           this.reloadModels();
@@ -58,6 +67,23 @@ export class ConfigurationComponent implements OnInit {
           if (!this.selectedModel() && models.length > 0) {
             this.selectedModel.set(models[0].id);
           }
+=======
+          break;
+        }
+        case 'loadAvailableModels': {
+          const list = ((msg.payload as any)?.models || []) as Array<any>; // eslint-disable-line
+          // Keep only GitHub Copilot models if vendor is provided
+          const copilotOnly = list.filter(m => (m.vendor || '').toLowerCase() === 'copilot');
+          const normalized = (copilotOnly.length ? copilotOnly : list).map(m => ({
+            id: m.id,
+            name: m.name || m.id,
+            vendor: m.vendor || 'unknown',
+            family: m.family || 'unknown',
+            maxTokens: m.maxTokens
+          }));
+          this.availableModels.set(normalized);
+          this.loadingModels.set(false);
+>>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
           break;
         }
         case 'testConnection': {
@@ -69,6 +95,10 @@ export class ConfigurationComponent implements OnInit {
             this.testingPat.set(false);
             this.patResult.set({ success: !!p.success, message: p.message, error: p.error });
           } else if (p.testType === 'model') {
+<<<<<<< HEAD
+=======
+            this.testingModel.set(false);
+>>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
             this.modelResult.set({ success: !!p.success, message: p.message, error: p.error });
           }
           break;
@@ -88,6 +118,7 @@ export class ConfigurationComponent implements OnInit {
 
     // Initial load
     this.bus.postMessage({ type: 'loadConfig' });
+    this.refreshModels();
   }
 
   save(): void {
@@ -100,8 +131,12 @@ export class ConfigurationComponent implements OnInit {
           organizationUrl: this.organizationUrl(),
           personalAccessToken: this.personalAccessToken(),
           defaultProject: this.defaultProject(),
+<<<<<<< HEAD
           selectedModel: this.selectedModel(),
           customInstructions: this.customInstructions()
+=======
+          selectedModel: this.selectedModel()
+>>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
         }
       }
     });
@@ -127,6 +162,7 @@ export class ConfigurationComponent implements OnInit {
     });
   }
 
+<<<<<<< HEAD
   testModel(): void {
     this.modelResult.set(null);
     const id = this.selectedModel();
@@ -140,6 +176,45 @@ export class ConfigurationComponent implements OnInit {
   reloadModels(): void {
     this.loadingModels.set(true);
     this.bus.postMessage({ type: 'loadAvailableModels' });
+=======
+  refreshModels(): void {
+    this.loadingModels.set(true);
+    this.availableModels.set([]);
+    this.bus.postMessage({ type: 'loadAvailableModels' });
+  }
+
+  testModel(): void {
+    if (!this.selectedModel()) { return; }
+    this.testingModel.set(true);
+    this.modelResult.set(null);
+    this.bus.postMessage({ type: 'testConnection', payload: { testType: 'model', modelName: this.selectedModel() } });
+  }
+
+  onModelChange(evt: Event): void {
+    const value = (evt?.target as any)?.value ?? ''; // eslint-disable-line @typescript-eslint/no-explicit-any
+    this.selectedModel.set(value);
+    this.saveSelectedModel();
+  }
+
+  private saveSelectedModel(): void {
+    // Save only the model selection to persist immediately on change
+    this.bus.postMessage({
+      type: 'saveConfig',
+      payload: {
+        config: {
+          selectedModel: this.selectedModel()
+        }
+      }
+    });
+  }
+
+  // Whether a model is currently selected (non-empty)
+  hasValidModel(): boolean {
+    const id = this.selectedModel();
+    if (!id) { return false; }
+    const list = this.availableModels();
+    return list.some(m => m.id === id);
+>>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
   }
 }
 

@@ -1,0 +1,63 @@
+:host {
+  display: block;
+  padding: 16px;
+}
+
+.ff-config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ff-config-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.ff-config-description {
+  margin: 4px 0 0 0;
+  color: var(--vscode-descriptionForeground);
+}
+
+.ff-config-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  max-width: 720px;
+}
+
+.ff-label {
+  font-weight: 600;
+}
+
+.ff-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ff-flex {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ff-small-muted {
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.ff-link-no-underline {
+  text-decoration: none;
+}
+
+.ff-stack {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ff-section-title {
+  font-weight: 600;
+  margin-top: 4px;
+}

@@ -9,13 +9,11 @@ import {
     SettingsConfiguration, 
     ImportOptions 
 } from '../models/AzureDevOpsModels';
-import { 
-    CONFIG_KEYS, 
-    DEFAULT_VALUES, 
-    VALIDATION_PATTERNS, 
-    SUPPORTED_MODELS, 
-    ConfigurationUtils,
-    SupportedModel 
+import {
+    CONFIG_KEYS,
+    DEFAULT_VALUES,
+    VALIDATION_PATTERNS,
+    ConfigurationUtils
 } from '../utils/ConfigurationUtils';
 
 /**
@@ -82,10 +80,10 @@ export class ConfigurationManager {
     /**
      * Get selected language model from configuration
      */
-    getSelectedModel(): SupportedModel {
+    getSelectedModel(): string {
         const config = vscode.workspace.getConfiguration(ConfigurationManager.EXTENSION_ID);
         const model = config.get<string>(CONFIG_KEYS.SELECTED_MODEL, DEFAULT_VALUES.SELECTED_MODEL);
-        return ConfigurationUtils.isSupportedModel(model) ? model : DEFAULT_VALUES.SELECTED_MODEL;
+        return model || DEFAULT_VALUES.SELECTED_MODEL;
     }
 
     /**
@@ -312,14 +310,7 @@ export class ConfigurationManager {
             };
         }
 
-        const selectedModel = this.getSelectedModel();
-        if (!this.isValidModel(selectedModel)) {
-            return {
-                isValid: false,
-                error: 'Invalid language model',
-                details: 'Please select a valid language model from the available options'
-            };
-        }
+        // Selected model is validated dynamically at usage time via VS Code LM API
 
         // Validate token against API
         const tokenValidation = await this.validatePatToken(token, orgUrl);
@@ -333,9 +324,7 @@ export class ConfigurationManager {
     /**
      * Check if the selected model is valid
      */
-    private isValidModel(model: string): model is SupportedModel {
-        return ConfigurationUtils.isSupportedModel(model);
-    }
+    // Model validity is determined dynamically via VS Code LM API; no static list here
 
     /**
      * Set organization URL with validation
@@ -364,15 +353,6 @@ export class ConfigurationManager {
      * Set selected model with validation
      */
     async setSelectedModel(model: string): Promise<ValidationResult> {
-        if (!this.isValidModel(model)) {
-            const supportedModels = SUPPORTED_MODELS.join(', ');
-            return {
-                isValid: false,
-                error: 'Invalid model selection',
-                details: `Model '${model}' is not supported. Please choose from: ${supportedModels}`
-            };
-        }
-
         try {
             const config = vscode.workspace.getConfiguration(ConfigurationManager.EXTENSION_ID);
             await config.update(CONFIG_KEYS.SELECTED_MODEL, model, vscode.ConfigurationTarget.Global);
@@ -514,16 +494,7 @@ export class ConfigurationManager {
         }
         
         // Validate Language Model settings
-        const selectedModel = this.getSelectedModel();
-        if (!this.isValidModel(selectedModel)) {
-            results.push({
-                isValid: false,
-                error: 'Invalid language model',
-                details: `Model '${selectedModel}' is not supported`,
-                category: 'languageModel'
-            });
-            errors.push('Invalid language model');
-        }
+        // Selected model validation is dynamic at runtime; skip strict static validation here
         
         // Validate Performance settings
         const batchSize = this.getBatchSize();

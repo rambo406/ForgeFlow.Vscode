@@ -51,9 +51,9 @@
             <div style="display:flex; align-items:center; gap:8px;">
               <input type="checkbox" id="selectAll" (change)="selectAll($event.target.checked)"/>
               <label for="selectAll" style="font-size:12px; color: var(--vscode-descriptionForeground);">Select all</label>
-              <vscode-button style="margin-left:auto;" (click)="analyzeSelected()">Analyze Selected with Copilot</vscode-button>
             </div>
 
+<<<<<<< HEAD
             <div *ngFor="let fc of fileChanges()" 
                  style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--vscode-panel-border,#333); border-radius:4px; cursor:pointer; background: var(--vscode-editor-background);"
                  (click)="showDiff(fc)">
@@ -62,6 +62,32 @@
               <code style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ fc.filePath }}</code>
               <vscode-badge *ngIf="fc.commentCount && fc.commentCount > 0" appearance="secondary" title="Comments">💬 {{ fc.commentCount }}</vscode-badge>
               <span style="margin-left:auto; color: var(--vscode-descriptionForeground); font-size:12px;">+{{ fc.addedLines }} / -{{ fc.deletedLines }}</span>
+=======
+            <div *ngFor="let fc of fileChanges()" style="display:flex; flex-direction:column; gap:4px;">
+              <div 
+                   style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--vscode-panel-border,#333); border-radius:4px; cursor:pointer; background: var(--vscode-editor-background);"
+                   (click)="showDiff(fc)">
+                <input type="checkbox" [checked]="isSelected(fc)" (click)="$event.stopPropagation()" (change)="toggleFileSelection(fc)"/>
+                <vscode-badge appearance="secondary">{{ fc.changeType }}</vscode-badge>
+                <code style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ fc.filePath }}</code>
+                <span style="margin-left:auto; color: var(--vscode-descriptionForeground); font-size:12px;">+{{ fc.addedLines }} / -{{ fc.deletedLines }}</span>
+              </div>
+              <!-- AI comments under the file entry -->
+              <ng-container *ngIf="aiCommentsByFile()[fc.filePath]?.length as count">
+                <div *ngIf="count > 0" style="display:flex; flex-direction:column; gap:4px; margin:0 0 0 28px;">
+                  <div *ngFor="let c of aiCommentsByFile()[fc.filePath]" 
+                       (click)="openComment(fc, c)"
+                       style="display:flex; align-items:center; gap:8px; padding:6px 8px; border-left:3px solid var(--vscode-panel-border,#333); background: var(--vscode-editor-background); cursor:pointer;">
+                    <span class="codicon codicon-lightbulb"></span>
+                    <vscode-badge appearance="secondary">{{ c.severity }}</vscode-badge>
+                    <code style="font-size:12px;">L{{ c.lineNumber }}</code>
+                    <span style="font-size:12px; color: var(--vscode-descriptionForeground); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      {{ c.content }}
+                    </span>
+                  </div>
+                </div>
+              </ng-container>
+>>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
             </div>
           </div>
 
@@ -72,6 +98,12 @@
                 <code style="font-size:12px;">{{ activeFile()?.filePath }}</code>
                 <vscode-badge appearance="secondary">{{ activeFile()?.changeType }}</vscode-badge>
                 <span style="margin-left:auto; color: var(--vscode-descriptionForeground); font-size:12px;">+{{ activeFile()?.addedLines }} / -{{ activeFile()?.deletedLines }}</span>
+                <vscode-button appearance="icon" title="Analyze changed code (AI)" (click)="analyzeActiveFile()" [disabled]="!hasModel() || analysisInProgress()">
+                  <span class="codicon codicon-lightbulb"></span>
+                </vscode-button>
+                <ng-container *ngIf="analysisInProgress()">
+                  <vscode-progress-ring></vscode-progress-ring>
+                </ng-container>
               </div>
               <div style="flex: 1; min-height: 0;">
                 <ng-container *ngIf="fileText()[activeFile()!.filePath] as content; else loadingContent">
@@ -81,9 +113,15 @@
                     [leftLabel]="content.leftPath || 'Original'"
                     [rightLabel]="content.rightPath || 'Modified'"
                     [filePath]="activeFile()!.filePath"
+<<<<<<< HEAD
                     [prId]="pr()?.id || 0"
                     [oldFilePath]="activeFile()!.oldFilePath || undefined"
                     [comments]="activeComments()">
+=======
+                    [lineComments]="activeFileComments()"
+                    [revealLine]="focusedLine()"
+                    (requestAnalyzeLine)="analyzeLine($event)">
+>>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
                   </ff-monaco-diff-viewer>
                 </ng-container>
                 <ng-template #loadingContent>
@@ -92,6 +130,25 @@
                     <span>Loading file content…</span>
                   </div>
                 </ng-template>
+              </div>
+              <!-- AI Suggestions for active file -->
+              <div *ngIf="activeFileComments().length > 0" style="border-top:1px solid var(--vscode-panel-border,#333); padding:8px; max-height:220px; overflow:auto;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                  <h5 style="margin:0;">AI Suggestions</h5>
+                  <span style="color: var(--vscode-descriptionForeground); font-size:12px;">{{ activeFileComments().length }} suggestion(s)</span>
+                </div>
+                <div *ngFor="let c of activeFileComments()" style="display:flex; flex-direction:column; gap:4px; padding:8px; border:1px solid var(--vscode-panel-border,#333); border-radius:4px; margin-bottom:6px; background: var(--vscode-editor-background);">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <vscode-badge appearance="secondary">{{ c.severity }}</vscode-badge>
+                    <code style="font-size:12px;">Line {{ c.lineNumber }}</code>
+                    <span style="margin-left:auto;"></span>
+                    <vscode-button appearance="secondary" (click)="postSuggestedComment(c)">Comment</vscode-button>
+                  </div>
+                  <div style="white-space:pre-wrap;">{{ c.content }}</div>
+                  <div *ngIf="c.suggestion" style="white-space:pre-wrap; font-family: var(--vscode-editor-font-family); font-size: 12px; background: var(--vscode-textBlockQuote-background); padding:6px; border-radius:4px;">
+                    {{ c.suggestion }}
+                  </div>
+                </div>
               </div>
             </ng-container>
             <ng-template #noActive>

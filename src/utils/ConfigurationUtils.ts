@@ -13,6 +13,7 @@ export const CONFIG_KEYS = {
 } as const;
 
 export const DEFAULT_VALUES = {
+    // Default model preference; actual resolution is dynamic via VS Code LM API
     SELECTED_MODEL: 'gpt-4',
     CUSTOM_INSTRUCTIONS: 'Focus on code quality, security vulnerabilities, performance issues, and maintainability. Provide specific suggestions for improvement.',
     INLINE_COMMENT_SYSTEM_PROMPT: 'You are an expert code reviewer. Draft a concise, professional review comment for the given code location. Focus on clarity, correctness, maintainability, testing, performance, or security as appropriate. Offer a specific improvement or suggestion when applicable. Output only the comment text suitable for a PR review. No JSON. No code fences.',
@@ -25,6 +26,7 @@ export const VALIDATION_PATTERNS = {
     PAT_TOKEN_LENGTH: { min: 52, max: 52 } // Azure DevOps PAT tokens are 52 characters
 } as const;
 
+<<<<<<< HEAD
 export const SUPPORTED_MODELS = [
     // GitHub Copilot (OpenAI) families
     'gpt-4o',
@@ -45,6 +47,8 @@ export const SUPPORTED_MODELS = [
 
 export type SupportedModel = typeof SUPPORTED_MODELS[number];
 
+=======
+>>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
 /**
  * Configuration utility functions
  */
@@ -62,13 +66,6 @@ export class ConfigurationUtils {
     static formatOrganizationUrl(url: string): string {
         const sanitized = this.sanitizeOrganizationUrl(url);
         return sanitized.replace('https://dev.azure.com/', '');
-    }
-
-    /**
-     * Check if a model is supported
-     */
-    static isSupportedModel(model: string): model is SupportedModel {
-        return SUPPORTED_MODELS.includes(model as SupportedModel);
     }
 
     /**

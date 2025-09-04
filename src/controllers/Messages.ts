@@ -35,8 +35,12 @@ export enum MessageType {
     DISMISS_COMMENT = 'dismissComment',
     MODIFY_COMMENT = 'modifyComment',
     EXPORT_COMMENTS = 'exportComments',
+<<<<<<< HEAD
     CREATE_COMMENT_THREAD = 'createCommentThread',
     REPLY_TO_COMMENT_THREAD = 'replyToCommentThread',
+=======
+    POST_COMMENTS = 'postComments',
+>>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
 
     // UI Updates
     UPDATE_VIEW = 'updateView',
