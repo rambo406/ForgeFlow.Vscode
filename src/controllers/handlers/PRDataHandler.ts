@@ -60,6 +60,57 @@ export class PRDataHandler implements MessageHandler {
             const repoId = pr.repository.id;
             const diff = await client.getFileDiffContents(projectName, repoId, prId, filePath, oldFilePath);
 
+            // Load Azure DevOps comment threads and map to UI-friendly payload for this file
+            let commentsForFile: Array<{
+                threadId: number;
+                side: 'left' | 'right';
+                line: number;
+                status: string;
+                messages: Array<{ id: number; author: string; content: string; publishedDate?: string; isSystem?: boolean }>
+            }> = [];
+            try {
+                const threads = await client.getCommentThreads(projectName, repoId, prId);
+                const normPath = (p: string | undefined) => (p || '').replace(/\\/g, '/');
+                const rightPath = normPath(diff.modifiedPath || filePath);
+                const leftPath = normPath(diff.originalPath || oldFilePath || filePath);
+
+                commentsForFile = (threads || [])
+                    .filter(t => {
+                        const ctx = t.threadContext;
+                        if (!ctx || !ctx.filePath) return false;
+                        const ctxPath = normPath(ctx.filePath);
+                        // Match either current (right) or original (left) path
+                        return ctxPath === rightPath || ctxPath === leftPath;
+                    })
+                    .map(t => {
+                        const ctx = t.threadContext || {} as any;
+                        const hasRight = !!ctx.rightFileStart?.line;
+                        const side: 'left' | 'right' = hasRight ? 'right' : 'left';
+                        const line = hasRight ? Number(ctx.rightFileStart?.line || 1) : Number(ctx.leftFileStart?.line || 1);
+                        return {
+                            threadId: Number(t.id || 0),
+                            side,
+                            line,
+                            status: String(t.status || 'active'),
+                            messages: (t.comments || [])
+                                .filter(c => !!c && typeof c.content === 'string')
+                                .map(c => ({
+                                    id: Number(c.id || 0),
+                                    author: String(c.author?.displayName || 'Unknown'),
+                                    content: String(c.content || ''),
+                                    publishedDate: c.publishedDate ? new Date(c.publishedDate).toISOString() : undefined,
+                                    isSystem: c.commentType === 'system'
+                                }))
+                        };
+                    })
+                    // Remove empty threads
+                    .filter(t => t.messages && t.messages.length > 0);
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.warn('Failed to load PR comment threads for file', filePath, e);
+                commentsForFile = [];
+            }
+
             ctx.sendMessage({
                 type: MessageType.LOAD_FILE_DIFF,
                 payload: {
@@ -67,7 +118,8 @@ export class PRDataHandler implements MessageHandler {
                     leftPath: diff.originalPath || oldFilePath || filePath,
                     rightPath: diff.modifiedPath || filePath,
                     leftContent: diff.originalContent ?? '',
-                    rightContent: diff.modifiedContent ?? ''
+                    rightContent: diff.modifiedContent ?? '',
+                    comments: commentsForFile
                 },
                 requestId: message.requestId
             });
@@ -157,7 +209,13 @@ export class PRDataHandler implements MessageHandler {
                 return;
             }
             const pullRequest = await client.getPullRequest(projectName, prId);
-            const fileChanges = await client.getDetailedFileChanges(projectName, pullRequest.repository.id, prId);
+            const repoId = pullRequest.repository.id;
+            const fileChanges = await client.getDetailedFileChanges(projectName, repoId, prId);
+            // Fetch comment threads once to compute per-file counts
+            let threads: any[] = [];
+            try {
+                threads = await client.getCommentThreads(projectName, repoId, prId);
+            } catch { threads = []; }
 
             const transformedPR = {
                 id: pullRequest.pullRequestId,
@@ -180,7 +238,22 @@ export class PRDataHandler implements MessageHandler {
                 deletedLines: fc.deletedLines,
                 isBinary: fc.isBinary,
                 isLargeFile: fc.isLargeFile,
-                lines: fc.lines.map(l => ({ lineNumber: l.lineNumber, type: l.type, content: l.content, originalLineNumber: l.originalLineNumber }))
+                lines: fc.lines.map(l => ({ lineNumber: l.lineNumber, type: l.type, content: l.content, originalLineNumber: l.originalLineNumber })),
+                commentCount: (() => {
+                    const norm = (p?: string) => (p || '').replace(/\\/g, '/');
+                    const right = norm(fc.filePath);
+                    const left = norm(fc.oldFilePath || fc.filePath);
+                    const related = (threads || []).filter((t: any) => {
+                        const fp = norm(t?.threadContext?.filePath);
+                        return fp === right || fp === left;
+                    });
+                    let count = 0;
+                    for (const t of related) {
+                        const cmts = Array.isArray(t.comments) ? t.comments : [];
+                        count += cmts.filter((c: any) => c?.commentType !== 'system').length;
+                    }
+                    return count;
+                })()
             }));
 
             ctx.currentView = 'pullRequestDetail' as any; // keep legacy string value for Angular routes

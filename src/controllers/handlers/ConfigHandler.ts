@@ -34,6 +34,7 @@ export class ConfigHandler implements MessageHandler {
                 defaultProject: ctx.configurationManager.getDefaultProject() || '',
                 selectedModel: ctx.configurationManager.getSelectedModel(),
                 customInstructions: ctx.configurationManager.getCustomInstructions(),
+                inlineCommentSystemPrompt: ctx.configurationManager.getInlineCommentSystemPrompt(),
                 batchSize: ctx.configurationManager.getBatchSize(),
                 enableTelemetry: ctx.configurationManager.isTelemetryEnabled()
             };
@@ -97,6 +98,10 @@ export class ConfigHandler implements MessageHandler {
 
             if (config.customInstructions !== undefined) {
                 await vscodeConfig.update('customInstructions', config.customInstructions, vscode.ConfigurationTarget.Global);
+            }
+
+            if (config.inlineCommentSystemPrompt !== undefined) {
+                await vscodeConfig.update('inlineCommentSystemPrompt', config.inlineCommentSystemPrompt, vscode.ConfigurationTarget.Global);
             }
 
             if (config.batchSize !== undefined) {

@@ -19,18 +19,24 @@ export enum MessageType {
     SELECT_PULL_REQUEST = 'selectPullRequest',
     LOAD_PR_DETAILS = 'loadPRDetails',
     LOAD_FILE_DIFF = 'loadFileDiff',
+    UPDATE_FILE_COMMENTS = 'updateFileComments',
 
     // AI Analysis
     START_AI_ANALYSIS = 'startAIAnalysis',
     AI_ANALYSIS_PROGRESS = 'aiAnalysisProgress',
     AI_ANALYSIS_COMPLETE = 'aiAnalysisComplete',
     AI_ANALYSIS_CANCEL = 'aiAnalysisCancel',
+    // Inline AI Suggestion
+    SUGGEST_COMMENT = 'suggestComment',
+    SUGGEST_COMMENT_RESULT = 'suggestCommentResult',
 
     // AI Comments
     APPROVE_COMMENT = 'approveComment',
     DISMISS_COMMENT = 'dismissComment',
     MODIFY_COMMENT = 'modifyComment',
     EXPORT_COMMENTS = 'exportComments',
+    CREATE_COMMENT_THREAD = 'createCommentThread',
+    REPLY_TO_COMMENT_THREAD = 'replyToCommentThread',
 
     // UI Updates
     UPDATE_VIEW = 'updateView',

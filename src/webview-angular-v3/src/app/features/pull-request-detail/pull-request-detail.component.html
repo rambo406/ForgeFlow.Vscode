@@ -60,6 +60,7 @@
               <input type="checkbox" [checked]="isSelected(fc)" (click)="$event.stopPropagation()" (change)="toggleFileSelection(fc)"/>
               <vscode-badge appearance="secondary">{{ fc.changeType }}</vscode-badge>
               <code style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ fc.filePath }}</code>
+              <vscode-badge *ngIf="fc.commentCount && fc.commentCount > 0" appearance="secondary" title="Comments">💬 {{ fc.commentCount }}</vscode-badge>
               <span style="margin-left:auto; color: var(--vscode-descriptionForeground); font-size:12px;">+{{ fc.addedLines }} / -{{ fc.deletedLines }}</span>
             </div>
           </div>
@@ -79,7 +80,10 @@
                     [rightText]="content.right"
                     [leftLabel]="content.leftPath || 'Original'"
                     [rightLabel]="content.rightPath || 'Modified'"
-                    [filePath]="activeFile()!.filePath">
+                    [filePath]="activeFile()!.filePath"
+                    [prId]="pr()?.id || 0"
+                    [oldFilePath]="activeFile()!.oldFilePath || undefined"
+                    [comments]="activeComments()">
                   </ff-monaco-diff-viewer>
                 </ng-container>
                 <ng-template #loadingContent>

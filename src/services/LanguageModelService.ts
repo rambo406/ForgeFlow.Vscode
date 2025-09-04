@@ -44,6 +44,44 @@ export class LanguageModelService {
     }
 
     /**
+     * Suggest an inline review comment for a specific location using the selected model
+     */
+    async suggestLineComment(
+        filePath: string,
+        side: 'left' | 'right',
+        line: number,
+        snippet: string,
+        customInstructions?: string,
+        modelPreference?: string,
+        cancellationToken?: vscode.CancellationToken,
+        systemPromptOverride?: string
+    ): Promise<string> {
+        const model = await this.getSelectedModel(modelPreference);
+        const system = (systemPromptOverride && systemPromptOverride.trim())
+            ? systemPromptOverride.trim()
+            : [
+                'You are an expert code reviewer. Draft a concise, professional review comment for the given code location.',
+                'Focus on clarity, correctness, maintainability, testing, performance, or security as appropriate.',
+                'Offer a specific improvement or suggestion when applicable.',
+                'Output only the comment text suitable for a PR review. No JSON. No code fences.'
+              ].join(' ');
+        const extra = (customInstructions && customInstructions.trim()) ? `\nAdditional reviewer instructions: ${customInstructions.trim()}` : '';
+        const user = `File: ${filePath}\nSide: ${side}\nLine: ${line}\nContext (with line numbers, > marks the target line):\n\n\n${snippet}\n\nPlease provide a helpful PR review comment for the target line.`;
+
+        const messages: vscode.LanguageModelChatMessage[] = [
+            vscode.LanguageModelChatMessage.User(system + extra),
+            vscode.LanguageModelChatMessage.User(user)
+        ];
+
+        const response = await this.makeModelRequest(model, messages, {
+            maxTokens: 600,
+            temperature: 0.2,
+            justification: 'Inline review comment suggestion'
+        }, cancellationToken);
+        return String(response || '').trim();
+    }
+
+    /**
      * Get all available language models for code review
      */
     async getAvailableModels(): Promise<LanguageModelInfo[]> {

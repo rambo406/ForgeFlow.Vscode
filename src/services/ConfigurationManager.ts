@@ -97,6 +97,14 @@ export class ConfigurationManager {
     }
 
     /**
+     * Get inline comment system prompt (used by suggest comment)
+     */
+    getInlineCommentSystemPrompt(): string {
+        const config = vscode.workspace.getConfiguration(ConfigurationManager.EXTENSION_ID);
+        return config.get<string>(CONFIG_KEYS.INLINE_COMMENT_SYSTEM_PROMPT, DEFAULT_VALUES.INLINE_COMMENT_SYSTEM_PROMPT);
+    }
+
+    /**
      * Get batch size from configuration
      */
     getBatchSize(): number {

@@ -27,6 +27,23 @@ interface UIFileChange {
     isBinary: boolean;
     isLargeFile: boolean;
     lines?: Array<{ lineNumber: number; type: string; content: string; originalLineNumber?: number }>;
+    commentCount?: number;
+}
+
+interface UICommentMessage {
+    id: number;
+    author: string;
+    content: string;
+    publishedDate?: string;
+    isSystem?: boolean;
+}
+
+export interface UICommentThread {
+    threadId: number;
+    side: 'left' | 'right';
+    line: number;
+    status: string;
+    messages: UICommentMessage[];
 }
 
 @Component({
@@ -52,6 +69,14 @@ export class PullRequestDetailComponent implements OnInit, OnDestroy {
         return only ? af.lines.filter(l => l.type !== 'context') : af.lines;
     });
     fileText = signal<Record<string, { left: string; right: string; leftPath?: string; rightPath?: string }>>({});
+    fileComments = signal<Record<string, UICommentThread[]>>({});
+
+    activeComments = computed<UICommentThread[]>(() => {
+        const af = this.activeFile();
+        if (!af) { return []; }
+        const map = this.fileComments();
+        return map[af.filePath] || [];
+    });
 
     branchSummary = computed(() => {
         const v = this.pr();
@@ -105,6 +130,30 @@ export class PullRequestDetailComponent implements OnInit, OnDestroy {
                     const key = String(p.filePath || p.rightPath || '');
                     map[key] = { left: String(p.leftContent || ''), right: String(p.rightContent || ''), leftPath: p.leftPath, rightPath: p.rightPath };
                     this.fileText.set(map);
+                    // Capture comments for this file if provided
+                    if (Array.isArray(p.comments)) {
+                        const cMap = { ...this.fileComments() } as Record<string, UICommentThread[]>;
+                        cMap[key] = (p.comments || []) as UICommentThread[];
+                        this.fileComments.set(cMap);
+                    }
+                    break;
+                }
+                case 'updateFileComments': {
+                    const p = (msg.payload as any) || {}; // eslint-disable-line
+                    const key = String(p.filePath || '');
+                    if (key) {
+                        const cMap = { ...this.fileComments() } as Record<string, UICommentThread[]>;
+                        cMap[key] = (Array.isArray(p.comments) ? p.comments : []) as UICommentThread[];
+                        this.fileComments.set(cMap);
+                        // update comment count in file list
+                        const list = this.fileChanges().map(fc => {
+                            if (fc.filePath === key) {
+                                return { ...fc, commentCount: cMap[key].reduce((s, t) => s + (t.messages?.length || 0), 0) };
+                            }
+                            return fc;
+                        });
+                        this.fileChanges.set(list);
+                    }
                     break;
                 }
                 case 'showError':

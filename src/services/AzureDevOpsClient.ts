@@ -2,7 +2,8 @@ import axios, { AxiosInstance, AxiosResponse, AxiosError, AxiosRequestConfig } f
 import { 
     PullRequest, 
     FileChange, 
-    CommentThread, 
+    CommentThread,
+    Comment,
     AzureDevOpsApiResponse, 
     AzureDevOpsError,
     ValidationResult,
@@ -873,6 +874,31 @@ export class AzureDevOpsClient {
             return response.data.value;
         } catch (error) {
             console.error(`Failed to fetch comment threads for PR ${pullRequestId}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Create a new comment in an existing thread
+     */
+    async createComment(
+        project: string,
+        repositoryId: string,
+        pullRequestId: number,
+        threadId: number,
+        comment: Comment
+    ): Promise<Comment> {
+        try {
+            const url = `/${encodeURIComponent(project)}/_apis/git/repositories/${encodeURIComponent(repositoryId)}/pullrequests/${pullRequestId}/threads/${threadId}/comments`;
+            const response = await this.makeRequestWithRetry<Comment>({
+                method: 'POST',
+                url,
+                params: { 'api-version': '7.1' },
+                data: comment
+            });
+            return response.data;
+        } catch (error) {
+            console.error(`Failed to create comment in thread ${threadId} for PR ${pullRequestId}:`, error);
             throw error;
         }
     }

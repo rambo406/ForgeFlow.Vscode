@@ -172,20 +172,34 @@
         "azdo-pr-reviewer.selectedModel": {
           "type": "string",
           "default": "gpt-4",
+          "markdownDescription": "Preferred language model for code analysis. If you use GitHub Copilot, choose a Copilot model (e.g., `gpt-4o`).",
           "description": "Preferred language model for code analysis",
           "enum": [
+            "gpt-4o",
+            "gpt-4o-mini",
+            "gpt-4.1",
+            "gpt-4.1-mini",
+            "o3-mini",
+            "o4-mini",
             "gpt-4",
             "gpt-4-turbo",
             "gpt-3.5-turbo",
             "claude-3-opus",
-            "claude-3-sonnet"
+            "claude-3-sonnet",
+            "claude-3.5-sonnet"
           ]
         },
-        "azdo-pr-reviewer.customInstructions": {
-          "type": "string",
-          "default": "Focus on code quality, security vulnerabilities, performance issues, and maintainability. Provide specific suggestions for improvement.",
-          "description": "Custom instructions for the AI code reviewer"
-        },
+      "azdo-pr-reviewer.customInstructions": {
+        "type": "string",
+        "default": "Focus on code quality, security vulnerabilities, performance issues, and maintainability. Provide specific suggestions for improvement.",
+        "description": "Custom instructions for the AI code reviewer"
+      },
+      "azdo-pr-reviewer.inlineCommentSystemPrompt": {
+        "type": "string",
+        "default": "You are an expert code reviewer. Draft a concise, professional review comment for the given code location. Focus on clarity, correctness, maintainability, testing, performance, or security as appropriate. Offer a specific improvement or suggestion when applicable. Output only the comment text suitable for a PR review. No JSON. No code fences.",
+        "markdownDescription": "System prompt used when generating inline comment suggestions (Copilot). This is applied only for the 'Analyze with Copilot' button in the diff popover.",
+        "description": "System prompt for inline comment suggestions"
+      },
         "azdo-pr-reviewer.batchSize": {
           "type": "number",
           "default": 10,

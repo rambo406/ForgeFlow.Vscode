@@ -7,6 +7,7 @@ export const CONFIG_KEYS = {
     DEFAULT_PROJECT: 'defaultProject',
     SELECTED_MODEL: 'selectedModel',
     CUSTOM_INSTRUCTIONS: 'customInstructions',
+    INLINE_COMMENT_SYSTEM_PROMPT: 'inlineCommentSystemPrompt',
     BATCH_SIZE: 'batchSize',
     ENABLE_TELEMETRY: 'enableTelemetry'
 } as const;
@@ -14,6 +15,7 @@ export const CONFIG_KEYS = {
 export const DEFAULT_VALUES = {
     SELECTED_MODEL: 'gpt-4',
     CUSTOM_INSTRUCTIONS: 'Focus on code quality, security vulnerabilities, performance issues, and maintainability. Provide specific suggestions for improvement.',
+    INLINE_COMMENT_SYSTEM_PROMPT: 'You are an expert code reviewer. Draft a concise, professional review comment for the given code location. Focus on clarity, correctness, maintainability, testing, performance, or security as appropriate. Offer a specific improvement or suggestion when applicable. Output only the comment text suitable for a PR review. No JSON. No code fences.',
     BATCH_SIZE: 10,
     ENABLE_TELEMETRY: true
 } as const;
@@ -24,11 +26,21 @@ export const VALIDATION_PATTERNS = {
 } as const;
 
 export const SUPPORTED_MODELS = [
+    // GitHub Copilot (OpenAI) families
+    'gpt-4o',
+    'gpt-4o-mini',
+    'gpt-4.1',
+    'gpt-4.1-mini',
+    'o3-mini',
+    'o4-mini',
+    // Legacy OpenAI names
     'gpt-4',
     'gpt-4-turbo',
     'gpt-3.5-turbo', 
+    // Anthropic via Copilot or direct
     'claude-3-opus',
-    'claude-3-sonnet'
+    'claude-3-sonnet',
+    'claude-3.5-sonnet'
 ] as const;
 
 export type SupportedModel = typeof SUPPORTED_MODELS[number];
@@ -64,11 +76,18 @@ export class ConfigurationUtils {
      */
     static getModelDisplayName(model: string): string {
         const modelNames: Record<string, string> = {
+            'gpt-4o': 'GPT-4o (Copilot)',
+            'gpt-4o-mini': 'GPT-4o mini (Copilot)',
+            'gpt-4.1': 'GPT-4.1 (Copilot)',
+            'gpt-4.1-mini': 'GPT-4.1 mini (Copilot)',
+            'o3-mini': 'o3-mini (Reasoning)',
+            'o4-mini': 'o4-mini',
             'gpt-4': 'GPT-4',
             'gpt-4-turbo': 'GPT-4 Turbo',
             'gpt-3.5-turbo': 'GPT-3.5 Turbo',
             'claude-3-opus': 'Claude 3 Opus',
-            'claude-3-sonnet': 'Claude 3 Sonnet'
+            'claude-3-sonnet': 'Claude 3 Sonnet',
+            'claude-3.5-sonnet': 'Claude 3.5 Sonnet'
         };
         return modelNames[model] || model;
     }

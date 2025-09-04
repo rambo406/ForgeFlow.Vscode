@@ -16,12 +16,17 @@ export class ConfigurationComponent implements OnInit {
   organizationUrl = signal<string>('');
   personalAccessToken = signal<string>('');
   defaultProject = signal<string>('');
+  selectedModel = signal<string>('');
+  customInstructions = signal<string>('');
+  availableModels = signal<Array<{ id: string; vendor: string; family: string; name: string }>>([]);
 
   // UI state
   saving = signal<boolean>(false);
   testingOrg = signal<boolean>(false);
   testingPat = signal<boolean>(false);
   showPat = signal<boolean>(false);
+  loadingModels = signal<boolean>(false);
+  modelResult = signal<{ success: boolean; message?: string; error?: string } | null>(null);
 
   // Feedback
   orgResult = signal<{ success: boolean; message?: string; error?: string } | null>(null);
@@ -39,6 +44,20 @@ export class ConfigurationComponent implements OnInit {
           // Do NOT echo PAT if empty/undefined; it's retrieved only when user opens config
           this.personalAccessToken.set(cfg.personalAccessToken || '');
           this.defaultProject.set(cfg.defaultProject || '');
+          this.selectedModel.set(cfg.selectedModel || '');
+          this.customInstructions.set(cfg.customInstructions || '');
+          // Also request available models once config loads
+          this.reloadModels();
+          break;
+        }
+        case 'loadAvailableModels': {
+          const models = ((msg.payload as any)?.models || []) as Array<any>; // eslint-disable-line
+          this.availableModels.set(models.map(m => ({ id: m.id, vendor: m.vendor, family: m.family, name: m.name })));
+          this.loadingModels.set(false);
+          // If no selection yet, pick first model
+          if (!this.selectedModel() && models.length > 0) {
+            this.selectedModel.set(models[0].id);
+          }
           break;
         }
         case 'testConnection': {
@@ -49,6 +68,8 @@ export class ConfigurationComponent implements OnInit {
           } else if (p.testType === 'patToken') {
             this.testingPat.set(false);
             this.patResult.set({ success: !!p.success, message: p.message, error: p.error });
+          } else if (p.testType === 'model') {
+            this.modelResult.set({ success: !!p.success, message: p.message, error: p.error });
           }
           break;
         }
@@ -78,7 +99,9 @@ export class ConfigurationComponent implements OnInit {
         config: {
           organizationUrl: this.organizationUrl(),
           personalAccessToken: this.personalAccessToken(),
-          defaultProject: this.defaultProject()
+          defaultProject: this.defaultProject(),
+          selectedModel: this.selectedModel(),
+          customInstructions: this.customInstructions()
         }
       }
     });
@@ -102,6 +125,21 @@ export class ConfigurationComponent implements OnInit {
       type: 'testConnection',
       payload: { testType: 'patToken', patToken: this.personalAccessToken(), organizationUrl: this.organizationUrl() }
     });
+  }
+
+  testModel(): void {
+    this.modelResult.set(null);
+    const id = this.selectedModel();
+    if (!id) { return; }
+    this.bus.postMessage({
+      type: 'testConnection',
+      payload: { testType: 'model', modelName: id }
+    });
+  }
+
+  reloadModels(): void {
+    this.loadingModels.set(true);
+    this.bus.postMessage({ type: 'loadAvailableModels' });
   }
 }
 

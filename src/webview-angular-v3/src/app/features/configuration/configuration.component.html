@@ -79,4 +79,38 @@
     <vscode-badge appearance="{{ t.kind === 'success' ? 'success' : 'error' }}">{{ t.kind === 'success' ? 'Success' : 'Error' }}</vscode-badge>
     <span>{{ t.message }}</span>
   </div>
+
+  <vscode-divider></vscode-divider>
+
+  <section style="display:grid; grid-template-columns:1fr; gap:12px; max-width:720px;">
+    <h3 style="margin:0; font-weight:600;">AI Review Settings</h3>
+    <p style="margin:0; color: var(--vscode-descriptionForeground);">
+      Choose your GitHub Copilot model and provide custom review instructions.
+    </p>
+
+    <label style="font-weight:600;">GitHub Copilot Model</label>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <vscode-dropdown style="min-width:320px;" [disabled]="loadingModels()" (change)="selectedModel.set($any($event.target).value)">
+        <vscode-option *ngFor="let m of availableModels()" [selected]="m.id === selectedModel()" [value]="m.id">
+          {{ m.name || m.id }}
+        </vscode-option>
+      </vscode-dropdown>
+      <vscode-button appearance="secondary" (click)="reloadModels()" [disabled]="loadingModels()">
+        {{ loadingModels() ? 'Loading…' : 'Reload Models' }}
+      </vscode-button>
+      <vscode-button appearance="secondary" (click)="testModel()" [disabled]="!selectedModel()">
+        Test Model
+      </vscode-button>
+      <ng-container *ngIf="modelResult() as r">
+        <vscode-badge appearance="{{ r.success ? 'success' : 'error' }}">{{ r.success ? 'Available' : 'Unavailable' }}</vscode-badge>
+        <span style="color: var(--vscode-descriptionForeground);">{{ r.message || r.error }}</span>
+      </ng-container>
+    </div>
+
+    <label style="font-weight:600; margin-top:12px;">Custom Instructions</label>
+    <vscode-text-area rows="5" placeholder="e.g., Focus on security best practices and performance impacts." (input)="customInstructions.set($any($event.target).value)">{{ customInstructions() }}</vscode-text-area>
+    <div style="color: var(--vscode-descriptionForeground); font-size: 12px;">
+      These instructions will be appended to the code review prompt.
+    </div>
+  </section>
 </section>
