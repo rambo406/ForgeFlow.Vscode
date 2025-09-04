@@ -9,7 +9,7 @@
   <ng-container *ngIf="loading(); else content">
     <div style="display:flex; align-items:center; gap:8px;">
       <vscode-progress-ring></vscode-progress-ring>
-      <span>Loading pull request…</span>
+      <span>Loading pull request.</span>
     </div>
   </ng-container>
 
@@ -53,16 +53,6 @@
               <label for="selectAll" style="font-size:12px; color: var(--vscode-descriptionForeground);">Select all</label>
             </div>
 
-<<<<<<< HEAD
-            <div *ngFor="let fc of fileChanges()" 
-                 style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--vscode-panel-border,#333); border-radius:4px; cursor:pointer; background: var(--vscode-editor-background);"
-                 (click)="showDiff(fc)">
-              <input type="checkbox" [checked]="isSelected(fc)" (click)="$event.stopPropagation()" (change)="toggleFileSelection(fc)"/>
-              <vscode-badge appearance="secondary">{{ fc.changeType }}</vscode-badge>
-              <code style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ fc.filePath }}</code>
-              <vscode-badge *ngIf="fc.commentCount && fc.commentCount > 0" appearance="secondary" title="Comments">💬 {{ fc.commentCount }}</vscode-badge>
-              <span style="margin-left:auto; color: var(--vscode-descriptionForeground); font-size:12px;">+{{ fc.addedLines }} / -{{ fc.deletedLines }}</span>
-=======
             <div *ngFor="let fc of fileChanges()" style="display:flex; flex-direction:column; gap:4px;">
               <div 
                    style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--vscode-panel-border,#333); border-radius:4px; cursor:pointer; background: var(--vscode-editor-background);"
@@ -87,7 +77,6 @@
                   </div>
                 </div>
               </ng-container>
->>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
             </div>
           </div>
 
@@ -113,21 +102,18 @@
                     [leftLabel]="content.leftPath || 'Original'"
                     [rightLabel]="content.rightPath || 'Modified'"
                     [filePath]="activeFile()!.filePath"
-<<<<<<< HEAD
                     [prId]="pr()?.id || 0"
                     [oldFilePath]="activeFile()!.oldFilePath || undefined"
-                    [comments]="activeComments()">
-=======
+                    [comments]="activeComments()"
                     [lineComments]="activeFileComments()"
                     [revealLine]="focusedLine()"
                     (requestAnalyzeLine)="analyzeLine($event)">
->>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
                   </ff-monaco-diff-viewer>
                 </ng-container>
                 <ng-template #loadingContent>
                   <div style="height:100%; display:flex; align-items:center; justify-content:center; gap:8px;">
                     <vscode-progress-ring></vscode-progress-ring>
-                    <span>Loading file content…</span>
+                    <span>Loading file content.</span>
                   </div>
                 </ng-template>
               </div>

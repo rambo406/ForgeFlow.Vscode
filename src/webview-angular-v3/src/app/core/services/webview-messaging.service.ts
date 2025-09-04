@@ -23,14 +23,11 @@ export type MessageType =
   | 'startAIAnalysis'
   | 'aiAnalysisProgress'
   | 'aiAnalysisComplete'
-<<<<<<< HEAD
   | 'suggestComment'
   | 'suggestCommentResult'
   | 'createCommentThread'
-  | 'replyToCommentThread';
-=======
+  | 'replyToCommentThread'
   | 'postComments';
->>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
 
 export interface WebviewMessage<TPayload = any> { // eslint-disable-line @typescript-eslint/no-explicit-any
   type: MessageType;

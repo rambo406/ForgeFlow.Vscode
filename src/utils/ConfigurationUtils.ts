@@ -26,7 +26,6 @@ export const VALIDATION_PATTERNS = {
     PAT_TOKEN_LENGTH: { min: 52, max: 52 } // Azure DevOps PAT tokens are 52 characters
 } as const;
 
-<<<<<<< HEAD
 export const SUPPORTED_MODELS = [
     // GitHub Copilot (OpenAI) families
     'gpt-4o',
@@ -46,9 +45,6 @@ export const SUPPORTED_MODELS = [
 ] as const;
 
 export type SupportedModel = typeof SUPPORTED_MODELS[number];
-
-=======
->>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
 /**
  * Configuration utility functions
  */

@@ -8,13 +8,10 @@ export class CommentsHandler implements MessageHandler {
         MessageType.DISMISS_COMMENT,
         MessageType.MODIFY_COMMENT,
         MessageType.EXPORT_COMMENTS,
-<<<<<<< HEAD
         MessageType.CREATE_COMMENT_THREAD,
         MessageType.REPLY_TO_COMMENT_THREAD,
-        MessageType.SUGGEST_COMMENT
-=======
+        MessageType.SUGGEST_COMMENT,
         MessageType.POST_COMMENTS
->>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
     ]);
 
     canHandle(type: MessageType): boolean {
@@ -31,17 +28,14 @@ export class CommentsHandler implements MessageHandler {
                 return this.handleModifyComment(message, ctx);
             case MessageType.EXPORT_COMMENTS:
                 return this.handleExportComments(message, ctx);
-<<<<<<< HEAD
             case MessageType.CREATE_COMMENT_THREAD:
                 return this.handleCreateCommentThread(message, ctx);
             case MessageType.REPLY_TO_COMMENT_THREAD:
                 return this.handleReplyToCommentThread(message, ctx);
             case MessageType.SUGGEST_COMMENT:
                 return this.handleSuggestComment(message, ctx);
-=======
             case MessageType.POST_COMMENTS:
                 return this.handlePostComments(message, ctx);
->>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
             default:
                 return;
         }

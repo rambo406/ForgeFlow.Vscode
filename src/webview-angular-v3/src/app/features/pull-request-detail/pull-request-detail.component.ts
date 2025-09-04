@@ -79,16 +79,15 @@ export class PullRequestDetailComponent implements OnInit, OnDestroy {
         return only ? af.lines.filter(l => l.type !== 'context') : af.lines;
     });
     fileText = signal<Record<string, { left: string; right: string; leftPath?: string; rightPath?: string }>>({});
-<<<<<<< HEAD
     fileComments = signal<Record<string, UICommentThread[]>>({});
-
     activeComments = computed<UICommentThread[]>(() => {
         const af = this.activeFile();
         if (!af) { return []; }
         const map = this.fileComments();
         return map[af.filePath] || [];
     });
-=======
+
+    // AI analysis / suggestions
     analysisInProgress = signal<boolean>(false);
     aiCommentsByFile = signal<Record<string, UIReviewComment[]>>({});
     focusedLine = signal<number | null>(null);
@@ -102,7 +101,6 @@ export class PullRequestDetailComponent implements OnInit, OnDestroy {
     // Config: selected model must be set to enable analyze
     selectedModel = signal<string>('');
     hasModel = computed(() => !!this.selectedModel());
->>>>>>> 8a6ed91dc61cc80c455d4c05f74d458aee5842a1
 
     branchSummary = computed(() => {
         const v = this.pr();
